@@ -19,10 +19,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.14.1'
       - name: Run backend tests
-        run: gradle test --no-daemon
+        run: ./gradlew test --no-daemon
 
   frontend:
     name: Frontend

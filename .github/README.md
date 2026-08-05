@@ -1,7 +1,7 @@
 # GitHub configuration
 
-Contains continuous-integration workflows for the backend and frontend.
+Contains continuous-integration workflows, issue templates, and repository automation.
 
-Current workflow:
-
-- `.github/workflows/ci.yml` — runs backend tests and frontend build/lint on pushes and pull requests to `main`.
+- `.github/workflows/ci.yml` — backend (`./gradlew test`) and frontend build/lint on pushes and PRs to `main`
+- `.github/ISSUE_TEMPLATE/` — Feature and Bug issue forms
+- Roadmap issues/milestones are created via `scripts/create-roadmap-issues.sh`

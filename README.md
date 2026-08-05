@@ -63,8 +63,8 @@ Requires Java 21, Gradle, and PostgreSQL.
 ```bash
 cd backend
 cp ../.env.example ../.env   # fill DATABASE_* values
-gradle test
-gradle bootRun
+./gradlew test
+./gradlew bootRun
 ```
 
 API base path: `http://localhost:8080/api/v1`

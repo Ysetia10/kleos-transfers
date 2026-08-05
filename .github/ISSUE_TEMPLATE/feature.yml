@@ -1,0 +1,50 @@
+name: Feature
+description: Implement a product or platform capability
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      options:
+        - Identity
+        - Historical
+        - Prediction
+        - Frontend
+        - Infrastructure
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should be built and why it matters for transfer prediction.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Concrete deliverables (entity, API, migration, UI, tests).
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: What must not be mixed in (especially identity vs historical data).
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ] Follows existing Player module patterns
+        - [ ] Flyway migration when schema changes
+        - [ ] DTOs isolate API from JPA entities
+        - [ ] Tests cover happy path and validation
+    validations:
+      required: true

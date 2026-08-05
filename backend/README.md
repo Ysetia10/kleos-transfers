@@ -22,7 +22,7 @@ Spring Boot 3 backend for Kleos Transfers.
 Provide a reachable PostgreSQL database, then:
 
 ```bash
-gradle bootRun
+./gradlew bootRun
 ```
 
 Configuration uses environment-variable placeholders. See [`../.env.example`](../.env.example).
@@ -42,11 +42,14 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | GET | `/api/v1/players` | List players (paginated) |
 | GET | `/api/v1/players/{id}` | Get player by id |
 | PUT | `/api/v1/players/{id}` | Replace player identity |
+| DELETE | `/api/v1/players/{id}` | Soft-delete player identity |
 
 Nationality uses FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
+
+Identity deletes are soft (`deleted_at`); list/get ignore deleted rows.
 
 ## Tests
 
 ```bash
-gradle test
+./gradlew test
 ```

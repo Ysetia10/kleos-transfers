@@ -17,6 +17,7 @@ Thumbs.db
 !frontend/src/**/build/
 *.class
 *.jar
+!**/gradle-wrapper.jar
 *.war
 hs_err_pid*
 replay_pid*

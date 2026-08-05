@@ -9,15 +9,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Validates ISO 3166-1 alpha-3 country codes.
+ * Validates FIFA association nationality codes (for example ENG, GER, NED).
  */
 @Documented
-@Constraint(validatedBy = IsoCountryCodeValidator.class)
+@Constraint(validatedBy = FootballNationalityCodeValidator.class)
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface IsoCountryCode {
+public @interface FootballNationalityCode {
 
-    String message() default "must be a valid ISO 3166-1 alpha-3 country code";
+    String message() default "must be a valid FIFA nationality code";
 
     Class<?>[] groups() default {};
 

@@ -4,10 +4,10 @@ Vite-powered React 19 and TypeScript foundation for Kleos Transfers, using Mater
 
 ## Included foundation
 
-- Centralized light and dark Material UI themes
-- React Router routes with a responsive, neutral navigation layout
-- TanStack Query provider and Axios client placeholder
-- Empty route pages with no transfer, football, prediction, form, chart, or mock-data implementation
+- Centralized light and dark Material UI themes with semantic success/warning/error colors
+- Shared route constants used by routing and navigation
+- TanStack Query provider, Axios client with API error normalization, and query-key helpers
+- Empty product pages ready for Player / Club / Prediction features
 
 ## Commands
 
@@ -18,4 +18,10 @@ npm run build
 npm run lint
 ```
 
-Set `VITE_API_BASE_URL` only when a backend integration is introduced. The API client does not make any requests at this stage.
+Copy `.env.example` to `.env` and set:
+
+```bash
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+Backend routes are versioned under `/api/v1`.

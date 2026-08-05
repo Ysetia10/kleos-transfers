@@ -23,25 +23,36 @@ The model follows these principles:
 
 ### Purpose
 
-_To be finalized._
+Represent the permanent identity of a football player. Player identity never stores club membership, seasonal stats, market value, contracts, injuries, or transfers.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `fullName` | String (2–100) | Display name |
+| `dateOfBirth` | LocalDate | Must be past or present |
+| `nationality` | String (3) | FIFA association code (`ENG`, `GER`, `NED`, …) |
+| `heightCm` | Integer | Range 140–230 |
+| `preferredFoot` | Enum | `LEFT`, `RIGHT`, `BOTH` |
+| `primaryPosition` | Enum | Pitch position code (`GK` … `ST`) |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
 
 ### Relationships
 
-_To be finalized._
+None yet. Future historical entities (`PlayerSeason`, `Transfer`, `Contract`, `Injury`) will reference Player.
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.2.
+- API: `/api/v1/players`.
+- Nationality intentionally uses football codes, not ISO country codes.
 
 ## Club
 
 ### Purpose
 
-_To be finalized._
+_To be finalized._ Permanent club identity (name, country/association, founding metadata). Seasonal league membership and squad context belong in `ClubSeason`.
 
 ### Attributes
 
@@ -53,7 +64,7 @@ _To be finalized._
 
 ### Notes
 
-_To be finalized._
+Next identity-layer target after Player.
 
 ## Manager
 
@@ -77,7 +88,7 @@ _To be finalized._
 
 ### Purpose
 
-_To be finalized._
+_To be finalized._ Calendar/competition season identity (for example `2025/26`).
 
 ### Attributes
 
@@ -95,7 +106,7 @@ _To be finalized._
 
 ### Purpose
 
-_To be finalized._
+_To be finalized._ Competition identity (Premier League, Champions League, …).
 
 ### Attributes
 
@@ -113,7 +124,7 @@ _To be finalized._
 
 ### Purpose
 
-_To be finalized._
+_To be finalized._ Season-scoped player performance and context.
 
 ### Attributes
 
@@ -237,4 +248,8 @@ _To be finalized._
 
 ## Open Questions
 
-Record future design decisions here before implementation, including entity ownership, identifiers, cardinality, temporal boundaries, data provenance, and prediction-version requirements.
+- Soft-delete vs hard-delete for identity entities once historical foreign keys exist.
+- Natural-key uniqueness rules for Player (name + DOB + nationality is imperfect).
+- Club naming across multi-team cities and legal entity vs sporting brand.
+- Season boundary model (calendar year vs competition year).
+- Package-by-feature migration timing before Club/Manager land.

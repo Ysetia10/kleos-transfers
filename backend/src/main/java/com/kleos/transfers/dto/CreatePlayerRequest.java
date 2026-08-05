@@ -1,8 +1,8 @@
 package com.kleos.transfers.dto;
 
-import com.kleos.transfers.entity.enums.Position;
-import com.kleos.transfers.entity.enums.PreferredFoot;
-import com.kleos.transfers.validation.IsoCountryCode;
+import com.kleos.transfers.domain.Position;
+import com.kleos.transfers.domain.PreferredFoot;
+import com.kleos.transfers.validation.FootballNationalityCode;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -17,7 +17,7 @@ import java.time.LocalDate;
 public record CreatePlayerRequest(
         @NotBlank @Size(min = 2, max = 100) String fullName,
         @NotNull @PastOrPresent LocalDate dateOfBirth,
-        @NotBlank @IsoCountryCode String nationality,
+        @NotBlank @Size(min = 3, max = 3) @FootballNationalityCode String nationality,
         @NotNull @Min(140) @Max(230) Integer heightCm,
         @NotNull PreferredFoot preferredFoot,
         @NotNull Position primaryPosition

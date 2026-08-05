@@ -1,21 +1,19 @@
 import { AppBar, Box, Button, Container, Toolbar, Typography } from '@mui/material'
 import { NavLink as RouterNavLink } from 'react-router-dom'
-
-const navigationItems = [
-  { label: 'Home', to: '/' },
-  { label: 'Prediction', to: '/prediction' },
-  { label: 'Players', to: '/players' },
-  { label: 'Clubs', to: '/clubs' },
-  { label: 'Dashboard', to: '/dashboard' },
-  { label: 'About', to: '/about' },
-]
+import { navigationItems, routes } from '@/constants/routes'
 
 export function Navbar() {
   return (
     <AppBar component="header" position="static">
       <Container maxWidth="xl">
         <Toolbar disableGutters sx={{ flexWrap: 'wrap' }}>
-          <Typography color="text.primary" component={RouterNavLink} sx={{ textDecoration: 'none' }} to="/" variant="h4">
+          <Typography
+            color="text.primary"
+            component={RouterNavLink}
+            sx={{ textDecoration: 'none' }}
+            to={routes.home}
+            variant="h4"
+          >
             Kleos Transfers
           </Typography>
           <Box
@@ -33,6 +31,7 @@ export function Navbar() {
             {navigationItems.map(({ label, to }) => (
               <Button
                 component={RouterNavLink}
+                end={to === routes.home}
                 key={to}
                 sx={(theme) => ({
                   '&.active': { color: theme.palette.text.primary },

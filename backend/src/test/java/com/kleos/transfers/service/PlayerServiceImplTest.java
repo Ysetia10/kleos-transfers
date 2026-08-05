@@ -2,20 +2,20 @@ package com.kleos.transfers.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.kleos.transfers.domain.Position;
+import com.kleos.transfers.domain.PreferredFoot;
 import com.kleos.transfers.dto.CreatePlayerRequest;
 import com.kleos.transfers.dto.PlayerResponse;
 import com.kleos.transfers.dto.UpdatePlayerRequest;
 import com.kleos.transfers.entity.Player;
-import com.kleos.transfers.entity.enums.Position;
-import com.kleos.transfers.entity.enums.PreferredFoot;
 import com.kleos.transfers.exception.ResourceNotFoundException;
 import com.kleos.transfers.mapper.PlayerMapper;
 import com.kleos.transfers.repository.PlayerRepository;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -23,6 +23,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class PlayerServiceImplTest {
@@ -50,6 +54,19 @@ class PlayerServiceImplTest {
 
         assertThat(actual).isSameAs(expected);
         verify(playerRepository).save(player);
+    }
+
+    @Test
+    void returnsPagedPlayers() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Player player = player();
+        PlayerResponse expected = response();
+        when(playerRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(player)));
+        when(playerMapper.toResponse(player)).thenReturn(expected);
+
+        Page<PlayerResponse> actual = playerService.findAll(pageable);
+
+        assertThat(actual.getContent()).containsExactly(expected);
     }
 
     @Test
@@ -94,7 +111,7 @@ class PlayerServiceImplTest {
         return new CreatePlayerRequest(
                 "Test Player",
                 LocalDate.of(2000, 1, 1),
-                "IND",
+                "ENG",
                 180,
                 PreferredFoot.RIGHT,
                 Position.CM
@@ -105,7 +122,7 @@ class PlayerServiceImplTest {
         return new UpdatePlayerRequest(
                 "Updated Player",
                 LocalDate.of(2000, 1, 1),
-                "IND",
+                "NED",
                 181,
                 PreferredFoot.LEFT,
                 Position.CAM
@@ -116,7 +133,7 @@ class PlayerServiceImplTest {
         return new Player(
                 "Test Player",
                 LocalDate.of(2000, 1, 1),
-                "IND",
+                "ENG",
                 180,
                 PreferredFoot.RIGHT,
                 Position.CM
@@ -128,7 +145,7 @@ class PlayerServiceImplTest {
                 UUID.randomUUID(),
                 "Test Player",
                 LocalDate.of(2000, 1, 1),
-                "IND",
+                "ENG",
                 180,
                 PreferredFoot.RIGHT,
                 Position.CM,

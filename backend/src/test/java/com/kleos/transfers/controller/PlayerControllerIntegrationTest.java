@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @ActiveProfiles("test")
 class PlayerControllerIntegrationTest {
 
-    private static final String PLAYERS_PATH = "/api/players";
+    private static final String PLAYERS_PATH = "/api/v1/players";
 
     @Autowired
     private MockMvc mockMvc;
@@ -48,7 +48,7 @@ class PlayerControllerIntegrationTest {
                         .content(validPlayerRequest()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.fullName").value("Test Player"))
-                .andExpect(jsonPath("$.nationality").value("IND"))
+                .andExpect(jsonPath("$.nationality").value("ENG"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andReturn();
 
@@ -65,12 +65,32 @@ class PlayerControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Updated Player"))
                 .andExpect(jsonPath("$.heightCm").value(181))
-                .andExpect(jsonPath("$.preferredFoot").value("LEFT"));
+                .andExpect(jsonPath("$.preferredFoot").value("LEFT"))
+                .andExpect(jsonPath("$.nationality").value("NED"));
 
         mockMvc.perform(get(PLAYERS_PATH))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].fullName").value("Updated Player"));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].fullName").value("Updated Player"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void acceptsLowercaseNationalityAndNormalizesIt() throws Exception {
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Case Player",
+                                  "dateOfBirth": "2000-01-01",
+                                  "nationality": "ger",
+                                  "heightCm": 180,
+                                  "preferredFoot": "RIGHT",
+                                  "primaryPosition": "ST"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nationality").value("GER"));
     }
 
     @Test
@@ -81,7 +101,7 @@ class PlayerControllerIntegrationTest {
                                 {
                                   "fullName": "A",
                                   "dateOfBirth": "2999-01-01",
-                                  "nationality": "INVALID",
+                                  "nationality": "XXX",
                                   "heightCm": 139,
                                   "preferredFoot": null,
                                   "primaryPosition": null
@@ -93,9 +113,33 @@ class PlayerControllerIntegrationTest {
     }
 
     @Test
+    void rejectsMalformedJsonWithBadRequest() throws Exception {
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Broken Player",
+                                  "preferredFoot": "NOT_A_FOOT"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Malformed request body"));
+    }
+
+    @Test
+    void rejectsInvalidUuidPathWithBadRequest() throws Exception {
+        mockMvc.perform(get(PLAYERS_PATH + "/not-a-uuid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
     void returnsNotFoundForUnknownPlayer() throws Exception {
         mockMvc.perform(get(PLAYERS_PATH + "/{id}", UUID.randomUUID()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").exists());
     }
 
     private String readId(MvcResult result) throws Exception {
@@ -108,7 +152,7 @@ class PlayerControllerIntegrationTest {
                 {
                   "fullName": "Test Player",
                   "dateOfBirth": "2000-01-01",
-                  "nationality": "IND",
+                  "nationality": "ENG",
                   "heightCm": 180,
                   "preferredFoot": "RIGHT",
                   "primaryPosition": "CM"
@@ -121,7 +165,7 @@ class PlayerControllerIntegrationTest {
                 {
                   "fullName": "Updated Player",
                   "dateOfBirth": "2000-01-01",
-                  "nationality": "IND",
+                  "nationality": "NED",
                   "heightCm": 181,
                   "preferredFoot": "LEFT",
                   "primaryPosition": "CAM"

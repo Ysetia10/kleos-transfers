@@ -20,6 +20,11 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
     baseline-on-migrate: false
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
 
 management:
   endpoints:
@@ -41,3 +46,5 @@ kleos:
   application:
     name: Kleos Transfers
     version: 0.1.0
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

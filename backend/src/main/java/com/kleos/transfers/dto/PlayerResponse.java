@@ -1,7 +1,7 @@
 package com.kleos.transfers.dto;
 
-import com.kleos.transfers.entity.enums.Position;
-import com.kleos.transfers.entity.enums.PreferredFoot;
+import com.kleos.transfers.domain.Position;
+import com.kleos.transfers.domain.PreferredFoot;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;

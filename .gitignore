@@ -11,6 +11,16 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Java / Gradle
+.gradle/
+**/build/
+!frontend/src/**/build/
+*.class
+*.jar
+*.war
+hs_err_pid*
+replay_pid*
+
 # JavaScript / TypeScript
 node_modules/
 dist/

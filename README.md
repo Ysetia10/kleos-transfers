@@ -8,19 +8,18 @@ The project focuses on the environment around a transfer—not only a player's h
 
 Build an accessible and explainable decision-support platform for football transfers. Kleos Transfers should make its conclusions understandable: users should be able to see the positive and negative contextual factors behind each transfer assessment.
 
-The project is intended to serve fans, journalists, researchers, students, developers, and smaller football organisations that may not have access to commercial scouting platforms.
+## Current status
 
-## Future features
+Version **0.2** — Identity Layer in progress.
 
-Kleos Transfers may eventually provide, for a proposed transfer:
+Completed:
 
-- Expected minutes, goals, assists, xG, and xA
-- Likely position or positions and starting-XI probability
-- End-of-season market-value estimate
-- Transfer compatibility score and prediction confidence
-- Clear, evidence-based explanations of contributing factors
+- Repository, backend, and frontend foundations
+- Shared domain foundation (`BaseEntity`, auditing, enums)
+- Player identity module (API, persistence, validation, tests)
+- Material UI design system and application shell
 
-No prediction models or football datasets are included at this stage.
+Next identity entities: Club, Manager, Season, Tournament.
 
 ## High-level architecture
 
@@ -34,34 +33,58 @@ Database <--> Analytics and evaluation <--> Backend API <--> Frontend
 Database schema and migrations           Documentation and operations
 ```
 
-The concrete technology choices, interfaces, and data contracts will be defined through project design work before implementation begins.
+Domain modeling separates:
+
+1. **Identity** — permanent records (Player, Club, Manager, Season, Tournament)
+2. **Historical** — season-scoped facts (PlayerSeason, Transfer, Injury, …)
+3. **Prediction** — Kleos intelligence (Prediction, Evaluation, Explanation)
+
+See [`docs/domain-model.md`](docs/domain-model.md).
 
 ## Repository structure
 
 ```text
-backend/    Future application services and API contracts
-frontend/   Future web application and user experience
-analytics/  Future analysis, evaluation, and experimentation work
-database/   Database schema, migrations, and data-access documentation
-docs/       Architecture, decisions, and contributor documentation
-research/   Research notes, methodology, and source assessment
-scripts/    Reproducible development and maintenance automation
-.github/    Repository-level GitHub configuration and workflows
+backend/    Spring Boot API and persistence
+frontend/   React + Vite web application
+analytics/  Future analysis and evaluation work
+database/   Schema notes and data-access documentation
+docs/       Architecture, domain model, and decisions
+research/   Research notes and methodology
+scripts/    Development automation
+.github/    GitHub Actions and repository automation
 ```
-
-## Development roadmap
-
-1. Define product requirements, user journeys, and success metrics.
-2. Document ethical data sourcing, licensing, and data-governance standards.
-3. Design the domain model, database schema, and API boundaries.
-4. Establish data-ingestion and validation foundations.
-5. Build an explainable analytics and evaluation framework.
-6. Implement the backend, frontend, and deployment workflows.
-7. Develop, validate, and transparently publish prediction methodologies.
 
 ## Getting started
 
-This repository currently contains the project foundation only. There are no runtime services to install or run yet. See the folder-level README files for the intended responsibility of each area.
+### Backend
+
+Requires Java 21, Gradle, and PostgreSQL.
+
+```bash
+cd backend
+cp ../.env.example ../.env   # fill DATABASE_* values
+gradle test
+gradle bootRun
+```
+
+API base path: `http://localhost:8080/api/v1`
+
+- `GET /api/v1/health`
+- `GET|POST /api/v1/players`
+- `GET|PUT /api/v1/players/{id}`
+
+### Frontend
+
+Requires Node.js 20+.
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+The Vite app defaults to `http://localhost:5173` and expects the API at `http://localhost:8080`.
 
 ## License
 

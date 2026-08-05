@@ -5,9 +5,12 @@ import com.kleos.transfers.dto.PlayerResponse;
 import com.kleos.transfers.dto.UpdatePlayerRequest;
 import com.kleos.transfers.service.PlayerService;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  * HTTP API for player identity records.
  */
 @RestController
-@RequestMapping("/api/players")
+@RequestMapping("/api/v1/players")
 @RequiredArgsConstructor
 public class PlayerController {
 
@@ -34,8 +37,10 @@ public class PlayerController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PlayerResponse>> findAll() {
-        return ResponseEntity.ok(playerService.findAll());
+    public ResponseEntity<Page<PlayerResponse>> findAll(
+            @PageableDefault(size = 20, sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(playerService.findAll(pageable));
     }
 
     @GetMapping("/{id}")

@@ -1,7 +1,7 @@
 package com.kleos.transfers.entity;
 
-import com.kleos.transfers.entity.enums.Position;
-import com.kleos.transfers.entity.enums.PreferredFoot;
+import com.kleos.transfers.domain.Position;
+import com.kleos.transfers.domain.PreferredFoot;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -71,7 +72,7 @@ public class Player extends BaseEntity {
     ) {
         this.fullName = fullName;
         this.dateOfBirth = dateOfBirth;
-        this.nationality = nationality;
+        this.nationality = nationality == null ? null : nationality.trim().toUpperCase(Locale.ROOT);
         this.heightCm = heightCm;
         this.preferredFoot = preferredFoot;
         this.primaryPosition = primaryPosition;

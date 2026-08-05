@@ -1,5 +1,8 @@
-package com.kleos.transfers.entity.enums;
+package com.kleos.transfers.domain;
 
+/**
+ * Primary pitch position codes used across identity and historical layers.
+ */
 public enum Position {
     GK,
     RB,

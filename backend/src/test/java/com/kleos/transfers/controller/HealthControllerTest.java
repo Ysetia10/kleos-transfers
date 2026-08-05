@@ -8,9 +8,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(HealthController.class)
+@TestPropertySource(properties = {
+        "kleos.application.name=Kleos Transfers",
+        "kleos.application.version=0.1.0"
+})
 class HealthControllerTest {
 
     @Autowired
@@ -18,7 +23,7 @@ class HealthControllerTest {
 
     @Test
     void returnsApplicationHealth() throws Exception {
-        mockMvc.perform(get("/api/health"))
+        mockMvc.perform(get("/api/v1/health"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.status").value("UP"))

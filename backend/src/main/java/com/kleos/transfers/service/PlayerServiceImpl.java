@@ -7,9 +7,10 @@ import com.kleos.transfers.entity.Player;
 import com.kleos.transfers.exception.ResourceNotFoundException;
 import com.kleos.transfers.mapper.PlayerMapper;
 import com.kleos.transfers.repository.PlayerRepository;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,10 +33,8 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
-    public List<PlayerResponse> findAll() {
-        return playerRepository.findAll().stream()
-                .map(playerMapper::toResponse)
-                .toList();
+    public Page<PlayerResponse> findAll(Pageable pageable) {
+        return playerRepository.findAll(pageable).map(playerMapper::toResponse);
     }
 
     @Override

@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
+import { routes } from '@/constants/routes'
 import { MainLayout } from '@/layouts/MainLayout'
 import { AboutPage } from '@/pages/AboutPage'
 import { ClubsPage } from '@/pages/ClubsPage'
@@ -13,11 +14,11 @@ export default function App() {
     <Routes>
       <Route element={<MainLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="prediction" element={<PredictionPage />} />
-        <Route path="players" element={<PlayersPage />} />
-        <Route path="clubs" element={<ClubsPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="about" element={<AboutPage />} />
+        <Route path={routes.prediction.slice(1)} element={<PredictionPage />} />
+        <Route path={routes.players.slice(1)} element={<PlayersPage />} />
+        <Route path={routes.clubs.slice(1)} element={<ClubsPage />} />
+        <Route path={routes.dashboard.slice(1)} element={<DashboardPage />} />
+        <Route path={routes.about.slice(1)} element={<AboutPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

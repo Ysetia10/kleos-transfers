@@ -1,15 +1,16 @@
+import type { CSSProperties } from 'react'
 import '@mui/material/Typography'
 import '@mui/material/styles'
 
 declare module '@mui/material/styles' {
   interface TypographyVariants {
-    display: React.CSSProperties
-    bodyLarge: React.CSSProperties
+    display: CSSProperties
+    bodyLarge: CSSProperties
   }
 
   interface TypographyVariantsOptions {
-    display?: React.CSSProperties
-    bodyLarge?: React.CSSProperties
+    display?: CSSProperties
+    bodyLarge?: CSSProperties
   }
 }
 

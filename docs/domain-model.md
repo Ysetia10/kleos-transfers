@@ -257,4 +257,3 @@ _To be finalized._
 - Natural-key uniqueness rules for Player (name + DOB + nationality is imperfect).
 - Club naming across multi-team cities and legal entity vs sporting brand.
 - Season boundary model (calendar year vs competition year).
-- Package-by-feature migration timing before Club/Manager land.

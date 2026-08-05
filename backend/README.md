@@ -13,6 +13,8 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Controllers stay thin; services own use cases
 - DTOs isolate the API from JPA entities
+- Packages are organized by feature (`player`, `health`) with shared code in `common`, `domain`, and `config`
+- New modules (Club, Manager, …) should follow the same feature-package layout
 - Shared vocabulary lives in `com.kleos.transfers.domain`
 - Flyway owns schema; JPA uses `ddl-auto: validate`
 - Public HTTP API is versioned under `/api/v1`

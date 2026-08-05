@@ -45,13 +45,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | GET | `/api/v1/players/{id}` | Get player by id |
 | PUT | `/api/v1/players/{id}` | Replace player identity |
 | DELETE | `/api/v1/players/{id}` | Soft-delete player identity |
-| POST | `/api/v1/clubs` | Create club identity |
-| GET | `/api/v1/clubs` | List clubs (paginated) |
-| GET | `/api/v1/clubs/{id}` | Get club by id |
-| PUT | `/api/v1/clubs/{id}` | Replace club identity |
-| DELETE | `/api/v1/clubs/{id}` | Soft-delete club identity |
 
-Nationality and club country codes use FIFA association codes (`ENG`, `GER`, `NED`, `ESP`), not ISO 3166-1.
+Nationality uses FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
 
 Identity deletes are soft (`deleted_at`); list/get ignore deleted rows.
 

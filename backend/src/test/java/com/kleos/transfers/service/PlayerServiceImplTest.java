@@ -107,6 +107,18 @@ class PlayerServiceImplTest {
                 .hasMessageContaining(id.toString());
     }
 
+    @Test
+    void softDeletesExistingPlayer() {
+        UUID id = UUID.randomUUID();
+        Player player = player();
+        when(playerRepository.findById(id)).thenReturn(Optional.of(player));
+
+        playerService.softDelete(id);
+
+        assertThat(player.isDeleted()).isTrue();
+        assertThat(player.getDeletedAt()).isNotNull();
+    }
+
     private CreatePlayerRequest createRequest() {
         return new CreatePlayerRequest(
                 "Test Player",

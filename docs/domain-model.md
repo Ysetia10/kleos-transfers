@@ -37,6 +37,7 @@ Represent the permanent identity of a football player. Player identity never sto
 | `preferredFoot` | Enum | `LEFT`, `RIGHT`, `BOTH` |
 | `primaryPosition` | Enum | Pitch position code (`GK` … `ST`) |
 | `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker; null means active |
 
 ### Relationships
 
@@ -47,6 +48,7 @@ None yet. Future historical entities (`PlayerSeason`, `Transfer`, `Contract`, `I
 - Implemented in backend Version 0.2.
 - API: `/api/v1/players`.
 - Nationality intentionally uses football codes, not ISO country codes.
+- Identity entities use soft delete: `DELETE` sets `deletedAt`; reads exclude deleted rows. Historical FKs can still resolve the underlying id if needed later.
 
 ## Club
 
@@ -246,9 +248,12 @@ _To be finalized._
 
 _To be finalized._
 
+## Decisions
+
+- **Identity soft delete** — identity entities set `deletedAt` instead of hard-deleting rows, so historical foreign keys remain valid after an identity is removed from active APIs.
+
 ## Open Questions
 
-- Soft-delete vs hard-delete for identity entities once historical foreign keys exist.
 - Natural-key uniqueness rules for Player (name + DOB + nationality is imperfect).
 - Club naming across multi-team cities and legal entity vs sporting brand.
 - Season boundary model (calendar year vs competition year).

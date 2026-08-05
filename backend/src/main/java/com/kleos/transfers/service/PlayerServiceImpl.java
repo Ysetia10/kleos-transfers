@@ -50,6 +50,13 @@ public class PlayerServiceImpl implements PlayerService {
         return playerMapper.toResponse(player);
     }
 
+    @Override
+    @Transactional
+    public void softDelete(UUID id) {
+        Player player = findPlayer(id);
+        player.softDelete();
+    }
+
     private Player findPlayer(UUID id) {
         return playerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Player not found: " + id));

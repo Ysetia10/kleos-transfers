@@ -19,4 +19,6 @@ public interface PlayerService {
     PlayerResponse findById(UUID id);
 
     PlayerResponse update(UUID id, UpdatePlayerRequest request);
+
+    void softDelete(UUID id);
 }

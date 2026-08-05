@@ -1,5 +1,6 @@
 package com.kleos.transfers.controller;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -38,7 +39,8 @@ class PlayerControllerIntegrationTest {
 
     @BeforeEach
     void clearPlayers() {
-        playerRepository.deleteAll();
+        // Bulk delete clears soft-deleted rows too (findAll is filtered by deleted_at).
+        playerRepository.deleteAllInBatch();
     }
 
     @Test
@@ -140,6 +142,31 @@ class PlayerControllerIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void softDeletesPlayerAndHidesItFromReads() throws Exception {
+        MvcResult createResult = mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validPlayerRequest()))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        UUID id = UUID.fromString(readId(createResult));
+
+        mockMvc.perform(delete(PLAYERS_PATH + "/{id}", id))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get(PLAYERS_PATH + "/{id}", id))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get(PLAYERS_PATH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        mockMvc.perform(delete(PLAYERS_PATH + "/{id}", id))
+                .andExpect(status().isNotFound());
     }
 
     private String readId(MvcResult result) throws Exception {

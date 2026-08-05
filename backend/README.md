@@ -13,6 +13,8 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Controllers stay thin; services own use cases
 - DTOs isolate the API from JPA entities
+- Packages are organized by feature (`player`, `club`, `health`) with shared code in `common`, `domain`, and `config`
+- New modules (Manager, Season, …) should follow the same feature-package layout
 - Shared vocabulary lives in `com.kleos.transfers.domain`
 - Flyway owns schema; JPA uses `ddl-auto: validate`
 - Public HTTP API is versioned under `/api/v1`
@@ -43,8 +45,13 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | GET | `/api/v1/players/{id}` | Get player by id |
 | PUT | `/api/v1/players/{id}` | Replace player identity |
 | DELETE | `/api/v1/players/{id}` | Soft-delete player identity |
+| POST | `/api/v1/clubs` | Create club identity |
+| GET | `/api/v1/clubs` | List clubs (paginated) |
+| GET | `/api/v1/clubs/{id}` | Get club by id |
+| PUT | `/api/v1/clubs/{id}` | Replace club identity |
+| DELETE | `/api/v1/clubs/{id}` | Soft-delete club identity |
 
-Nationality uses FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
+Nationality and club country codes use FIFA association codes (`ENG`, `GER`, `NED`, `ESP`), not ISO 3166-1.
 
 Identity deletes are soft (`deleted_at`); list/get ignore deleted rows.
 

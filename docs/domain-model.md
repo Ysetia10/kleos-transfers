@@ -54,19 +54,30 @@ None yet. Future historical entities (`PlayerSeason`, `Transfer`, `Contract`, `I
 
 ### Purpose
 
-_To be finalized._ Permanent club identity (name, country/association, founding metadata). Seasonal league membership and squad context belong in `ClubSeason`.
+Represent the permanent identity of a football club. Club identity never stores league membership, manager, squad, stadium season details, market value, or transfers.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `name` | String (2–120) | Official/common club name |
+| `shortName` | String (2–40) | Compact display name |
+| `countryCode` | String (3) | FIFA association code (`ESP`, `ENG`, …) |
+| `foundedYear` | Integer (optional) | Range 1800–2100 when present |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
 
 ### Relationships
 
-_To be finalized._
+None yet. Future historical entities (`ClubSeason`, `Transfer`, `Contract`) will reference Club.
 
 ### Notes
 
-Next identity-layer target after Player.
+- Implemented in backend Version 0.2.
+- API: `/api/v1/clubs`.
+- Active uniqueness: `(nameNormalized, countryCode)` (`nameNormalized` is lowercase `name`, not exposed on the API). Soft delete appends `#<id>` to `nameNormalized` so the same club name can be recreated.
+- Seasonal context belongs in `ClubSeason`, not on Club.
 
 ## Manager
 
@@ -251,10 +262,10 @@ _To be finalized._
 ## Decisions
 
 - **Identity soft delete** — identity entities set `deletedAt` instead of hard-deleting rows, so historical foreign keys remain valid after an identity is removed from active APIs.
+- **Club uniqueness** — clubs are unique on case-insensitive `name` + `countryCode` via `nameNormalized`; soft delete suffixes `nameNormalized` so re-creation is allowed.
 
 ## Open Questions
 
 - Natural-key uniqueness rules for Player (name + DOB + nationality is imperfect).
-- Club naming across multi-team cities and legal entity vs sporting brand.
+- Whether Club needs a separate legal/sporting brand distinction later.
 - Season boundary model (calendar year vs competition year).
-- Package-by-feature migration timing before Club/Manager land.

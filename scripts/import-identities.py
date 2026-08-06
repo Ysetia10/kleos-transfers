@@ -43,6 +43,11 @@ RESOURCES = {
         "optional": [],
         "integers": [],
     },
+    "tournaments": {
+        "required": ["name", "shortName", "confederation", "type"],
+        "optional": ["countryCode"],
+        "integers": [],
+    },
 }
 
 

@@ -13,8 +13,8 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Controllers stay thin; services own use cases
 - DTOs isolate the API from JPA entities
-- Packages are organized by feature (`player`, `club`, `manager`, `season`, `health`) with shared code in `common`, `domain`, and `config`
-- New modules (Season, Tournament, …) should follow the same feature-package layout
+- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `health`) with shared code in `common`, `domain`, and `config`
+- New modules should follow the same feature-package layout
 - Identity entities extend `common.entity.IdentityEntity` for the shared UUID key, auditing, and soft delete
 - Shared vocabulary lives in `com.kleos.transfers.domain`
 - Flyway owns schema; JPA uses `ddl-auto: validate`
@@ -65,10 +65,18 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | PUT | `/api/v1/seasons/{id}` | Replace season identity |
 | DELETE | `/api/v1/seasons/{id}` | Soft-delete season identity |
 | POST | `/api/v1/seasons/bulk` | Import up to 500 seasons |
+| POST | `/api/v1/tournaments` | Create tournament identity |
+| GET | `/api/v1/tournaments` | List tournaments (paginated) |
+| GET | `/api/v1/tournaments/{id}` | Get tournament by id |
+| PUT | `/api/v1/tournaments/{id}` | Replace tournament identity |
+| DELETE | `/api/v1/tournaments/{id}` | Soft-delete tournament identity |
+| POST | `/api/v1/tournaments/bulk` | Import up to 500 tournaments |
 
-Nationality and club country codes use FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
+Nationality and club/tournament country codes use FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
 
 Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
+
+Tournament `confederation` is one of `UEFA`, `CONMEBOL`, `CONCACAF`, `CAF`, `AFC`, `OFC`, `FIFA`. `type` is `LEAGUE`, `CUP`, or `SUPER_CUP`. `countryCode` is optional (domestic only).
 
 Identity deletes are soft (`deleted_at`); list/get ignore deleted rows.
 

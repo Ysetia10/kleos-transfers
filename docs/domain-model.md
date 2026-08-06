@@ -140,19 +140,33 @@ None yet. `PlayerSeason`, `ClubSeason`, `ManagerSeason`, `Transfer`, and related
 
 ### Purpose
 
-_To be finalized._ Competition identity (Premier League, Champions League, …).
+Represent a football competition as a permanent identity (Premier League, Champions League, World Cup, …). Tournament identity never stores season editions, standings, fixtures, or participating clubs — those change over time and belong to historical entities.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `name` | String (2–120) | Official/common competition name |
+| `shortName` | String (2–40) | Compact display name (`EPL`, `UCL`) |
+| `confederation` | Enum | `UEFA`, `CONMEBOL`, `CONCACAF`, `CAF`, `AFC`, `OFC`, `FIFA` |
+| `type` | Enum | `LEAGUE`, `CUP`, `SUPER_CUP` |
+| `countryCode` | String (3, optional) | FIFA association code for domestic competitions; null for continental/worldwide |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+Internal: `nameNormalized` (lowercase `name`) enforces case-insensitive uniqueness among active tournaments. Soft delete appends `#<id>` so the name can be reused.
 
 ### Relationships
 
-_To be finalized._
+None yet. Historical competition rows (e.g. club participation in a season) will reference Tournament by id.
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.2.
+- API: `/api/v1/tournaments` (+ `/bulk`).
+- Domestic example: Premier League → `UEFA` / `LEAGUE` / `ENG`.
+- Continental example: UEFA Champions League → `UEFA` / `CUP` / no country.
 
 ## PlayerSeason
 

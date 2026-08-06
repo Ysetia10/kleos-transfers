@@ -1,0 +1,7 @@
+name,shortName,confederation,type,countryCode
+Premier League,EPL,UEFA,LEAGUE,ENG
+La Liga,LaLiga,UEFA,LEAGUE,ESP
+Bundesliga,Bundesliga,UEFA,LEAGUE,GER
+Serie A,SerieA,UEFA,LEAGUE,ITA
+UEFA Champions League,UCL,UEFA,CUP,
+FIFA World Cup,WC,FIFA,CUP,

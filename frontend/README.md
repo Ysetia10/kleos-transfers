@@ -1,13 +1,16 @@
 # Frontend
 
-Vite-powered React 19 and TypeScript foundation for Kleos Transfers, using Material UI as its only UI component library.
+Vite-powered React 19 and TypeScript app for Kleos Transfers, using Material UI as its UI library.
 
-## Included foundation
+## Included
 
-- Centralized light and dark Material UI themes with semantic success/warning/error colors
-- Shared route constants used by routing and navigation
-- TanStack Query provider, Axios client with API error normalization, and query-key helpers
-- Empty product pages ready for Player / Club / Prediction features
+- Centralized light/dark Material UI themes
+- Shared route constants for routing and navigation
+- TanStack Query + Axios client with `ApiError` normalization
+- Typed API clients for players, clubs, seasons, and predictions
+- Real pages: Players, Clubs, Prediction form, Prediction results, Dashboard
+- React Hook Form + Zod validation on the prediction form
+- Explanation list with optional Recharts factor chart
 
 ## Commands
 
@@ -24,4 +27,4 @@ Copy `.env.example` to `.env` and set:
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
-Backend routes are versioned under `/api/v1`.
+Backend routes are versioned under `/api/v1`. The prediction form needs players, clubs, and seasons already loaded in the API.

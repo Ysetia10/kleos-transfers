@@ -19,10 +19,11 @@ Completed:
 - Player, Club, Manager, Season, and Tournament identity modules (API, persistence, validation, tests)
 - ClubSeason, ManagerSeason, PlayerSeason, Transfer, Contract, and Injury historical modules
 - PredictionRun / Prediction / Explanation / Evaluation with explainable v0 heuristic engine
+- Frontend: players/clubs catalogue, prediction form, explainable results, dashboard
 - Bulk identity import API + CSV loader script
 - Material UI design system and application shell
 
-Next: frontend prediction form/results (#25–#26), then stronger models and evaluation against a completed season.
+Next: seed demo data (#31), stronger models, and prediction validation against a completed season.
 
 ## High-level architecture
 

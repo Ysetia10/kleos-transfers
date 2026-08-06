@@ -38,6 +38,11 @@ RESOURCES = {
         "optional": [],
         "integers": [],
     },
+    "seasons": {
+        "required": ["label", "startDate", "endDate"],
+        "optional": [],
+        "integers": [],
+    },
 }
 
 

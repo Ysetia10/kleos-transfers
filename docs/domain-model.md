@@ -110,19 +110,31 @@ None yet. `ManagerSeason` will link Manager to Club and Season.
 
 ### Purpose
 
-_To be finalized._ Calendar/competition season identity (for example `2025/26`).
+Represent a football competition season as a permanent identity: a named date range that historical entities reference. A Season never stores fixtures, standings, tournament membership, or club/player stats.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `label` | String (4–20) | Display/key label: European `YYYY/YY` (`2024/25`) or calendar `YYYY` (`2024`) |
+| `startDate` | LocalDate | Inclusive season start |
+| `endDate` | LocalDate | Inclusive season end; must be strictly after `startDate` |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+Internal: `labelNormalized` (lowercase `label`) enforces case-insensitive uniqueness among active seasons. Soft delete appends `#<id>` so the label can be reused.
 
 ### Relationships
 
-_To be finalized._
+None yet. `PlayerSeason`, `ClubSeason`, `ManagerSeason`, `Transfer`, and related historical entities will reference Season by id.
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.2.
+- API: `/api/v1/seasons` (+ `/bulk`).
+- **Temporal boundary rules:** a season is the closed range `[startDate, endDate]`. Historical facts attach to a Season id; they do not store a separate year field. Overlapping date ranges across different labels are allowed (e.g. European `2024/25` and calendar `2024`) because competitions use different calendars. Uniqueness is on label only.
+- Label validation: `YYYY/YY` requires the second year to be the calendar successor of the first (`2024/25` valid, `2024/26` invalid).
 
 ## Tournament
 

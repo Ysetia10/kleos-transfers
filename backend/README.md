@@ -13,7 +13,7 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Controllers stay thin; services own use cases
 - DTOs isolate the API from JPA entities
-- Packages are organized by feature (`player`, `club`, `manager`, `health`) with shared code in `common`, `domain`, and `config`
+- Packages are organized by feature (`player`, `club`, `manager`, `season`, `health`) with shared code in `common`, `domain`, and `config`
 - New modules (Season, Tournament, …) should follow the same feature-package layout
 - Identity entities extend `common.entity.IdentityEntity` for the shared UUID key, auditing, and soft delete
 - Shared vocabulary lives in `com.kleos.transfers.domain`
@@ -59,8 +59,16 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | POST | `/api/v1/players/bulk` | Import up to 500 players |
 | POST | `/api/v1/clubs/bulk` | Import up to 500 clubs |
 | POST | `/api/v1/managers/bulk` | Import up to 500 managers |
+| POST | `/api/v1/seasons` | Create season identity |
+| GET | `/api/v1/seasons` | List seasons (paginated) |
+| GET | `/api/v1/seasons/{id}` | Get season by id |
+| PUT | `/api/v1/seasons/{id}` | Replace season identity |
+| DELETE | `/api/v1/seasons/{id}` | Soft-delete season identity |
+| POST | `/api/v1/seasons/bulk` | Import up to 500 seasons |
 
 Nationality and club country codes use FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
+
+Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
 
 Identity deletes are soft (`deleted_at`); list/get ignore deleted rows.
 

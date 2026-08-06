@@ -3,6 +3,7 @@ package com.kleos.transfers.common.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,10 +27,18 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException exception,
             HttpServletRequest request
     ) {
-        List<ApiError.FieldViolation> violations = exception.getBindingResult()
+        List<ApiError.FieldViolation> fieldViolations = exception.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .map(this::toFieldViolation)
+                .toList();
+        List<ApiError.FieldViolation> objectViolations = exception.getBindingResult()
+                .getGlobalErrors()
+                .stream()
+                .map(error -> new ApiError.FieldViolation(error.getObjectName(), error.getDefaultMessage()))
+                .toList();
+        List<ApiError.FieldViolation> violations = Stream
+                .concat(fieldViolations.stream(), objectViolations.stream())
                 .toList();
 
         return ResponseEntity.badRequest().body(error(

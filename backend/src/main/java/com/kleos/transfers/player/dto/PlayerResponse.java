@@ -17,6 +17,7 @@ public record PlayerResponse(
         Integer heightCm,
         PreferredFoot preferredFoot,
         Position primaryPosition,
+        String fbrefId,
         Instant createdAt,
         Instant updatedAt
 ) {

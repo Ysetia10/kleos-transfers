@@ -1,0 +1,3 @@
+# Optional dependencies for scripts/ingest_fbref_pl_laliga.py
+soccerdata>=1.8.0
+pandas>=2.0.0

@@ -17,7 +17,8 @@ public class ClubMapper {
                 request.name(),
                 request.shortName(),
                 request.countryCode(),
-                request.foundedYear()
+                request.foundedYear(),
+                request.fbrefId()
         );
     }
 
@@ -26,7 +27,8 @@ public class ClubMapper {
                 request.name(),
                 request.shortName(),
                 request.countryCode(),
-                request.foundedYear()
+                request.foundedYear(),
+                request.fbrefId()
         );
     }
 
@@ -37,6 +39,7 @@ public class ClubMapper {
                 club.getShortName(),
                 club.getCountryCode(),
                 club.getFoundedYear(),
+                club.getFbrefId(),
                 club.getCreatedAt(),
                 club.getUpdatedAt()
         );

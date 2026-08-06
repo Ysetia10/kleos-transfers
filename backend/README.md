@@ -110,6 +110,10 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 Nationality and club/tournament country codes use FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
 
+Player uniqueness: active rows are unique on `(fullNameNormalized, dateOfBirth, nationality)`; optional `fbrefId` is also unique. Create/update return `409` on conflict. Soft delete frees both slots. Height and preferred foot are optional.
+
+Club uniqueness: active rows are unique on `(nameNormalized, countryCode)` plus optional unique `fbrefId`.
+
 ClubSeason links `clubId` + `seasonId` + primary `tournamentId`. One active row per club per season.
 
 ManagerSeason links `managerId` + `clubId` + `seasonId`. Unique per manager/club/season; multiple managers at the same club in one season are allowed.

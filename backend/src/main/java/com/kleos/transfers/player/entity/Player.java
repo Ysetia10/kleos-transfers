@@ -17,6 +17,9 @@ import org.hibernate.annotations.SQLRestriction;
 
 /**
  * Persistent identity record for a football player.
+ *
+ * <p>Active uniqueness is {@code (fullNameNormalized, dateOfBirth, nationality)}.
+ * When present, {@code fbrefId} is also unique and is the preferred ingest match key.
  */
 @Entity
 @Table(name = "players")
@@ -28,22 +31,28 @@ public class Player extends IdentityEntity {
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
+    @Column(name = "full_name_normalized", nullable = false, length = 160)
+    private String fullNameNormalized;
+
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
     @Column(nullable = false, length = 3)
     private String nationality;
 
-    @Column(name = "height_cm", nullable = false)
+    @Column(name = "height_cm")
     private Integer heightCm;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "preferred_foot", nullable = false, length = 5)
+    @Column(name = "preferred_foot", length = 5)
     private PreferredFoot preferredFoot;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "primary_position", nullable = false, length = 3)
     private Position primaryPosition;
+
+    @Column(name = "fbref_id", length = 40)
+    private String fbrefId;
 
     public Player(
             String fullName,
@@ -53,7 +62,19 @@ public class Player extends IdentityEntity {
             PreferredFoot preferredFoot,
             Position primaryPosition
     ) {
-        update(fullName, dateOfBirth, nationality, heightCm, preferredFoot, primaryPosition);
+        this(fullName, dateOfBirth, nationality, heightCm, preferredFoot, primaryPosition, null);
+    }
+
+    public Player(
+            String fullName,
+            LocalDate dateOfBirth,
+            String nationality,
+            Integer heightCm,
+            PreferredFoot preferredFoot,
+            Position primaryPosition,
+            String fbrefId
+    ) {
+        update(fullName, dateOfBirth, nationality, heightCm, preferredFoot, primaryPosition, fbrefId);
     }
 
     public void update(
@@ -62,13 +83,35 @@ public class Player extends IdentityEntity {
             String nationality,
             Integer heightCm,
             PreferredFoot preferredFoot,
-            Position primaryPosition
+            Position primaryPosition,
+            String fbrefId
     ) {
         this.fullName = fullName == null ? null : fullName.trim();
+        this.fullNameNormalized = this.fullName == null ? null : this.fullName.toLowerCase(Locale.ROOT);
         this.dateOfBirth = dateOfBirth;
         this.nationality = nationality == null ? null : nationality.trim().toUpperCase(Locale.ROOT);
         this.heightCm = heightCm;
         this.preferredFoot = preferredFoot;
         this.primaryPosition = primaryPosition;
+        this.fbrefId = normalizeFbrefId(fbrefId);
+    }
+
+    @Override
+    public void softDelete() {
+        if (isDeleted()) {
+            return;
+        }
+        super.softDelete();
+        this.fullNameNormalized = this.fullNameNormalized + "#" + getId();
+        if (this.fbrefId != null) {
+            this.fbrefId = this.fbrefId + "#" + getId();
+        }
+    }
+
+    private static String normalizeFbrefId(String fbrefId) {
+        if (fbrefId == null || fbrefId.isBlank()) {
+            return null;
+        }
+        return fbrefId.trim();
     }
 }

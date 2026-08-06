@@ -29,9 +29,10 @@ export function PlayerDetailPage() {
     ['Full name', player.fullName],
     ['Date of birth', formatDate(player.dateOfBirth)],
     ['Nationality', player.nationality],
-    ['Height', `${player.heightCm} cm`],
-    ['Preferred foot', player.preferredFoot],
+    ['Height', player.heightCm == null ? '—' : `${player.heightCm} cm`],
+    ['Preferred foot', player.preferredFoot ?? '—'],
     ['Primary position', player.primaryPosition],
+    ['FBref id', player.fbrefId ?? '—'],
   ] as const
 
   return (

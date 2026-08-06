@@ -12,6 +12,9 @@ import org.hibernate.annotations.SQLRestriction;
 
 /**
  * Persistent identity record for a football club.
+ *
+ * <p>Active uniqueness is {@code (nameNormalized, countryCode)}. When present,
+ * {@code fbrefId} is also unique and is the preferred ingest match key.
  */
 @Entity
 @Table(name = "clubs")
@@ -35,16 +38,24 @@ public class Club extends IdentityEntity {
     @Column(name = "founded_year")
     private Integer foundedYear;
 
+    @Column(name = "fbref_id", length = 40)
+    private String fbrefId;
+
     public Club(String name, String shortName, String countryCode, Integer foundedYear) {
-        update(name, shortName, countryCode, foundedYear);
+        this(name, shortName, countryCode, foundedYear, null);
     }
 
-    public void update(String name, String shortName, String countryCode, Integer foundedYear) {
+    public Club(String name, String shortName, String countryCode, Integer foundedYear, String fbrefId) {
+        update(name, shortName, countryCode, foundedYear, fbrefId);
+    }
+
+    public void update(String name, String shortName, String countryCode, Integer foundedYear, String fbrefId) {
         this.name = name == null ? null : name.trim();
         this.nameNormalized = this.name == null ? null : this.name.toLowerCase(Locale.ROOT);
         this.shortName = shortName == null ? null : shortName.trim();
         this.countryCode = countryCode == null ? null : countryCode.trim().toUpperCase(Locale.ROOT);
         this.foundedYear = foundedYear;
+        this.fbrefId = normalizeFbrefId(fbrefId);
     }
 
     @Override
@@ -53,7 +64,16 @@ public class Club extends IdentityEntity {
             return;
         }
         super.softDelete();
-        // Keep historical FK targets while freeing the active uniqueness slot.
         this.nameNormalized = this.nameNormalized + "#" + getId();
+        if (this.fbrefId != null) {
+            this.fbrefId = this.fbrefId + "#" + getId();
+        }
+    }
+
+    private static String normalizeFbrefId(String fbrefId) {
+        if (fbrefId == null || fbrefId.isBlank()) {
+            return null;
+        }
+        return fbrefId.trim();
     }
 }

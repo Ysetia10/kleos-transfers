@@ -23,9 +23,10 @@ export interface Player {
   fullName: string
   dateOfBirth: string
   nationality: string
-  heightCm: number
-  preferredFoot: PreferredFoot
+  heightCm: number | null
+  preferredFoot: PreferredFoot | null
   primaryPosition: Position
+  fbrefId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -36,6 +37,7 @@ export interface Club {
   shortName: string
   countryCode: string
   foundedYear: number | null
+  fbrefId: string | null
   createdAt: string
   updatedAt: string
 }

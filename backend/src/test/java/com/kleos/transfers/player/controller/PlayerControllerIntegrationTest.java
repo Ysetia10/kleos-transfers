@@ -111,7 +111,38 @@ class PlayerControllerIntegrationTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.violations").isArray())
-                .andExpect(jsonPath("$.violations.length()").value(6));
+                .andExpect(jsonPath("$.violations.length()").value(5));
+    }
+
+    @Test
+    void rejectsDuplicatePlayerNaturalKey() throws Exception {
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validPlayerRequest()))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validPlayerRequest()))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void softDeleteFreesNaturalKeyForRecreate() throws Exception {
+        MvcResult createResult = mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validPlayerRequest()))
+                .andExpect(status().isCreated())
+                .andReturn();
+        UUID id = UUID.fromString(readId(createResult));
+
+        mockMvc.perform(delete(PLAYERS_PATH + "/{id}", id))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validPlayerRequest()))
+                .andExpect(status().isCreated());
     }
 
     @Test

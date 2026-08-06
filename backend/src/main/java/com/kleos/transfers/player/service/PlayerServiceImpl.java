@@ -4,6 +4,7 @@ import com.kleos.transfers.common.bulk.BulkImportResponse;
 import com.kleos.transfers.common.bulk.BulkImportSpec;
 import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.bulk.NaturalKeys;
+import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.PlayerResponse;
@@ -37,6 +38,7 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     @Transactional
     public PlayerResponse create(CreatePlayerRequest request) {
+        assertUnique(request.fullName(), request.dateOfBirth(), request.nationality(), request.fbrefId(), null);
         Player player = playerMapper.toEntity(request);
         return playerMapper.toResponse(playerRepository.save(player));
     }
@@ -61,6 +63,7 @@ public class PlayerServiceImpl implements PlayerService {
     @Transactional
     public PlayerResponse update(UUID id, UpdatePlayerRequest request) {
         Player player = findPlayer(id);
+        assertUnique(request.fullName(), request.dateOfBirth(), request.nationality(), request.fbrefId(), id);
         playerMapper.updateEntity(player, request);
         return playerMapper.toResponse(player);
     }
@@ -68,8 +71,7 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     @Transactional
     public void softDelete(UUID id) {
-        Player player = findPlayer(id);
-        player.softDelete();
+        findPlayer(id).softDelete();
     }
 
     private Player findPlayer(UUID id) {
@@ -77,13 +79,49 @@ public class PlayerServiceImpl implements PlayerService {
                 .orElseThrow(() -> ResourceNotFoundException.of("Player", id));
     }
 
+    private void assertUnique(
+            String fullName,
+            java.time.LocalDate dateOfBirth,
+            String nationality,
+            String fbrefId,
+            UUID excludingId
+    ) {
+        String normalizedName = fullName.trim().toLowerCase(Locale.ROOT);
+        String normalizedNationality = nationality.trim().toUpperCase(Locale.ROOT);
+        boolean nameTaken = excludingId == null
+                ? playerRepository.existsByFullNameNormalizedAndDateOfBirthAndNationality(
+                        normalizedName, dateOfBirth, normalizedNationality)
+                : playerRepository.existsByFullNameNormalizedAndDateOfBirthAndNationalityAndIdNot(
+                        normalizedName, dateOfBirth, normalizedNationality, excludingId);
+        if (nameTaken) {
+            throw new ConflictException(
+                    "Player already exists for name/dateOfBirth/nationality: "
+                            + fullName + " / " + dateOfBirth + " / " + normalizedNationality
+            );
+        }
+
+        if (fbrefId == null || fbrefId.isBlank()) {
+            return;
+        }
+        String normalizedFbref = fbrefId.trim();
+        boolean fbrefTaken = excludingId == null
+                ? playerRepository.existsByFbrefId(normalizedFbref)
+                : playerRepository.existsByFbrefIdAndIdNot(normalizedFbref, excludingId);
+        if (fbrefTaken) {
+            throw new ConflictException("Player already exists for fbrefId: " + normalizedFbref);
+        }
+    }
+
     /**
-     * A player is considered a duplicate when name, date of birth, and nationality all match.
+     * Prefer FBref id when present; otherwise name + DOB + nationality.
      */
     private final class PlayerBulkSpec implements BulkImportSpec<CreatePlayerRequest, PlayerResponse> {
 
         @Override
         public String naturalKey(CreatePlayerRequest request) {
+            if (request.fbrefId() != null && !request.fbrefId().isBlank()) {
+                return NaturalKeys.of("fbref", request.fbrefId());
+            }
             return NaturalKeys.of(request.fullName(), request.dateOfBirth(), request.nationality());
         }
 
@@ -94,13 +132,32 @@ public class PlayerServiceImpl implements PlayerService {
 
         @Override
         public Set<String> findExistingKeys(List<CreatePlayerRequest> requests) {
+            Set<String> existing = new java.util.HashSet<>();
+
+            Set<String> fbrefIds = requests.stream()
+                    .map(CreatePlayerRequest::fbrefId)
+                    .filter(id -> id != null && !id.isBlank())
+                    .map(String::trim)
+                    .collect(Collectors.toSet());
+            if (!fbrefIds.isEmpty()) {
+                playerRepository.findAllByFbrefIdIn(fbrefIds).stream()
+                        .map(player -> NaturalKeys.of("fbref", player.getFbrefId()))
+                        .forEach(existing::add);
+            }
+
             Set<String> names = requests.stream()
                     .map(request -> request.fullName().trim().toLowerCase(Locale.ROOT))
                     .collect(Collectors.toSet());
-            return playerRepository.findAllByNormalizedName(names).stream()
-                    .map(player -> NaturalKeys.of(
-                            player.getFullName(), player.getDateOfBirth(), player.getNationality()))
-                    .collect(Collectors.toSet());
+            playerRepository.findAllByNormalizedName(names).stream()
+                    .map(player -> player.getFbrefId() != null
+                            ? NaturalKeys.of("fbref", player.getFbrefId())
+                            : NaturalKeys.of(
+                                    player.getFullName(),
+                                    player.getDateOfBirth(),
+                                    player.getNationality()))
+                    .forEach(existing::add);
+
+            return existing;
         }
 
         @Override

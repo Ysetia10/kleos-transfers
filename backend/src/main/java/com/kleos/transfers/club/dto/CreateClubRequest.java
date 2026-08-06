@@ -13,6 +13,7 @@ public record CreateClubRequest(
         @NotBlank @Size(min = 2, max = 120) String name,
         @NotBlank @Size(min = 2, max = 40) String shortName,
         @NotBlank @Size(min = 3, max = 3) @FootballNationalityCode String countryCode,
-        @Min(1800) @Max(2100) Integer foundedYear
+        @Min(1800) @Max(2100) Integer foundedYear,
+        @Size(max = 40) String fbrefId
 ) {
 }

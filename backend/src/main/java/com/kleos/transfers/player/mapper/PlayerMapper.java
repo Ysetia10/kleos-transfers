@@ -19,7 +19,8 @@ public class PlayerMapper {
                 request.nationality(),
                 request.heightCm(),
                 request.preferredFoot(),
-                request.primaryPosition()
+                request.primaryPosition(),
+                request.fbrefId()
         );
     }
 
@@ -30,7 +31,8 @@ public class PlayerMapper {
                 request.nationality(),
                 request.heightCm(),
                 request.preferredFoot(),
-                request.primaryPosition()
+                request.primaryPosition(),
+                request.fbrefId()
         );
     }
 
@@ -43,6 +45,7 @@ public class PlayerMapper {
                 player.getHeightCm(),
                 player.getPreferredFoot(),
                 player.getPrimaryPosition(),
+                player.getFbrefId(),
                 player.getCreatedAt(),
                 player.getUpdatedAt()
         );

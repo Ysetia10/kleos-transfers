@@ -33,11 +33,14 @@ Represent the permanent identity of a football player. Player identity never sto
 | `fullName` | String (2–100) | Display name |
 | `dateOfBirth` | LocalDate | Must be past or present |
 | `nationality` | String (3) | FIFA association code (`ENG`, `GER`, `NED`, …) |
-| `heightCm` | Integer | Range 140–230 |
-| `preferredFoot` | Enum | `LEFT`, `RIGHT`, `BOTH` |
+| `heightCm` | Integer (optional) | Range 140–230 when present; often omitted by season-stat sources |
+| `preferredFoot` | Enum (optional) | `LEFT`, `RIGHT`, `BOTH` when present |
 | `primaryPosition` | Enum | Pitch position code (`GK` … `ST`) |
+| `fbrefId` | String (optional) | Stable FBref-derived ingest key; unique when set |
 | `createdAt` / `updatedAt` | Instant | Audited timestamps |
 | `deletedAt` | Instant (nullable) | Soft-delete marker; null means active |
+
+Internal: `fullNameNormalized` (lowercase `fullName`) plus `dateOfBirth` + `nationality` enforce active uniqueness. Soft delete appends `#<id>` to `fullNameNormalized` (and to `fbrefId` when set).
 
 ### Relationships
 
@@ -49,6 +52,7 @@ Referenced by `PlayerSeason`, `Transfer`, `Contract`, and `Injury`.
 - API: `/api/v1/players`.
 - Nationality intentionally uses football codes, not ISO country codes.
 - Identity entities use soft delete: `DELETE` sets `deletedAt`; reads exclude deleted rows. Historical FKs can still resolve the underlying id if needed later.
+- **One player row:** create/update reject conflicts on the natural key and on `fbrefId`. Bulk import skips existing keys. Prefer `fbrefId` during ingest so name spelling drift does not create duplicates.
 
 ## Club
 
@@ -65,6 +69,7 @@ Represent the permanent identity of a football club. Club identity never stores 
 | `shortName` | String (2–40) | Compact display name |
 | `countryCode` | String (3) | FIFA association code (`ESP`, `ENG`, …) |
 | `foundedYear` | Integer (optional) | Range 1800–2100 when present |
+| `fbrefId` | String (optional) | Stable FBref-derived ingest key; unique when set |
 | `createdAt` / `updatedAt` | Instant | Audited timestamps |
 | `deletedAt` | Instant (nullable) | Soft-delete marker |
 
@@ -76,7 +81,7 @@ Referenced by `ClubSeason`, `PlayerSeason`, `ManagerSeason`, `Transfer`, and `Co
 
 - Implemented in backend Version 0.2.
 - API: `/api/v1/clubs`.
-- Active uniqueness: `(nameNormalized, countryCode)` (`nameNormalized` is lowercase `name`, not exposed on the API). Soft delete appends `#<id>` to `nameNormalized` so the same club name can be recreated.
+- Active uniqueness: `(nameNormalized, countryCode)` (`nameNormalized` is lowercase `name`, not exposed on the API). Soft delete appends `#<id>` to `nameNormalized` (and `fbrefId` when set) so the same club can be recreated.
 - Seasonal context belongs in `ClubSeason`, not on Club.
 
 ## Manager
@@ -508,12 +513,13 @@ _To be finalized._
 ## Decisions
 
 - **Identity soft delete** — identity entities set `deletedAt` instead of hard-deleting rows, so historical foreign keys remain valid after an identity is removed from active APIs.
-- **Club uniqueness** — clubs are unique on case-insensitive `name` + `countryCode` via `nameNormalized`; soft delete suffixes `nameNormalized` so re-creation is allowed.
+- **Club uniqueness** — clubs are unique on case-insensitive `name` + `countryCode` via `nameNormalized`; soft delete suffixes `nameNormalized` so re-creation is allowed. Optional `fbrefId` is also unique when set.
+- **Player uniqueness** — active players are unique on `(fullNameNormalized, dateOfBirth, nationality)`; optional `fbrefId` is also unique when set and is the preferred ingest key. Soft delete frees both slots.
 - **Prediction is scenario-first** — one API creates a run + prediction + explanations; metrics share one row; explanations are child factor rows. Separate per-metric HTTP endpoints were rejected as unproductized.
 - **v0 model is heuristic and replaceable** — `PredictionEngine` + `modelVersion` on the run allow swapping algorithms without changing persistence or API contracts.
+- **Historical data window** — product ingest targets Premier League + La Liga for seasons **2016/17–2025/26** (see `docs/data-sourcing.md`). No fake demo seed.
 
 ## Open Questions
 
-- Natural-key uniqueness rules for Player (name + DOB + nationality is imperfect).
 - Whether Club needs a separate legal/sporting brand distinction later.
-- Season boundary model (calendar year vs competition year).
+- Whether estimated DOB (`born` year → 1 July) should later be replaced by exact birth dates from a licensed bio feed.

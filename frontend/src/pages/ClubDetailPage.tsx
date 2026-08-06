@@ -29,6 +29,7 @@ export function ClubDetailPage() {
     ['Short name', club.shortName],
     ['Country', club.countryCode],
     ['Founded', club.foundedYear?.toString() ?? '—'],
+    ['FBref id', club.fbrefId ?? '—'],
   ] as const
 
   return (

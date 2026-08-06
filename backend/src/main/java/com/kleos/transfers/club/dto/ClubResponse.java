@@ -12,6 +12,7 @@ public record ClubResponse(
         String shortName,
         String countryCode,
         Integer foundedYear,
+        String fbrefId,
         Instant createdAt,
         Instant updatedAt
 ) {

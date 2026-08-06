@@ -12,6 +12,7 @@ import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
 import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.common.bulk.BulkImporter;
+import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.player.mapper.PlayerMapper;
 import com.kleos.transfers.player.repository.PlayerRepository;
@@ -50,6 +51,8 @@ class PlayerServiceImplTest {
         Player player = player();
         PlayerResponse expected = response();
 
+        when(playerRepository.existsByFullNameNormalizedAndDateOfBirthAndNationality(
+                "test player", request.dateOfBirth(), "ENG")).thenReturn(false);
         when(playerMapper.toEntity(request)).thenReturn(player);
         when(playerRepository.save(player)).thenReturn(player);
         when(playerMapper.toResponse(player)).thenReturn(expected);
@@ -93,12 +96,25 @@ class PlayerServiceImplTest {
         PlayerResponse expected = response();
 
         when(playerRepository.findById(id)).thenReturn(Optional.of(player));
+        when(playerRepository.existsByFullNameNormalizedAndDateOfBirthAndNationalityAndIdNot(
+                "updated player", request.dateOfBirth(), "NED", id)).thenReturn(false);
         when(playerMapper.toResponse(player)).thenReturn(expected);
 
         PlayerResponse actual = playerService.update(id, request);
 
         assertThat(actual).isSameAs(expected);
         verify(playerMapper).updateEntity(player, request);
+    }
+
+    @Test
+    void rejectsDuplicateNaturalKeyOnCreate() {
+        CreatePlayerRequest request = createRequest();
+        when(playerRepository.existsByFullNameNormalizedAndDateOfBirthAndNationality(
+                "test player", request.dateOfBirth(), "ENG")).thenReturn(true);
+
+        assertThatThrownBy(() -> playerService.create(request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("already exists");
     }
 
     @Test
@@ -115,12 +131,24 @@ class PlayerServiceImplTest {
     void softDeletesExistingPlayer() {
         UUID id = UUID.randomUUID();
         Player player = player();
+        setId(player, id);
         when(playerRepository.findById(id)).thenReturn(Optional.of(player));
 
         playerService.softDelete(id);
 
         assertThat(player.isDeleted()).isTrue();
         assertThat(player.getDeletedAt()).isNotNull();
+        assertThat(player.getFullNameNormalized()).endsWith("#" + id);
+    }
+
+    private static void setId(Player player, UUID id) {
+        try {
+            var idField = Player.class.getSuperclass().getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(player, id);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 
     private CreatePlayerRequest createRequest() {
@@ -130,7 +158,8 @@ class PlayerServiceImplTest {
                 "ENG",
                 180,
                 PreferredFoot.RIGHT,
-                Position.CM
+                Position.CM,
+                null
         );
     }
 
@@ -141,7 +170,8 @@ class PlayerServiceImplTest {
                 "NED",
                 181,
                 PreferredFoot.LEFT,
-                Position.CAM
+                Position.CAM,
+                null
         );
     }
 
@@ -165,6 +195,7 @@ class PlayerServiceImplTest {
                 180,
                 PreferredFoot.RIGHT,
                 Position.CM,
+                null,
                 null,
                 null
         );

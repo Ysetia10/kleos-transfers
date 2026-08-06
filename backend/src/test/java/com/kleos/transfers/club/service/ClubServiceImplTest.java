@@ -12,6 +12,7 @@ import com.kleos.transfers.club.entity.Club;
 import com.kleos.transfers.club.mapper.ClubMapper;
 import com.kleos.transfers.club.repository.ClubRepository;
 import com.kleos.transfers.common.bulk.BulkImporter;
+import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
@@ -47,12 +48,23 @@ class ClubServiceImplTest {
         Club club = club();
         ClubResponse expected = response();
 
+        when(clubRepository.existsByNameNormalizedAndCountryCode("fc barcelona", "ESP")).thenReturn(false);
         when(clubMapper.toEntity(request)).thenReturn(club);
         when(clubRepository.save(club)).thenReturn(club);
         when(clubMapper.toResponse(club)).thenReturn(expected);
 
         assertThat(clubService.create(request)).isSameAs(expected);
         verify(clubRepository).save(club);
+    }
+
+    @Test
+    void rejectsDuplicateClubNaturalKeyOnCreate() {
+        CreateClubRequest request = createRequest();
+        when(clubRepository.existsByNameNormalizedAndCountryCode("fc barcelona", "ESP")).thenReturn(true);
+
+        assertThatThrownBy(() -> clubService.create(request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("already exists");
     }
 
     @Test
@@ -88,6 +100,8 @@ class ClubServiceImplTest {
         ClubResponse expected = response();
 
         when(clubRepository.findById(id)).thenReturn(Optional.of(club));
+        when(clubRepository.existsByNameNormalizedAndCountryCodeAndIdNot("fc barcelona", "ESP", id))
+                .thenReturn(false);
         when(clubMapper.toResponse(club)).thenReturn(expected);
 
         assertThat(clubService.update(id, request)).isSameAs(expected);
@@ -117,11 +131,11 @@ class ClubServiceImplTest {
     }
 
     private CreateClubRequest createRequest() {
-        return new CreateClubRequest("FC Barcelona", "Barcelona", "ESP", 1899);
+        return new CreateClubRequest("FC Barcelona", "Barcelona", "ESP", 1899, null);
     }
 
     private UpdateClubRequest updateRequest() {
-        return new UpdateClubRequest("FC Barcelona", "Barça", "ESP", 1899);
+        return new UpdateClubRequest("FC Barcelona", "Barça", "ESP", 1899, null);
     }
 
     private Club club() {
@@ -135,6 +149,7 @@ class ClubServiceImplTest {
                 "Barcelona",
                 "ESP",
                 1899,
+                null,
                 null,
                 null
         );

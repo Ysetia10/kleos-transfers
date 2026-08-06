@@ -23,7 +23,7 @@ Completed:
 - Bulk identity import API + CSV loader script
 - Material UI design system and application shell
 
-Next: seed demo data (#31), stronger models, and prediction validation against a completed season.
+Next: run the FBref PL/La Liga ingest (2016/17–2025/26), then stronger models and prediction validation.
 
 ## High-level architecture
 
@@ -89,9 +89,20 @@ API base path: `http://localhost:8080/api/v1`
 - `GET /api/v1/prediction-runs/{id}`
 - Bulk import on identity and historical collection endpoints via `/bulk`
 
-### Loading identity data
+### Loading historical data (Premier League + La Liga)
 
-Creating records one at a time does not scale, so identity data is loaded from CSV:
+Real seasons **2016/17–2025/26** are loaded from FBref (not a fake demo seed). See [`docs/data-sourcing.md`](docs/data-sourcing.md) and:
+
+```bash
+pip install -r scripts/requirements-ingest.txt
+# with the backend running:
+./scripts/ingest_fbref_pl_laliga.py --dry-run --seasons 2024/25
+./scripts/ingest_fbref_pl_laliga.py
+```
+
+### Loading small identity CSVs
+
+For hand-authored identity patches:
 
 ```bash
 ./scripts/import-identities.py players scripts/sample-data/players.csv

@@ -24,13 +24,13 @@ MAX_BATCH_SIZE = 500
 
 RESOURCES = {
     "players": {
-        "required": ["fullName", "dateOfBirth", "nationality", "heightCm", "preferredFoot", "primaryPosition"],
-        "optional": [],
+        "required": ["fullName", "dateOfBirth", "nationality", "primaryPosition"],
+        "optional": ["heightCm", "preferredFoot", "fbrefId"],
         "integers": ["heightCm"],
     },
     "clubs": {
         "required": ["name", "shortName", "countryCode"],
-        "optional": ["foundedYear"],
+        "optional": ["foundedYear", "fbrefId"],
         "integers": ["foundedYear"],
     },
     "managers": {

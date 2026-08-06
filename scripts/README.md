@@ -1,10 +1,10 @@
 # Scripts
 
-Small, documented automation for development and maintenance. Scripts must not embed secrets or unlicensed data.
+Small, documented automation for development and maintenance. Scripts must not embed secrets or unlicensed data dumps.
 
 ## `create-roadmap-issues.sh`
 
-Idempotent helper that creates GitHub labels, milestones, and roadmap issues for Kleos Transfers.
+Idempotent helper that creates GitHub labels, milestones, and roadmap issues.
 
 ```bash
 ./scripts/create-roadmap-issues.sh
@@ -14,27 +14,32 @@ Requires `gh` authenticated (`gh auth login`).
 
 ## `import-identities.py`
 
-Loads identity records from a CSV into a running backend through the bulk API. Python 3 standard library only.
+Loads small identity CSVs you own into a running backend through the bulk API. Python 3 standard library only.
 
 ```bash
-# Start the backend first, then:
 ./scripts/import-identities.py players scripts/sample-data/players.csv
 ./scripts/import-identities.py clubs scripts/sample-data/clubs.csv
-./scripts/import-identities.py managers scripts/sample-data/managers.csv
-./scripts/import-identities.py seasons scripts/sample-data/seasons.csv
-./scripts/import-identities.py tournaments scripts/sample-data/tournaments.csv
 ```
 
-Options: `--api-url` (default `http://localhost:8080`), `--batch-size` (default 200, max 500), and `--dry-run` to print the payload without sending it.
+Options: `--api-url`, `--batch-size`, `--dry-run`.
 
-The CSV header must use API field names:
+Player columns: `fullName,dateOfBirth,nationality,primaryPosition` plus optional `heightCm,preferredFoot,fbrefId`.  
+Club columns: `name,shortName,countryCode` plus optional `foundedYear,fbrefId`.
 
-| Resource | Columns |
-|----------|---------|
-| `players` | `fullName,dateOfBirth,nationality,heightCm,preferredFoot,primaryPosition` |
-| `clubs` | `name,shortName,countryCode` and optional `foundedYear` |
-| `managers` | `fullName,dateOfBirth,nationality` |
-| `seasons` | `label,startDate,endDate` |
-| `tournaments` | `name,shortName,confederation,type` and optional `countryCode` |
+## `ingest_fbref_pl_laliga.py`
 
-Re-running an import is safe: rows that already exist are reported as skipped rather than duplicated. Rows that fail validation are reported with their CSV line number and do not block the rest of the file.
+**Primary historical load** for Premier League + La Liga, seasons **2016/17–2025/26**.
+
+Reads FBref via `soccerdata`, then upserts tournaments, seasons, clubs, players, club-seasons, and player-seasons through the Kleos bulk APIs. Player/club matching uses `fbrefId` so re-runs are idempotent.
+
+```bash
+pip install -r scripts/requirements-ingest.txt
+# backend must be running
+./scripts/ingest_fbref_pl_laliga.py --dry-run --seasons 2024/25
+./scripts/ingest_fbref_pl_laliga.py --seasons 2024/25
+./scripts/ingest_fbref_pl_laliga.py   # full 2016/17 … 2025/26 window
+```
+
+Policy and attribution: [`docs/data-sourcing.md`](../docs/data-sourcing.md).
+
+Do not commit downloaded caches or bulk CSVs (`data/` is gitignored).

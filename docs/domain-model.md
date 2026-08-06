@@ -219,6 +219,38 @@ Internal: `uniquenessKey` is `{clubId}:{seasonId}` while active; soft delete app
 - **One active row per (club, season).** Cup/continental participation is intentionally out of scope for v1 — add a separate participation entity later if needed.
 - No finishing position, points, or xG yet — add only when a prediction feature needs them.
 
+## ManagerSeason
+
+### Purpose
+
+Represent a manager's appointment at a club for a season. This is historical context for managerial approach in transfer predictions. Tactical philosophy/style fields are deferred until a prediction feature needs them.
+
+### Attributes
+
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `manager` | FK → Manager | Required |
+| `club` | FK → Club | Required |
+| `season` | FK → Season | Required |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+Internal: `uniquenessKey` is `{managerId}:{clubId}:{seasonId}` while active; soft delete appends `#{id}`.
+
+### Relationships
+
+- Many ManagerSeasons → one Manager
+- Many ManagerSeasons → one Club
+- Many ManagerSeasons → one Season
+
+### Notes
+
+- Implemented in backend Version 0.2.
+- API: `/api/v1/manager-seasons` (+ `/bulk`).
+- **Uniqueness is per (manager, club, season).** Different managers at the same club in the same season are allowed (mid-season changes / caretakers). Appointment start/end dates can be added later if needed.
+- No philosophy, formation, or press-intensity fields yet.
+
 ## Transfer
 
 ### Purpose

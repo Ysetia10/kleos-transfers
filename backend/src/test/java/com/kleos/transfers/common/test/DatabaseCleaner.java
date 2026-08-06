@@ -14,6 +14,7 @@ public final class DatabaseCleaner {
     }
 
     public static void clearAll(JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("delete from manager_seasons");
         jdbcTemplate.update("delete from club_seasons");
         jdbcTemplate.update("delete from players");
         jdbcTemplate.update("delete from managers");

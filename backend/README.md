@@ -13,7 +13,7 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Controllers stay thin; services own use cases
 - DTOs isolate the API from JPA entities
-- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `clubseason`, `health`) with shared code in `common`, `domain`, and `config`
+- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `clubseason`, `managerseason`, `health`) with shared code in `common`, `domain`, and `config`
 - New modules should follow the same feature-package layout
 - Identity entities extend `common.entity.IdentityEntity` for the shared UUID key, auditing, and soft delete
 - Shared vocabulary lives in `com.kleos.transfers.domain`
@@ -77,10 +77,18 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | PUT | `/api/v1/club-seasons/{id}` | Replace club-season links |
 | DELETE | `/api/v1/club-seasons/{id}` | Soft-delete club-season |
 | POST | `/api/v1/club-seasons/bulk` | Import up to 500 club-seasons |
+| POST | `/api/v1/manager-seasons` | Create manager-season appointment |
+| GET | `/api/v1/manager-seasons` | List manager-seasons (paginated) |
+| GET | `/api/v1/manager-seasons/{id}` | Get manager-season by id |
+| PUT | `/api/v1/manager-seasons/{id}` | Replace manager-season links |
+| DELETE | `/api/v1/manager-seasons/{id}` | Soft-delete manager-season |
+| POST | `/api/v1/manager-seasons/bulk` | Import up to 500 manager-seasons |
 
 Nationality and club/tournament country codes use FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
 
 ClubSeason links `clubId` + `seasonId` + primary `tournamentId`. One active row per club per season.
+
+ManagerSeason links `managerId` + `clubId` + `seasonId`. Unique per manager/club/season; multiple managers at the same club in one season are allowed.
 
 Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
 

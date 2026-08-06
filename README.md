@@ -17,11 +17,11 @@ Completed:
 - Repository, backend, and frontend foundations
 - Shared domain foundation (`BaseEntity`, auditing, enums)
 - Player, Club, Manager, Season, and Tournament identity modules (API, persistence, validation, tests)
-- ClubSeason and ManagerSeason historical modules
+- ClubSeason, ManagerSeason, and PlayerSeason historical modules
 - Bulk identity import API + CSV loader script
 - Material UI design system and application shell
 
-Next historical entities: PlayerSeason, Transfer, Contract, Injury, …
+Next historical entities: Transfer, Contract, Injury, …
 
 ## High-level architecture
 
@@ -79,7 +79,8 @@ API base path: `http://localhost:8080/api/v1`
 - `GET|POST /api/v1/tournaments` and `GET|PUT|DELETE /api/v1/tournaments/{id}`
 - `GET|POST /api/v1/club-seasons` and `GET|PUT|DELETE /api/v1/club-seasons/{id}`
 - `GET|POST /api/v1/manager-seasons` and `GET|PUT|DELETE /api/v1/manager-seasons/{id}`
-- `POST /api/v1/{players|clubs|managers|seasons|tournaments|club-seasons|manager-seasons}/bulk` for batch imports
+- `GET|POST /api/v1/player-seasons` and `GET|PUT|DELETE /api/v1/player-seasons/{id}`
+- Bulk import on identity and historical collection endpoints via `/bulk`
 
 ### Loading identity data
 

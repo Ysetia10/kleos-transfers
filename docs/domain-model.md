@@ -172,19 +172,40 @@ None yet. Historical competition rows (e.g. club participation in a season) will
 
 ### Purpose
 
-_To be finalized._ Season-scoped player performance and context.
+Represent a player's performance and role for one club in one season. This is the core historical input for adaptation predictions. Permanent identity attributes stay on Player; mid-season transfers produce a second PlayerSeason row for the destination club.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `player` | FK → Player | Required |
+| `club` | FK → Club | Required |
+| `season` | FK → Season | Required |
+| `appearances` | Integer ≥ 0 | Matches played |
+| `minutesPlayed` | Integer ≥ 0 | Total minutes; must be ≥ appearances when appearances > 0 |
+| `goals` | Integer ≥ 0 | Goals scored |
+| `assists` | Integer ≥ 0 | Assists |
+| `xg` | Decimal ≥ 0 | Expected goals |
+| `xa` | Decimal ≥ 0 | Expected assists |
+| `primaryPosition` | Position enum | Main position in this spell (may differ from Player identity) |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+Internal: `uniquenessKey` is `{playerId}:{clubId}:{seasonId}` while active; soft delete appends `#{id}`.
 
 ### Relationships
 
-_To be finalized._
+- Many PlayerSeasons → one Player
+- Many PlayerSeasons → one Club
+- Many PlayerSeasons → one Season
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.2.
+- API: `/api/v1/player-seasons` (+ `/bulk`).
+- **Unique per (player, club, season).** Same player at two clubs in one season is allowed.
+- Stats chosen for prediction usefulness (workload, output, finishing/creation quality, role). Cards, ratings, and detailed position splits deferred.
 
 ## ClubSeason
 

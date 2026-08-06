@@ -13,7 +13,7 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Controllers stay thin; services own use cases
 - DTOs isolate the API from JPA entities
-- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `clubseason`, `managerseason`, `playerseason`, `transfer`, `health`) with shared code in `common`, `domain`, and `config`
+- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `clubseason`, `managerseason`, `playerseason`, `transfer`, `contract`, `injury`, `health`) with shared code in `common`, `domain`, and `config`
 - New modules should follow the same feature-package layout
 - Identity entities extend `common.entity.IdentityEntity` for the shared UUID key, auditing, and soft delete
 - Shared vocabulary lives in `com.kleos.transfers.domain`
@@ -95,6 +95,18 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | PUT | `/api/v1/transfers/{id}` | Replace transfer |
 | DELETE | `/api/v1/transfers/{id}` | Soft-delete transfer |
 | POST | `/api/v1/transfers/bulk` | Import up to 500 transfers |
+| POST | `/api/v1/contracts` | Create contract record |
+| GET | `/api/v1/contracts` | List contracts (paginated) |
+| GET | `/api/v1/contracts/{id}` | Get contract by id |
+| PUT | `/api/v1/contracts/{id}` | Replace contract |
+| DELETE | `/api/v1/contracts/{id}` | Soft-delete contract |
+| POST | `/api/v1/contracts/bulk` | Import up to 500 contracts |
+| POST | `/api/v1/injuries` | Create injury spell |
+| GET | `/api/v1/injuries` | List injuries (paginated) |
+| GET | `/api/v1/injuries/{id}` | Get injury by id |
+| PUT | `/api/v1/injuries/{id}` | Replace injury |
+| DELETE | `/api/v1/injuries/{id}` | Soft-delete injury |
+| POST | `/api/v1/injuries/bulk` | Import up to 500 injuries |
 
 Nationality and club/tournament country codes use FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
 
@@ -105,6 +117,10 @@ ManagerSeason links `managerId` + `clubId` + `seasonId`. Unique per manager/club
 PlayerSeason links `playerId` + `clubId` + `seasonId` with appearances, minutes, goals, assists, xG, xA, and seasonal primary position. Unique per player/club/season.
 
 Transfer links `playerId`, optional `fromClubId` / `toClubId`, `seasonId`, `transferDate`, optional `feeEur`, and `type` (`PERMANENT`, `LOAN`, `FREE`, `LOAN_RETURN`).
+
+Contract links `playerId` + `clubId` with `startDate`, `endDate`, and an optional `releaseClauseEur`. Unique per player/club/start date, so a renewal is a new row rather than an edit. Contracts are not created automatically by a transfer.
+
+Injury links `playerId` with `injuryType`, `severity` (`MINOR`, `MODERATE`, `SEVERE`), `startDate`, and an optional `endDate` (null while the player is still out). Responses derive `daysOut` and `ongoing` from the dates. Injuries are date-ranged, not season-scoped.
 
 Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
 

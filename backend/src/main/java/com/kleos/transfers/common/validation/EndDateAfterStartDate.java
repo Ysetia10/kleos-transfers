@@ -9,7 +9,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Validates that a request's {@code endDate} is strictly after {@code startDate}.
+ * Validates that a request's {@code endDate} is after {@code startDate}.
+ *
+ * <p>Set {@link #inclusive()} for ranges that may start and end on the same day,
+ * such as a one-day injury spell.
  */
 @Documented
 @Constraint(validatedBy = EndDateAfterStartDateValidator.class)
@@ -18,6 +21,8 @@ import java.lang.annotation.Target;
 public @interface EndDateAfterStartDate {
 
     String message() default "endDate must be after startDate";
+
+    boolean inclusive() default false;
 
     Class<?>[] groups() default {};
 

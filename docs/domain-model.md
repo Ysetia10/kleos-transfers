@@ -41,7 +41,7 @@ Represent the permanent identity of a football player. Player identity never sto
 
 ### Relationships
 
-None yet. Future historical entities (`PlayerSeason`, `Transfer`, `Contract`, `Injury`) will reference Player.
+Referenced by `PlayerSeason`, `Transfer`, `Contract`, and `Injury`.
 
 ### Notes
 
@@ -70,7 +70,7 @@ Represent the permanent identity of a football club. Club identity never stores 
 
 ### Relationships
 
-None yet. Future historical entities (`ClubSeason`, `Transfer`, `Contract`) will reference Club.
+Referenced by `ClubSeason`, `PlayerSeason`, `ManagerSeason`, `Transfer`, and `Contract`.
 
 ### Notes
 
@@ -127,7 +127,7 @@ Internal: `labelNormalized` (lowercase `label`) enforces case-insensitive unique
 
 ### Relationships
 
-None yet. `PlayerSeason`, `ClubSeason`, `ManagerSeason`, `Transfer`, and related historical entities will reference Season by id.
+Referenced by `PlayerSeason`, `ClubSeason`, `ManagerSeason`, and `Transfer`. `Contract` and `Injury` are date-ranged rather than season-scoped, so they do not reference Season.
 
 ### Notes
 
@@ -308,43 +308,77 @@ Internal: `uniquenessKey` is `{playerId}:{date}:{from|none}:{to|none}:{type}` wh
 - At least one of `fromClub` / `toClub` is required; they must differ when both are set.
 - Unique per player + date + from + to + type so the same event is not imported twice.
 
-## Prediction
-
-### Purpose
-
-_To be finalized._
-
-### Attributes
-
-_To be finalized._
-
-### Relationships
-
-_To be finalized._
-
-### Notes
-
-_To be finalized._
-
 ## Contract
 
 ### Purpose
 
-_To be finalized._
+Record a player's contract window at a club. Contracts supply expiry pressure and renewal context: a player entering the final year of a deal moves under different conditions than one recently extended.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `player` | FK → Player | Required |
+| `club` | FK → Club | Required |
+| `startDate` | LocalDate | First day of the contract |
+| `endDate` | LocalDate | Expiry date; must be after `startDate` |
+| `releaseClauseEur` | Decimal (optional) | Null = none or undisclosed |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+Internal: `uniquenessKey` is `{playerId}:{clubId}:{startDate}` while active; soft delete appends `#{id}`.
 
 ### Relationships
 
-_To be finalized._
+- Many Contracts → one Player
+- Many Contracts → one Club
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.2.
+- API: `/api/v1/contracts` (+ `/bulk`).
+- **Relationship to Transfer:** Contract and Transfer are independent records. A transfer usually implies a new contract at the destination club, but Kleos does not create one automatically — the two are sourced separately and a transfer can be known before its contract terms are. Join them through `playerId` + `clubId` when both are needed.
+- **Renewals are new rows,** not edits: uniqueness is per start date, so a player can hold several historical contracts at the same club. This preserves the pre-renewal state that a prediction made at the time would have used.
+- No wage field yet. Wage data needs its own sourcing decision and no current prediction consumes it.
 
 ## Injury
+
+### Purpose
+
+Record a single injury spell for a player. Injury history is availability and adaptation context: recent time out is a strong negative signal for minutes predictions after a transfer.
+
+### Attributes
+
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `player` | FK → Player | Required |
+| `injuryType` | String (≤80) | Free text, e.g. `Hamstring strain`, `ACL rupture` |
+| `severity` | Enum | `MINOR`, `MODERATE`, `SEVERE` |
+| `startDate` | LocalDate | First day unavailable |
+| `endDate` | LocalDate (optional) | Return date; null = still out. May equal `startDate` |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+Internal: `injuryTypeNormalized` (lowercase, trimmed `injuryType`) feeds the `uniquenessKey` `{playerId}:{startDate}:{injuryTypeNormalized}`; soft delete appends `#{id}`.
+
+Derived on the API: `daysOut` (inclusive day count, null while ongoing) and `ongoing`.
+
+### Relationships
+
+- Many Injuries → one Player
+
+### Notes
+
+- Implemented in backend Version 0.2.
+- API: `/api/v1/injuries` (+ `/bulk`).
+- **`daysOut` is derived, not stored,** so it cannot drift from the date range.
+- **`injuryType` is free text, `severity` is an enum.** Injury names are open-ended and vary by source; severity is the part predictions actually bucket on.
+- An injury is not tied to a Season. Spells cross season boundaries, so consumers filter by date range instead.
+- No club, matches-missed, or recurrence-link fields yet. Matches missed needs fixture data that Kleos does not model.
+
+## Prediction
 
 ### Purpose
 

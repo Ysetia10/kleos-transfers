@@ -1,0 +1,24 @@
+package com.kleos.transfers.contract.dto;
+
+import com.kleos.transfers.common.validation.DateRangeRequest;
+import com.kleos.transfers.common.validation.EndDateAfterStartDate;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.UUID;
+
+/**
+ * Request payload for creating a contract record.
+ *
+ * <p>{@code releaseClauseEur} is optional; null means none or undisclosed.
+ */
+@EndDateAfterStartDate
+public record CreateContractRequest(
+        @NotNull UUID playerId,
+        @NotNull UUID clubId,
+        @NotNull LocalDate startDate,
+        @NotNull LocalDate endDate,
+        @DecimalMin("0.0") BigDecimal releaseClauseEur
+) implements DateRangeRequest {
+}

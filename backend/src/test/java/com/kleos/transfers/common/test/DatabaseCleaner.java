@@ -14,6 +14,8 @@ public final class DatabaseCleaner {
     }
 
     public static void clearAll(JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("delete from injuries");
+        jdbcTemplate.update("delete from contracts");
         jdbcTemplate.update("delete from transfers");
         jdbcTemplate.update("delete from player_seasons");
         jdbcTemplate.update("delete from manager_seasons");

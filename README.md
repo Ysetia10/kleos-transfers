@@ -17,11 +17,11 @@ Completed:
 - Repository, backend, and frontend foundations
 - Shared domain foundation (`BaseEntity`, auditing, enums)
 - Player, Club, Manager, Season, and Tournament identity modules (API, persistence, validation, tests)
-- ClubSeason, ManagerSeason, PlayerSeason, and Transfer historical modules
+- ClubSeason, ManagerSeason, PlayerSeason, Transfer, Contract, and Injury historical modules
 - Bulk identity import API + CSV loader script
 - Material UI design system and application shell
 
-Next historical entities: Contract, Injury, …
+The historical layer is complete. Next: the prediction layer (PredictionRun + Prediction foundation).
 
 ## High-level architecture
 
@@ -38,7 +38,7 @@ Database schema and migrations           Documentation and operations
 Domain modeling separates:
 
 1. **Identity** — permanent records (Player, Club, Manager, Season, Tournament)
-2. **Historical** — season-scoped facts (PlayerSeason, Transfer, Injury, …)
+2. **Historical** — time-scoped facts (PlayerSeason, Transfer, Contract, Injury, …)
 3. **Prediction** — Kleos intelligence (Prediction, Evaluation, Explanation)
 
 See [`docs/domain-model.md`](docs/domain-model.md).
@@ -81,6 +81,8 @@ API base path: `http://localhost:8080/api/v1`
 - `GET|POST /api/v1/manager-seasons` and `GET|PUT|DELETE /api/v1/manager-seasons/{id}`
 - `GET|POST /api/v1/player-seasons` and `GET|PUT|DELETE /api/v1/player-seasons/{id}`
 - `GET|POST /api/v1/transfers` and `GET|PUT|DELETE /api/v1/transfers/{id}`
+- `GET|POST /api/v1/contracts` and `GET|PUT|DELETE /api/v1/contracts/{id}`
+- `GET|POST /api/v1/injuries` and `GET|PUT|DELETE /api/v1/injuries/{id}`
 - Bulk import on identity and historical collection endpoints via `/bulk`
 
 ### Loading identity data

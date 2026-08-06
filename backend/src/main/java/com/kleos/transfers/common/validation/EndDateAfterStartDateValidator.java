@@ -5,9 +5,19 @@ import jakarta.validation.ConstraintValidatorContext;
 import java.time.LocalDate;
 
 /**
- * Ensures {@link DateRangeRequest#endDate()} is strictly after {@link DateRangeRequest#startDate()}.
+ * Ensures {@link DateRangeRequest#endDate()} is after {@link DateRangeRequest#startDate()}.
+ *
+ * <p>A null {@code endDate} is treated as valid so open-ended ranges (ongoing injuries)
+ * can use the same contract.
  */
 public class EndDateAfterStartDateValidator implements ConstraintValidator<EndDateAfterStartDate, DateRangeRequest> {
+
+    private boolean inclusive;
+
+    @Override
+    public void initialize(EndDateAfterStartDate constraintAnnotation) {
+        this.inclusive = constraintAnnotation.inclusive();
+    }
 
     @Override
     public boolean isValid(DateRangeRequest value, ConstraintValidatorContext context) {
@@ -19,6 +29,6 @@ public class EndDateAfterStartDateValidator implements ConstraintValidator<EndDa
         if (startDate == null || endDate == null) {
             return true;
         }
-        return endDate.isAfter(startDate);
+        return inclusive ? !endDate.isBefore(startDate) : endDate.isAfter(startDate);
     }
 }

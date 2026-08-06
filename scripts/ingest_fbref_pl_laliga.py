@@ -148,17 +148,31 @@ def safe_float(value: Any, default: float = 0.0) -> float:
 
 
 def flatten_columns(df):
-    """soccerdata often returns MultiIndex columns; flatten to simple names."""
-    if getattr(df.columns, "nlevels", 1) == 1:
-        df = df.copy()
-        df.columns = [str(c) for c in df.columns]
-        return df
-    flat = []
-    for col in df.columns:
-        parts = [str(p) for p in col if str(p) != "nan" and not str(p).startswith("Unnamed")]
-        flat.append(parts[-1] if parts else "value")
+    """Flatten MultiIndex / tuple columns from soccerdata into unique simple names."""
     out = df.copy()
-    out.columns = flat
+    flat: list[str] = []
+    for column in out.columns:
+        if isinstance(column, tuple):
+            parts = [
+                str(part).strip()
+                for part in column
+                if part is not None
+                and str(part).strip()
+                and str(part) != "nan"
+                and not str(part).startswith("Unnamed")
+            ]
+            flat.append(parts[-1] if parts else "value")
+        else:
+            flat.append(str(column))
+
+    # Deduplicate names such as Performance Gls vs Per 90 Minutes Gls.
+    seen: dict[str, int] = {}
+    unique: list[str] = []
+    for name in flat:
+        count = seen.get(name, 0)
+        seen[name] = count + 1
+        unique.append(name if count == 0 else f"{name}_{count}")
+    out.columns = unique
     return out
 
 
@@ -203,7 +217,10 @@ def bulk_post(api_url: str, path: str, items: list[dict], batch_size: int, dry_r
             f"failed={result.get('failedCount')}"
         )
         for issue in result.get("failed", [])[:10]:
-            print(f"    fail[{issue.get('index')}]: {issue.get('message')}")
+            print(
+                f"    fail[{issue.get('index')}] {issue.get('reference')}: "
+                f"{issue.get('reason')}"
+            )
 
 
 def ensure_identity_page(api_url: str, path: str, size: int = 200) -> list[dict]:
@@ -267,24 +284,30 @@ def fetch_league_season(league_id: str, start_year: int):
 
 
 def merge_xg(standard, shooting):
-    xg_col = col(standard, "xG", "npxG")
-    xa_col = col(standard, "xAG", "xA")
+    frame = standard.copy()
+    xg_col = col(frame, "xG", "npxG")
+    xa_col = col(frame, "xAG", "xA")
     if xg_col and xa_col:
-        return standard
-    if shooting is None:
-        standard = standard.copy()
-        if not xg_col:
-            standard["xG"] = 0.0
-        if not xa_col:
-            standard["xAG"] = 0.0
-        return standard
+        return frame
 
-    keys = [c for c in ("league", "season", "team", "player") if c in standard.columns and c in shooting.columns]
-    xg_s = col(shooting, "xG", "npxG")
-    xa_s = col(shooting, "xAG", "xA")
-    keep = keys + [c for c in (xg_s, xa_s) if c]
-    merged = standard.merge(shooting[keep].drop_duplicates(keys), on=keys, how="left", suffixes=("", "_shot"))
-    return merged
+    keys = [name for name in ("league", "season", "team", "player") if name in frame.columns]
+    if shooting is not None and keys and all(name in shooting.columns for name in keys):
+        xg_s = col(shooting, "xG", "npxG")
+        xa_s = col(shooting, "xAG", "xA")
+        keep = keys + [name for name in (xg_s, xa_s) if name]
+        if len(keep) > len(keys):
+            frame = frame.merge(
+                shooting[keep].drop_duplicates(keys),
+                on=keys,
+                how="left",
+                suffixes=("", "_shot"),
+            )
+
+    if col(frame, "xG", "npxG") is None:
+        frame["xG"] = 0.0
+    if col(frame, "xAG", "xA") is None:
+        frame["xAG"] = 0.0
+    return frame
 
 
 def build_rows_for_frame(df, league_id: str, label: str, meta: dict) -> tuple[list[dict], list[dict], list[dict]]:
@@ -457,11 +480,20 @@ def main() -> int:
         )
 
     player_season_items = []
+    skipped_unresolved = 0
     for row in pending_player_seasons:
+        player_id = player_map.get(row["playerFbrefId"])
+        club_id = club_map.get(row["clubFbrefId"])
+        if args.dry_run:
+            player_id = player_id or "dry-player"
+            club_id = club_id or "dry-club"
+        if not player_id or not club_id:
+            skipped_unresolved += 1
+            continue
         player_season_items.append(
             {
-                "playerId": player_map.get(row["playerFbrefId"], "dry-player"),
-                "clubId": club_map.get(row["clubFbrefId"], "dry-club"),
+                "playerId": player_id,
+                "clubId": club_id,
                 "seasonId": season_ids[row["seasonLabel"]],
                 "appearances": row["appearances"],
                 "minutesPlayed": row["minutesPlayed"],
@@ -472,6 +504,8 @@ def main() -> int:
                 "primaryPosition": row["primaryPosition"],
             }
         )
+    if skipped_unresolved:
+        print(f"  skipped {skipped_unresolved} player-season row(s) with unresolved player/club ids")
 
     print("\nUpserting club-seasons + player-seasons…")
     bulk_post(args.api_url, "/api/v1/club-seasons", club_season_items, args.batch_size, args.dry_run)

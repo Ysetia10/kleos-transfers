@@ -121,7 +121,7 @@ npm install
 npm run dev
 ```
 
-The Vite app defaults to `http://localhost:5173` and expects the API at `http://localhost:8080`.
+The Vite app serves at `http://localhost:5173` (or `http://127.0.0.1:5173`) and expects the API at `http://localhost:8080`. Backend CORS allows both Vite hosts by default.
 
 ## License
 

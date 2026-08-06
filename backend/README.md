@@ -30,10 +30,10 @@ Provide a reachable PostgreSQL database, then:
 
 Configuration uses environment-variable placeholders. See [`../.env.example`](../.env.example).
 
-Optional CORS origins (comma-separated):
+Optional CORS origins (comma-separated). Default allows both Vite hosts:
 
 ```bash
-CORS_ALLOWED_ORIGINS=http://localhost:5173
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
 ## Current endpoints

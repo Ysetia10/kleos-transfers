@@ -27,4 +27,6 @@ Copy `.env.example` to `.env` and set:
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
+Open the app at `http://localhost:5173` or `http://127.0.0.1:5173` — both are allowed by the API CORS defaults.
+
 Backend routes are versioned under `/api/v1`. The prediction form needs players, clubs, and seasons already loaded in the API.

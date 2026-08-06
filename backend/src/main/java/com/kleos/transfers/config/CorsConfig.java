@@ -10,14 +10,19 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 /**
- * Permissive local-development CORS for the Vite frontend.
+ * Local-development CORS for the Vite frontend.
+ *
+ * <p>{@code localhost} and {@code 127.0.0.1} are distinct browser origins. Allowing only one
+ * causes Spring's CorsFilter to reject the other with HTTP 403 ("Invalid CORS request").
  */
 @Configuration
 public class CorsConfig {
 
+    private static final String DEFAULT_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173";
+
     @Bean
     public CorsFilter corsFilter(
-            @Value("${kleos.cors.allowed-origins:http://localhost:5173}") String allowedOrigins
+            @Value("${kleos.cors.allowed-origins:" + DEFAULT_ORIGINS + "}") String allowedOrigins
     ) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(splitOrigins(allowedOrigins));

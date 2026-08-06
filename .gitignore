@@ -49,3 +49,6 @@ venv/
 data/
 artifacts/
 reports/
+
+# Local scrap / browser downloads (do not commit)
+downloaded_files/

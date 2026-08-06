@@ -1,19 +1,15 @@
 package com.kleos.transfers.player.entity;
 
-import com.kleos.transfers.common.entity.BaseEntity;
+import com.kleos.transfers.common.entity.IdentityEntity;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.Locale;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,12 +23,7 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLRestriction("deleted_at IS NULL")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Player extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(nullable = false, updatable = false)
-    private UUID id;
+public class Player extends IdentityEntity {
 
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
@@ -73,7 +64,7 @@ public class Player extends BaseEntity {
             PreferredFoot preferredFoot,
             Position primaryPosition
     ) {
-        this.fullName = fullName;
+        this.fullName = fullName == null ? null : fullName.trim();
         this.dateOfBirth = dateOfBirth;
         this.nationality = nationality == null ? null : nationality.trim().toUpperCase(Locale.ROOT);
         this.heightCm = heightCm;

@@ -1,14 +1,10 @@
 package com.kleos.transfers.club.entity;
 
-import com.kleos.transfers.common.entity.BaseEntity;
+import com.kleos.transfers.common.entity.IdentityEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.Locale;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,12 +18,7 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLRestriction("deleted_at IS NULL")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Club extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(nullable = false, updatable = false)
-    private UUID id;
+public class Club extends IdentityEntity {
 
     @Column(nullable = false, length = 120)
     private String name;
@@ -63,6 +54,6 @@ public class Club extends BaseEntity {
         }
         super.softDelete();
         // Keep historical FK targets while freeing the active uniqueness slot.
-        this.nameNormalized = this.nameNormalized + "#" + id;
+        this.nameNormalized = this.nameNormalized + "#" + getId();
     }
 }

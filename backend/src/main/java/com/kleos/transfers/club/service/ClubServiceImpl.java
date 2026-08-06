@@ -59,6 +59,6 @@ public class ClubServiceImpl implements ClubService {
 
     private Club findClub(UUID id) {
         return clubRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Club not found: " + id));
+                .orElseThrow(() -> ResourceNotFoundException.of("Club", id));
     }
 }

@@ -59,6 +59,6 @@ public class PlayerServiceImpl implements PlayerService {
 
     private Player findPlayer(UUID id) {
         return playerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Player not found: " + id));
+                .orElseThrow(() -> ResourceNotFoundException.of("Player", id));
     }
 }

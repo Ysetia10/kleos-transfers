@@ -83,19 +83,28 @@ None yet. Future historical entities (`ClubSeason`, `Transfer`, `Contract`) will
 
 ### Purpose
 
-_To be finalized._
+Represent the permanent identity of a football manager as a person. Manager identity never stores the club they manage, tactical philosophy, formation, or results — those change per appointment and belong to `ManagerSeason`.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `fullName` | String (2–100) | Display name |
+| `dateOfBirth` | LocalDate | Must be past or present |
+| `nationality` | String (3) | FIFA association code |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
 
 ### Relationships
 
-_To be finalized._
+None yet. `ManagerSeason` will link Manager to Club and Season.
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.2.
+- API: `/api/v1/managers`.
+- Deliberately mirrors Player: a manager is a person, not a role.
 
 ## Season
 

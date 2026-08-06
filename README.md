@@ -16,10 +16,10 @@ Completed:
 
 - Repository, backend, and frontend foundations
 - Shared domain foundation (`BaseEntity`, auditing, enums)
-- Player and Club identity modules (API, persistence, validation, tests)
+- Player, Club, and Manager identity modules (API, persistence, validation, tests)
 - Material UI design system and application shell
 
-Next identity entities: Manager, Season, Tournament.
+Next identity entities: Season, Tournament.
 
 ## High-level architecture
 
@@ -72,6 +72,7 @@ API base path: `http://localhost:8080/api/v1`
 - `GET /api/v1/health`
 - `GET|POST /api/v1/players` and `GET|PUT|DELETE /api/v1/players/{id}`
 - `GET|POST /api/v1/clubs` and `GET|PUT|DELETE /api/v1/clubs/{id}`
+- `GET|POST /api/v1/managers` and `GET|PUT|DELETE /api/v1/managers/{id}`
 
 ### Frontend
 

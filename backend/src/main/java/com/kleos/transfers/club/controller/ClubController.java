@@ -4,6 +4,8 @@ import com.kleos.transfers.club.dto.ClubResponse;
 import com.kleos.transfers.club.dto.CreateClubRequest;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.service.ClubService;
+import com.kleos.transfers.common.bulk.BulkImportRequest;
+import com.kleos.transfers.common.bulk.BulkImportResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,13 @@ public class ClubController {
     @PostMapping
     public ResponseEntity<ClubResponse> create(@Valid @RequestBody CreateClubRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(clubService.create(request));
+    }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<BulkImportResponse<ClubResponse>> createAll(
+            @Valid @RequestBody BulkImportRequest<CreateClubRequest> request
+    ) {
+        return ResponseEntity.ok(clubService.createAll(request.items()));
     }
 
     @GetMapping

@@ -11,6 +11,7 @@ import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
 import com.kleos.transfers.player.entity.Player;
+import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.player.mapper.PlayerMapper;
 import com.kleos.transfers.player.repository.PlayerRepository;
@@ -36,6 +37,9 @@ class PlayerServiceImplTest {
 
     @Mock
     private PlayerMapper playerMapper;
+
+    @Mock
+    private BulkImporter bulkImporter;
 
     @InjectMocks
     private PlayerServiceImpl playerService;

@@ -15,6 +15,11 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        # Batched inserts keep bulk identity imports to a few round trips.
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
   flyway:
     enabled: true
     locations: classpath:db/migration

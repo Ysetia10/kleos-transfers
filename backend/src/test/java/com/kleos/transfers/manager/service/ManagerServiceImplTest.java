@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.manager.dto.CreateManagerRequest;
 import com.kleos.transfers.manager.dto.ManagerResponse;
@@ -34,6 +35,9 @@ class ManagerServiceImplTest {
 
     @Mock
     private ManagerMapper managerMapper;
+
+    @Mock
+    private BulkImporter bulkImporter;
 
     @InjectMocks
     private ManagerServiceImpl managerService;

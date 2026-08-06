@@ -11,6 +11,7 @@ import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.entity.Club;
 import com.kleos.transfers.club.mapper.ClubMapper;
 import com.kleos.transfers.club.repository.ClubRepository;
+import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,9 @@ class ClubServiceImplTest {
 
     @Mock
     private ClubMapper clubMapper;
+
+    @Mock
+    private BulkImporter bulkImporter;
 
     @InjectMocks
     private ClubServiceImpl clubService;

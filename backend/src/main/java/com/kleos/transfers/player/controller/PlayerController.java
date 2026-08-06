@@ -1,5 +1,7 @@
 package com.kleos.transfers.player.controller;
 
+import com.kleos.transfers.common.bulk.BulkImportRequest;
+import com.kleos.transfers.common.bulk.BulkImportResponse;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
@@ -35,6 +37,13 @@ public class PlayerController {
     @PostMapping
     public ResponseEntity<PlayerResponse> create(@Valid @RequestBody CreatePlayerRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(playerService.create(request));
+    }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<BulkImportResponse<PlayerResponse>> createAll(
+            @Valid @RequestBody BulkImportRequest<CreatePlayerRequest> request
+    ) {
+        return ResponseEntity.ok(playerService.createAll(request.items()));
     }
 
     @GetMapping

@@ -56,10 +56,35 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | GET | `/api/v1/managers/{id}` | Get manager by id |
 | PUT | `/api/v1/managers/{id}` | Replace manager identity |
 | DELETE | `/api/v1/managers/{id}` | Soft-delete manager identity |
+| POST | `/api/v1/players/bulk` | Import up to 500 players |
+| POST | `/api/v1/clubs/bulk` | Import up to 500 clubs |
+| POST | `/api/v1/managers/bulk` | Import up to 500 managers |
 
 Nationality and club country codes use FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
 
 Identity deletes are soft (`deleted_at`); list/get ignore deleted rows.
+
+## Bulk import
+
+`POST /api/v1/{resource}/bulk` takes `{"items": [...]}` of the same payloads the single-create endpoints accept, and always returns `200` with a per-row summary:
+
+```json
+{
+  "requested": 3,
+  "createdCount": 1,
+  "skippedCount": 1,
+  "failedCount": 1,
+  "created": [{ "id": "…", "fullName": "Bukayo Saka" }],
+  "skipped": [{ "index": 1, "reference": "Bukayo Saka", "reason": "already exists" }],
+  "failed": [{ "index": 2, "reference": "X", "reason": "nationality must be a valid FIFA nationality code" }]
+}
+```
+
+One bad row never rejects the batch, and re-running an import is safe. Duplicates are matched on a natural key — name, date of birth, and nationality for people; name and country for clubs — so imports are repeatable without creating duplicate identities.
+
+Shared logic lives in `common.bulk`; a new identity module only implements `BulkImportSpec`.
+
+Load CSV files with [`../scripts/import-identities.py`](../scripts/README.md).
 
 ## Tests
 

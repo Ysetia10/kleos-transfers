@@ -73,6 +73,17 @@ API base path: `http://localhost:8080/api/v1`
 - `GET|POST /api/v1/players` and `GET|PUT|DELETE /api/v1/players/{id}`
 - `GET|POST /api/v1/clubs` and `GET|PUT|DELETE /api/v1/clubs/{id}`
 - `GET|POST /api/v1/managers` and `GET|PUT|DELETE /api/v1/managers/{id}`
+- `POST /api/v1/{players|clubs|managers}/bulk` for batch imports
+
+### Loading identity data
+
+Creating records one at a time does not scale, so identity data is loaded from CSV:
+
+```bash
+./scripts/import-identities.py players scripts/sample-data/players.csv
+```
+
+See [`scripts/README.md`](scripts/README.md) for column formats and options.
 
 ### Frontend
 

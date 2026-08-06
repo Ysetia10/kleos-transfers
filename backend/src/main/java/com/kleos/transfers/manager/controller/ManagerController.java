@@ -1,5 +1,7 @@
 package com.kleos.transfers.manager.controller;
 
+import com.kleos.transfers.common.bulk.BulkImportRequest;
+import com.kleos.transfers.common.bulk.BulkImportResponse;
 import com.kleos.transfers.manager.dto.CreateManagerRequest;
 import com.kleos.transfers.manager.dto.ManagerResponse;
 import com.kleos.transfers.manager.dto.UpdateManagerRequest;
@@ -35,6 +37,13 @@ public class ManagerController {
     @PostMapping
     public ResponseEntity<ManagerResponse> create(@Valid @RequestBody CreateManagerRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(managerService.create(request));
+    }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<BulkImportResponse<ManagerResponse>> createAll(
+            @Valid @RequestBody BulkImportRequest<CreateManagerRequest> request
+    ) {
+        return ResponseEntity.ok(managerService.createAll(request.items()));
     }
 
     @GetMapping

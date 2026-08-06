@@ -51,7 +51,7 @@ public class Player extends IdentityEntity {
     @Column(name = "primary_position", nullable = false, length = 3)
     private Position primaryPosition;
 
-    @Column(name = "fbref_id", length = 40)
+    @Column(name = "fbref_id", length = 120)
     private String fbrefId;
 
     public Player(

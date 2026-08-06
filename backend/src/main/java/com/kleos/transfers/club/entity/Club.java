@@ -38,7 +38,7 @@ public class Club extends IdentityEntity {
     @Column(name = "founded_year")
     private Integer foundedYear;
 
-    @Column(name = "fbref_id", length = 40)
+    @Column(name = "fbref_id", length = 120)
     private String fbrefId;
 
     public Club(String name, String shortName, String countryCode, Integer foundedYear) {

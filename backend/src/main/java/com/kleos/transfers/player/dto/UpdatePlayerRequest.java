@@ -21,6 +21,6 @@ public record UpdatePlayerRequest(
         @Min(140) @Max(230) Integer heightCm,
         PreferredFoot preferredFoot,
         @NotNull Position primaryPosition,
-        @Size(max = 40) String fbrefId
+        @Size(max = 120) String fbrefId
 ) {
 }

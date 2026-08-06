@@ -3,6 +3,7 @@ package com.kleos.transfers.clubseason.repository;
 import com.kleos.transfers.clubseason.entity.ClubSeason;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,4 +19,13 @@ public interface ClubSeasonRepository extends JpaRepository<ClubSeason, UUID> {
      */
     @Query("select cs from ClubSeason cs where cs.uniquenessKey in :keys")
     List<ClubSeason> findAllByUniquenessKeyIn(@Param("keys") Collection<String> keys);
+
+    @Query("""
+            select cs from ClubSeason cs
+            where cs.club.id = :clubId and cs.season.id = :seasonId
+            """)
+    Optional<ClubSeason> findByClubIdAndSeasonId(
+            @Param("clubId") UUID clubId,
+            @Param("seasonId") UUID seasonId
+    );
 }

@@ -10,7 +10,7 @@ Build an accessible and explainable decision-support platform for football trans
 
 ## Current status
 
-Version **0.2** — Identity Layer in progress.
+Version **0.3** — Prediction layer (v0 heuristic) in place.
 
 Completed:
 
@@ -18,10 +18,11 @@ Completed:
 - Shared domain foundation (`BaseEntity`, auditing, enums)
 - Player, Club, Manager, Season, and Tournament identity modules (API, persistence, validation, tests)
 - ClubSeason, ManagerSeason, PlayerSeason, Transfer, Contract, and Injury historical modules
+- PredictionRun / Prediction / Explanation / Evaluation with explainable v0 heuristic engine
 - Bulk identity import API + CSV loader script
 - Material UI design system and application shell
 
-The historical layer is complete. Next: the prediction layer (PredictionRun + Prediction foundation).
+Next: frontend prediction form/results (#25–#26), then stronger models and evaluation against a completed season.
 
 ## High-level architecture
 
@@ -83,6 +84,8 @@ API base path: `http://localhost:8080/api/v1`
 - `GET|POST /api/v1/transfers` and `GET|PUT|DELETE /api/v1/transfers/{id}`
 - `GET|POST /api/v1/contracts` and `GET|PUT|DELETE /api/v1/contracts/{id}`
 - `GET|POST /api/v1/injuries` and `GET|PUT|DELETE /api/v1/injuries/{id}`
+- `POST|GET /api/v1/predictions`, `GET|DELETE /api/v1/predictions/{id}`, `POST /api/v1/predictions/{id}/evaluate`
+- `GET /api/v1/prediction-runs/{id}`
 - Bulk import on identity and historical collection endpoints via `/bulk`
 
 ### Loading identity data

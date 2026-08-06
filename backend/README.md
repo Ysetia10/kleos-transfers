@@ -13,7 +13,7 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Controllers stay thin; services own use cases
 - DTOs isolate the API from JPA entities
-- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `clubseason`, `managerseason`, `playerseason`, `transfer`, `contract`, `injury`, `health`) with shared code in `common`, `domain`, and `config`
+- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `clubseason`, `managerseason`, `playerseason`, `transfer`, `contract`, `injury`, `prediction`, `health`) with shared code in `common`, `domain`, and `config`
 - New modules should follow the same feature-package layout
 - Identity entities extend `common.entity.IdentityEntity` for the shared UUID key, auditing, and soft delete
 - Shared vocabulary lives in `com.kleos.transfers.domain`
@@ -121,6 +121,19 @@ Transfer links `playerId`, optional `fromClubId` / `toClubId`, `seasonId`, `tran
 Contract links `playerId` + `clubId` with `startDate`, `endDate`, and an optional `releaseClauseEur`. Unique per player/club/start date, so a renewal is a new row rather than an edit. Contracts are not created automatically by a transfer.
 
 Injury links `playerId` with `injuryType`, `severity` (`MINOR`, `MODERATE`, `SEVERE`), `startDate`, and an optional `endDate` (null while the player is still out). Responses derive `daysOut` and `ongoing` from the dates. Injuries are date-ranged, not season-scoped.
+
+### Predictions
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/predictions` | Run a player→club→season what-if (creates run + prediction + explanations) |
+| GET | `/api/v1/predictions` | List predictions (paginated) |
+| GET | `/api/v1/predictions/{id}` | Get prediction with explanations and optional evaluation |
+| POST | `/api/v1/predictions/{id}/evaluate` | Compare against matching PlayerSeason outcome |
+| DELETE | `/api/v1/predictions/{id}` | Soft-delete prediction |
+| GET | `/api/v1/prediction-runs/{id}` | Get run metadata with nested predictions |
+
+v0 model version is `v0-heuristic`: deterministic minutes/goals/assists/xG/xA/value plus compatibility and confidence scores, each backed by explanation factors.
 
 Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
 

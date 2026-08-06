@@ -18,4 +18,6 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
      */
     @Query("select c from Contract c where c.uniquenessKey in :keys")
     List<Contract> findAllByUniquenessKeyIn(@Param("keys") Collection<String> keys);
+
+    List<Contract> findByPlayerIdOrderByEndDateDesc(UUID playerId);
 }

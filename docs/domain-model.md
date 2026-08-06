@@ -378,23 +378,114 @@ Derived on the API: `daysOut` (inclusive day count, null while ongoing) and `ong
 - An injury is not tied to a Season. Spells cross season boundaries, so consumers filter by date range instead.
 - No club, matches-missed, or recurrence-link fields yet. Matches missed needs fixture data that Kleos does not model.
 
+## PredictionRun
+
+### Purpose
+
+Audit wrapper for one execution of the prediction engine. Stores the model version so later algorithm changes do not rewrite historical outputs.
+
+### Attributes
+
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `modelVersion` | String | e.g. `v0-heuristic` |
+| `note` | String (optional) | Free-text scenario note |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+### Relationships
+
+- One PredictionRun → many Predictions
+
+### Notes
+
+- Implemented in backend Version 0.3.
+- Created automatically when `POST /api/v1/predictions` runs a scenario. Read via `/api/v1/prediction-runs/{id}`.
+
 ## Prediction
 
 ### Purpose
 
-_To be finalized._
+One transfer what-if: predicted first-season performance of a player at a target club. This is the product object — metrics, scores, and explanations travel together.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `run` | FK → PredictionRun | Required |
+| `player` | FK → Player | Required |
+| `targetClub` | FK → Club | Required |
+| `season` | FK → Season | Season being predicted |
+| `predictedMinutes` | Integer | Expected minutes |
+| `predictedGoals` / `predictedAssists` | Decimal | Counting-stat projections |
+| `predictedXg` / `predictedXa` | Decimal | Expected-stat projections |
+| `predictedMarketValueEur` | Decimal (optional) | Coarse end-of-season value |
+| `compatibilityScore` | Decimal 0–100 | Transfer fit / adaptation score |
+| `confidenceScore` | Decimal 0–100 | Input-coverage confidence |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
 
 ### Relationships
 
-_To be finalized._
+- Many Predictions → one PredictionRun / Player / Club / Season
+- One Prediction → many PredictionExplanations
+- One Prediction → zero-or-one PredictionEvaluation
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.3.
+- API: `POST|GET /api/v1/predictions`, `GET /api/v1/predictions/{id}`, `DELETE /api/v1/predictions/{id}`.
+- **Product decision:** metrics live on one row (not separate tables per metric). Users predict a scenario, not "minutes alone".
+- **v0 engine (`v0-heuristic`)** is deterministic and explainable: minutes from recent workload + age + injury + squad competition; goals/assists/xG/xA from historical per-90 × predicted minutes; market value from age band × contribution; compatibility/confidence from factor rules. Replaceable via `PredictionEngine` without changing the API shape.
+- The same player/club/season may be predicted multiple times (different runs / model versions).
+
+## PredictionExplanation
+
+### Purpose
+
+One human-readable factor behind a prediction — the product's explainability surface for the UI.
+
+### Attributes
+
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `prediction` | FK → Prediction | Required |
+| `factorCode` | String | Stable code (`AGE_PROFILE`, `INJURY_BURDEN`, …) |
+| `label` | String | Short UI label |
+| `direction` | Enum | `POSITIVE`, `NEGATIVE`, `NEUTRAL` |
+| `impact` | Decimal | Magnitude on a 0–100 style scale |
+| `detail` | String | Human-readable sentence |
+| `sortOrder` | Integer | Display order |
+
+### Notes
+
+- Owned by the parent prediction (cascade). No independent soft-delete lifecycle.
+- Factor codes are stable for UI grouping even if wording changes.
+
+## PredictionEvaluation
+
+### Purpose
+
+Post-season comparison of a prediction against the observed `PlayerSeason` for the same player/club/season.
+
+### Attributes
+
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `prediction` | FK → Prediction | Unique |
+| `actualMinutes` / `actualGoals` / `actualAssists` | Integer | Observed outcomes |
+| `actualXg` / `actualXa` | Decimal | Observed expected stats |
+| `minutesError` / `goalsError` / … | signed deltas | `actual − predicted` |
+| `evaluatedAt` | Instant | When evaluation ran |
+
+### Notes
+
+- API: `POST /api/v1/predictions/{id}/evaluate` (idempotent conflict if already evaluated).
+- Requires a matching PlayerSeason outcome row; returns 404 until that history exists.
 
 ## National Team
 
@@ -418,6 +509,8 @@ _To be finalized._
 
 - **Identity soft delete** — identity entities set `deletedAt` instead of hard-deleting rows, so historical foreign keys remain valid after an identity is removed from active APIs.
 - **Club uniqueness** — clubs are unique on case-insensitive `name` + `countryCode` via `nameNormalized`; soft delete suffixes `nameNormalized` so re-creation is allowed.
+- **Prediction is scenario-first** — one API creates a run + prediction + explanations; metrics share one row; explanations are child factor rows. Separate per-metric HTTP endpoints were rejected as unproductized.
+- **v0 model is heuristic and replaceable** — `PredictionEngine` + `modelVersion` on the run allow swapping algorithms without changing persistence or API contracts.
 
 ## Open Questions
 

@@ -276,19 +276,37 @@ Internal: `uniquenessKey` is `{managerId}:{clubId}:{seasonId}` while active; sof
 
 ### Purpose
 
-_To be finalized._
+Record a player moving between clubs (or into/out of free agency). Transfers are historical facts used later by prediction what-if scenarios. Creating a transfer does not generate a prediction.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `player` | FK → Player | Required |
+| `fromClub` | FK → Club (optional) | Null = signing from free agency / unknown prior club |
+| `toClub` | FK → Club (optional) | Null = release to free agency |
+| `season` | FK → Season | Season context for the move |
+| `transferDate` | LocalDate | Effective date of the move |
+| `feeEur` | Decimal (optional) | Transfer fee in EUR; null = undisclosed / not applicable |
+| `type` | Enum | `PERMANENT`, `LOAN`, `FREE`, `LOAN_RETURN` |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+Internal: `uniquenessKey` is `{playerId}:{date}:{from|none}:{to|none}:{type}` while active; soft delete appends `#{id}`.
 
 ### Relationships
 
-_To be finalized._
+- Many Transfers → one Player
+- Many Transfers → zero-or-one from Club / to Club
+- Many Transfers → one Season
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.2.
+- API: `/api/v1/transfers` (+ `/bulk`).
+- At least one of `fromClub` / `toClub` is required; they must differ when both are set.
+- Unique per player + date + from + to + type so the same event is not imported twice.
 
 ## Prediction
 

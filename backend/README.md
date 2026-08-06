@@ -13,7 +13,7 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Controllers stay thin; services own use cases
 - DTOs isolate the API from JPA entities
-- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `clubseason`, `managerseason`, `playerseason`, `health`) with shared code in `common`, `domain`, and `config`
+- Packages are organized by feature (`player`, `club`, `manager`, `season`, `tournament`, `clubseason`, `managerseason`, `playerseason`, `transfer`, `health`) with shared code in `common`, `domain`, and `config`
 - New modules should follow the same feature-package layout
 - Identity entities extend `common.entity.IdentityEntity` for the shared UUID key, auditing, and soft delete
 - Shared vocabulary lives in `com.kleos.transfers.domain`
@@ -89,6 +89,12 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 | PUT | `/api/v1/player-seasons/{id}` | Replace player-season |
 | DELETE | `/api/v1/player-seasons/{id}` | Soft-delete player-season |
 | POST | `/api/v1/player-seasons/bulk` | Import up to 500 player-seasons |
+| POST | `/api/v1/transfers` | Create transfer record |
+| GET | `/api/v1/transfers` | List transfers (paginated) |
+| GET | `/api/v1/transfers/{id}` | Get transfer by id |
+| PUT | `/api/v1/transfers/{id}` | Replace transfer |
+| DELETE | `/api/v1/transfers/{id}` | Soft-delete transfer |
+| POST | `/api/v1/transfers/bulk` | Import up to 500 transfers |
 
 Nationality and club/tournament country codes use FIFA association codes (`ENG`, `GER`, `NED`), not ISO 3166-1.
 
@@ -97,6 +103,8 @@ ClubSeason links `clubId` + `seasonId` + primary `tournamentId`. One active row 
 ManagerSeason links `managerId` + `clubId` + `seasonId`. Unique per manager/club/season; multiple managers at the same club in one season are allowed.
 
 PlayerSeason links `playerId` + `clubId` + `seasonId` with appearances, minutes, goals, assists, xG, xA, and seasonal primary position. Unique per player/club/season.
+
+Transfer links `playerId`, optional `fromClubId` / `toClubId`, `seasonId`, `transferDate`, optional `feeEur`, and `type` (`PERMANENT`, `LOAN`, `FREE`, `LOAN_RETURN`).
 
 Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
 

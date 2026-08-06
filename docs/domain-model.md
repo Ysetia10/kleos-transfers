@@ -190,19 +190,34 @@ _To be finalized._
 
 ### Purpose
 
-_To be finalized._
+Represent a club competing in one season under its primary tournament (usually the domestic league). This is the historical spine for club context used by adaptation predictions. It does not store match results, squad lists, or cup runs.
 
 ### Attributes
 
-_To be finalized._
+| Attribute | Type | Notes |
+|-----------|------|-------|
+| `id` | UUID | Surrogate primary key |
+| `club` | FK → Club | Required |
+| `season` | FK → Season | Required |
+| `tournament` | FK → Tournament | Primary competition for that club-season |
+| `createdAt` / `updatedAt` | Instant | Audited timestamps |
+| `deletedAt` | Instant (nullable) | Soft-delete marker |
+
+Internal: `uniquenessKey` is `{clubId}:{seasonId}` while active; soft delete appends `#{id}` so the pair can be recreated.
 
 ### Relationships
 
-_To be finalized._
+- Many ClubSeasons → one Club
+- Many ClubSeasons → one Season
+- Many ClubSeasons → one Tournament (primary league/competition)
+- Future: `ManagerSeason` / `PlayerSeason` may reference ClubSeason or the same Club+Season pair
 
 ### Notes
 
-_To be finalized._
+- Implemented in backend Version 0.2.
+- API: `/api/v1/club-seasons` (+ `/bulk`).
+- **One active row per (club, season).** Cup/continental participation is intentionally out of scope for v1 — add a separate participation entity later if needed.
+- No finishing position, points, or xG yet — add only when a prediction feature needs them.
 
 ## Transfer
 

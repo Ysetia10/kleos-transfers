@@ -10,11 +10,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kleos.transfers.tournament.repository.TournamentRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.kleos.transfers.common.test.DatabaseCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -33,14 +34,14 @@ class TournamentControllerIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private TournamentRepository tournamentRepository;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void clearTournaments() {
-        tournamentRepository.deleteAllInBatch();
+        DatabaseCleaner.clearAll(jdbcTemplate);
     }
 
     @Test

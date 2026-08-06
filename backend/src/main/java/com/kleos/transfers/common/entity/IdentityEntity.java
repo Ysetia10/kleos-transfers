@@ -11,7 +11,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * Base class for permanent identity records such as Player, Club, and Manager.
+ * Base class for UUID-keyed domain records with auditing and soft delete.
+ *
+ * <p>Used by identity entities (Player, Club, …) and historical entities (ClubSeason, …).
  */
 @Getter
 @MappedSuperclass

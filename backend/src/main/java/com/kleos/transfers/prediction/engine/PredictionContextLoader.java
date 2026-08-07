@@ -25,6 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Loads identity + historical inputs for one prediction scenario.
+ *
+ * <p>Inputs are loaded <em>as of</em> the target season start: player history and squad
+ * competition never include the target season itself, so completed-season backtests do not
+ * leak outcomes into the v0 heuristic.
  */
 @Component
 @RequiredArgsConstructor
@@ -47,12 +51,17 @@ public class PredictionContextLoader {
         Season season = seasonRepository.findById(seasonId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Season", seasonId));
 
-        List<PlayerSeason> history = playerSeasonRepository.findHistoryByPlayerId(playerId);
-        List<PlayerSeason> squad = playerSeasonRepository.findByClubIdAndSeasonId(targetClubId, seasonId);
-        LocalDate injurySince = season.getStartDate().minusYears(1);
+        LocalDate asOf = season.getStartDate();
+        List<PlayerSeason> history = playerSeasonRepository.findHistoryByPlayerIdBefore(playerId, asOf);
+        Optional<Season> priorSeason = seasonRepository.findFirstByStartDateLessThanOrderByStartDateDesc(asOf);
+        List<PlayerSeason> squad = priorSeason
+                .map(prior -> playerSeasonRepository.findByClubIdAndSeasonId(targetClubId, prior.getId()))
+                .orElseGet(List::of);
+        LocalDate injurySince = asOf.minusYears(1);
         List<Injury> injuries = injuryRepository.findByPlayerIdAndStartDateGreaterThanEqual(playerId, injurySince);
         List<Contract> contracts = contractRepository.findByPlayerIdOrderByEndDateDesc(playerId);
-        Optional<ClubSeason> clubSeason = clubSeasonRepository.findByClubIdAndSeasonId(targetClubId, seasonId);
+        Optional<ClubSeason> clubSeason = priorSeason
+                .flatMap(prior -> clubSeasonRepository.findByClubIdAndSeasonId(targetClubId, prior.getId()));
         Optional<PlayerSeason> mostRecent = history.stream().findFirst();
 
         return new PredictionContext(

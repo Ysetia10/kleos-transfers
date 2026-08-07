@@ -1,6 +1,7 @@
 package com.kleos.transfers.playerseason.repository;
 
 import com.kleos.transfers.playerseason.entity.PlayerSeason;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,23 @@ public interface PlayerSeasonRepository extends JpaRepository<PlayerSeason, UUID
             order by s.startDate desc
             """)
     List<PlayerSeason> findHistoryByPlayerId(@Param("playerId") UUID playerId);
+
+    /**
+     * Player history strictly before {@code asOf} (typically the target season start date).
+     * Used so predictions / backtests never see same-season outcomes.
+     */
+    @Query("""
+            select ps from PlayerSeason ps
+            join fetch ps.season s
+            join fetch ps.club
+            where ps.player.id = :playerId
+              and s.startDate < :asOf
+            order by s.startDate desc
+            """)
+    List<PlayerSeason> findHistoryByPlayerIdBefore(
+            @Param("playerId") UUID playerId,
+            @Param("asOf") LocalDate asOf
+    );
 
     @Query("""
             select ps from PlayerSeason ps

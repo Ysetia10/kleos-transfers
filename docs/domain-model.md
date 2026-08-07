@@ -444,6 +444,7 @@ One transfer what-if: predicted first-season performance of a player at a target
 - API: `POST|GET /api/v1/predictions`, `GET /api/v1/predictions/{id}`, `DELETE /api/v1/predictions/{id}`.
 - **Product decision:** metrics live on one row (not separate tables per metric). Users predict a scenario, not "minutes alone".
 - **v0 engine (`v0-heuristic`)** is deterministic and explainable: minutes from recent workload + age + injury + squad competition; goals/assists/xG/xA from historical per-90 × predicted minutes; market value from age band × contribution; compatibility/confidence from factor rules. Replaceable via `PredictionEngine` without changing the API shape.
+- Context is loaded **as of** the target season start (history and squad exclude the target season) so completed-season evaluation does not leak outcomes. See [`prediction-validation.md`](prediction-validation.md).
 - The same player/club/season may be predicted multiple times (different runs / model versions).
 
 ## PredictionExplanation

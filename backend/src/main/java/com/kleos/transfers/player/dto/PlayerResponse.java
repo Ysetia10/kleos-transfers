@@ -13,11 +13,15 @@ public record PlayerResponse(
         UUID id,
         String fullName,
         LocalDate dateOfBirth,
+        Integer age,
         String nationality,
         Integer heightCm,
         PreferredFoot preferredFoot,
         Position primaryPosition,
         String fbrefId,
+        UUID latestClubId,
+        String latestClubName,
+        String latestSeasonLabel,
         Instant createdAt,
         Instant updatedAt
 ) {

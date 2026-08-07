@@ -1,15 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Alert, Autocomplete, Box, Button, Stack, TextField } from '@mui/material'
+import { Alert, Autocomplete, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
+import { SquadTable } from '@/components/home/SquadTable'
 import { routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getClub, listClubs } from '@/services/club/clubApi'
+import { getClubSquad } from '@/services/club/squadApi'
 import { createPrediction } from '@/services/prediction/predictionApi'
 import { getPlayer, listPlayers } from '@/services/player/playerApi'
 import { listSeasons } from '@/services/season/seasonApi'
@@ -28,6 +30,7 @@ type FormValues = z.infer<typeof schema>
 interface PredictionFormProps {
   initialPlayerId?: string
   initialClubId?: string
+  showSquad?: boolean
 }
 
 const SEARCH_PAGE_SIZE = 25
@@ -41,7 +44,11 @@ function useDebouncedSearch(value: string, delayMs = 250) {
   return debounced
 }
 
-export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFormProps) {
+export function PredictionForm({
+  initialPlayerId,
+  initialClubId,
+  showSquad = false,
+}: PredictionFormProps) {
   const navigate = useNavigate()
   const [playerInput, setPlayerInput] = useState('')
   const [clubInput, setClubInput] = useState('')
@@ -112,6 +119,21 @@ export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFor
     },
   })
 
+  const watchedClubId = useWatch({ control, name: 'targetClubId' })
+  const watchedSeasonId = useWatch({ control, name: 'seasonId' })
+  const squadEnabled = showSquad && !!watchedClubId && !!watchedSeasonId
+
+  const squadQuery = useQuery({
+    queryKey: queryKeys.clubs.squad(watchedClubId || '', watchedSeasonId || ''),
+    queryFn: () => getClubSquad(watchedClubId, watchedSeasonId),
+    enabled: squadEnabled,
+  })
+
+  const selectedSeasonLabel =
+    seasons.find((season) => season.id === watchedSeasonId)?.label ?? watchedSeasonId
+  const selectedClubName =
+    clubOptions.find((club) => club.id === watchedClubId)?.name ?? 'Selected club'
+
   const mutation = useMutation({
     mutationFn: createPrediction,
     onSuccess: (prediction) => {
@@ -156,9 +178,11 @@ export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFor
           render={({ field }) => (
             <Autocomplete<Player>
               filterOptions={(options) => options}
-              getOptionLabel={(option) =>
-                `${option.fullName} · ${option.primaryPosition} · ${option.nationality}`
-              }
+              getOptionLabel={(option) => {
+                const club = option.latestClubName ? ` · ${option.latestClubName}` : ''
+                const age = option.age != null ? ` · ${option.age}` : ''
+                return `${option.fullName} · ${option.primaryPosition}${age}${club}`
+              }}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               loading={playersQuery.isFetching}
               onChange={(_, value) => field.onChange(value?.id ?? '')}
@@ -267,6 +291,28 @@ export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFor
       >
         {mutation.isPending ? 'Running prediction…' : 'Run prediction'}
       </Button>
+
+      {showSquad ? (
+        <Stack spacing={1.5}>
+          <Typography component="h3" variant="h3">
+            Target club squad
+          </Typography>
+          <Typography color="text.secondary" variant="body2">
+            {squadEnabled
+              ? `${selectedClubName} · ${selectedSeasonLabel} — full season roster from PlayerSeason rows.`
+              : 'Select a target club and season to load the squad for that campaign.'}
+          </Typography>
+          {squadEnabled ? (
+            <SquadTable
+              error={squadQuery.error}
+              isError={squadQuery.isError}
+              isLoading={squadQuery.isLoading}
+              onRetry={() => void squadQuery.refetch()}
+              squad={squadQuery.data}
+            />
+          ) : null}
+        </Stack>
+      ) : null}
     </Stack>
   )
 }

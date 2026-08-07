@@ -4,11 +4,13 @@ import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
+import { SquadTable } from '@/components/home/SquadTable'
 import { ExplanationList } from '@/components/prediction/ExplanationList'
 import { MetricGrid } from '@/components/prediction/MetricGrid'
 import { ScoreMeter } from '@/components/prediction/ScoreMeter'
 import { homePredictPath } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
+import { getClubSquad } from '@/services/club/squadApi'
 import { getPrediction } from '@/services/prediction/predictionApi'
 import { formatDateTime } from '@/utils/format'
 
@@ -20,14 +22,22 @@ export function PredictionResultPage() {
     enabled: !!id,
   })
 
+  const prediction = query.data
+  const squadQuery = useQuery({
+    queryKey: queryKeys.clubs.squad(
+      prediction?.targetClubId ?? '',
+      prediction?.seasonId ?? '',
+    ),
+    queryFn: () => getClubSquad(prediction!.targetClubId, prediction!.seasonId),
+    enabled: !!prediction?.targetClubId && !!prediction?.seasonId,
+  })
+
   if (query.isLoading) {
     return <LoadingState label="Loading prediction…" />
   }
-  if (query.isError || !query.data) {
+  if (query.isError || !prediction) {
     return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
   }
-
-  const prediction = query.data
 
   return (
     <Stack spacing={5}>
@@ -91,6 +101,22 @@ export function PredictionResultPage() {
           negative factors pull it down.
         </Typography>
         <ExplanationList explanations={prediction.explanations} />
+      </Stack>
+
+      <Stack spacing={2}>
+        <Typography component="h2" variant="h3">
+          {prediction.targetClubName} squad · {prediction.seasonLabel}
+        </Typography>
+        <Typography color="text.secondary" variant="body2">
+          Full roster for the selected season at the destination club (minutes, goals, assists).
+        </Typography>
+        <SquadTable
+          error={squadQuery.error}
+          isError={squadQuery.isError}
+          isLoading={squadQuery.isLoading}
+          onRetry={() => void squadQuery.refetch()}
+          squad={squadQuery.data}
+        />
       </Stack>
     </Stack>
   )

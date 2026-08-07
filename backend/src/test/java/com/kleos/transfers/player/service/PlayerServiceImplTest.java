@@ -2,6 +2,9 @@ package com.kleos.transfers.player.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,6 +19,7 @@ import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.player.mapper.PlayerMapper;
 import com.kleos.transfers.player.repository.PlayerRepository;
+import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +41,9 @@ class PlayerServiceImplTest {
     private PlayerRepository playerRepository;
 
     @Mock
+    private PlayerSeasonRepository playerSeasonRepository;
+
+    @Mock
     private PlayerMapper playerMapper;
 
     @Mock
@@ -55,7 +62,8 @@ class PlayerServiceImplTest {
                 "test player", request.dateOfBirth(), "ENG")).thenReturn(false);
         when(playerMapper.toEntity(request)).thenReturn(player);
         when(playerRepository.save(player)).thenReturn(player);
-        when(playerMapper.toResponse(player)).thenReturn(expected);
+        when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
 
         PlayerResponse actual = playerService.create(request);
 
@@ -69,7 +77,8 @@ class PlayerServiceImplTest {
         Player player = player();
         PlayerResponse expected = response();
         when(playerRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(player)));
-        when(playerMapper.toResponse(player)).thenReturn(expected);
+        when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
 
         Page<PlayerResponse> actual = playerService.findAll(null, pageable);
 
@@ -83,7 +92,8 @@ class PlayerServiceImplTest {
         PlayerResponse expected = response();
         when(playerRepository.searchByName("rice", PageRequest.of(0, 20)))
                 .thenReturn(new PageImpl<>(List.of(player)));
-        when(playerMapper.toResponse(player)).thenReturn(expected);
+        when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
 
         Page<PlayerResponse> actual = playerService.findAll("rice", pageable);
 
@@ -97,7 +107,8 @@ class PlayerServiceImplTest {
         PlayerResponse expected = response();
 
         when(playerRepository.findById(id)).thenReturn(Optional.of(player));
-        when(playerMapper.toResponse(player)).thenReturn(expected);
+        when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
 
         assertThat(playerService.findById(id)).isSameAs(expected);
     }
@@ -112,7 +123,8 @@ class PlayerServiceImplTest {
         when(playerRepository.findById(id)).thenReturn(Optional.of(player));
         when(playerRepository.existsByFullNameNormalizedAndDateOfBirthAndNationalityAndIdNot(
                 "updated player", request.dateOfBirth(), "NED", id)).thenReturn(false);
-        when(playerMapper.toResponse(player)).thenReturn(expected);
+        when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
 
         PlayerResponse actual = playerService.update(id, request);
 
@@ -205,10 +217,14 @@ class PlayerServiceImplTest {
                 UUID.randomUUID(),
                 "Test Player",
                 LocalDate.of(2000, 1, 1),
+                26,
                 "ENG",
                 180,
                 PreferredFoot.RIGHT,
                 Position.CM,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null

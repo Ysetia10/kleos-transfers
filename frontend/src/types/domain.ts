@@ -22,11 +22,34 @@ export interface Player {
   id: string
   fullName: string
   dateOfBirth: string
+  age: number | null
   nationality: string
   heightCm: number | null
   preferredFoot: PreferredFoot | null
   primaryPosition: Position
   fbrefId: string | null
+  latestClubId: string | null
+  latestClubName: string | null
+  latestSeasonLabel: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PlayerSeason {
+  id: string
+  playerId: string
+  playerName: string
+  clubId: string
+  clubName: string
+  seasonId: string
+  seasonLabel: string
+  appearances: number
+  minutesPlayed: number
+  goals: number
+  assists: number
+  xg: number
+  xa: number
+  primaryPosition: Position
   createdAt: string
   updatedAt: string
 }

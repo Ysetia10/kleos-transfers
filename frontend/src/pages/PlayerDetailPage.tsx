@@ -1,13 +1,14 @@
-import { Button, Stack, Typography } from '@mui/material'
+import { Button, Link as MuiLink, Stack, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
-import { homePredictPath } from '@/constants/routes'
+import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getPlayer } from '@/services/player/playerApi'
-import { formatDate } from '@/utils/format'
+import { formatAge, formatDate } from '@/utils/format'
 
 export function PlayerDetailPage() {
   const { id = '' } = useParams()
@@ -25,15 +26,27 @@ export function PlayerDetailPage() {
   }
 
   const player = query.data
-  const fields = [
+  const latestClub =
+    player.latestClubId && player.latestClubName ? (
+      <MuiLink component={RouterLink} to={routes.clubDetail(player.latestClubId)} underline="hover">
+        {player.latestClubName}
+        {player.latestSeasonLabel ? ` · ${player.latestSeasonLabel}` : ''}
+      </MuiLink>
+    ) : (
+      '—'
+    )
+
+  const fields: ReadonlyArray<readonly [string, ReactNode]> = [
     ['Full name', player.fullName],
+    ['Age', formatAge(player.age)],
     ['Date of birth', formatDate(player.dateOfBirth)],
+    ['Latest club', latestClub],
     ['Nationality', player.nationality],
     ['Height', player.heightCm == null ? '—' : `${player.heightCm} cm`],
     ['Preferred foot', player.preferredFoot ?? '—'],
     ['Primary position', player.primaryPosition],
     ['FBref id', player.fbrefId ?? '—'],
-  ] as const
+  ]
 
   return (
     <Stack spacing={3}>
@@ -47,7 +60,7 @@ export function PlayerDetailPage() {
             Predict transfer
           </Button>
         }
-        description="Permanent identity attributes only — seasonal stats live on PlayerSeason."
+        description="Identity attributes plus latest club from PlayerSeason history."
         title={player.fullName}
       />
       <Stack

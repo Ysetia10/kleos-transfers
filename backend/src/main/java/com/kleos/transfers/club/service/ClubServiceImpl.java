@@ -12,6 +12,11 @@ import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.bulk.NaturalKeys;
 import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
+import com.kleos.transfers.playerseason.mapper.PlayerSeasonMapper;
+import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
+import com.kleos.transfers.season.repository.SeasonRepository;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -36,6 +41,9 @@ public class ClubServiceImpl implements ClubService {
     private final ClubRepository clubRepository;
     private final ClubMapper clubMapper;
     private final BulkImporter bulkImporter;
+    private final PlayerSeasonRepository playerSeasonRepository;
+    private final PlayerSeasonMapper playerSeasonMapper;
+    private final SeasonRepository seasonRepository;
 
     @Override
     @Transactional
@@ -78,6 +86,21 @@ public class ClubServiceImpl implements ClubService {
     @Transactional
     public void softDelete(UUID id) {
         findClub(id).softDelete();
+    }
+
+    @Override
+    public List<PlayerSeasonResponse> findSquad(UUID clubId, UUID seasonId) {
+        findClub(clubId);
+        seasonRepository.findById(seasonId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Season", seasonId));
+        return playerSeasonRepository.findByClubIdAndSeasonId(clubId, seasonId).stream()
+                .sorted(Comparator
+                        .comparing((com.kleos.transfers.playerseason.entity.PlayerSeason ps) ->
+                                ps.getMinutesPlayed() == null ? 0 : ps.getMinutesPlayed())
+                        .reversed()
+                        .thenComparing(ps -> ps.getPlayer().getFullName()))
+                .map(playerSeasonMapper::toResponse)
+                .toList();
     }
 
     private Club findClub(UUID id) {

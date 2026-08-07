@@ -13,6 +13,8 @@ export const routes = {
 export const homeSections = {
   predict: 'predict',
   recent: 'recent',
+  trending: 'trending',
+  allTime: 'all-time',
   catalogue: 'catalogue',
 } as const
 
@@ -43,7 +45,9 @@ export const navigationItems: ReadonlyArray<{ label: string; to: AppRoute }> = [
 ]
 
 export const homeJumpLinks: ReadonlyArray<{ label: string; section: HomeSectionId }> = [
-  { label: 'Predict', section: homeSections.predict },
+  { label: 'Simulator', section: homeSections.predict },
+  { label: 'Trending', section: homeSections.trending },
+  { label: 'All-time', section: homeSections.allTime },
   { label: 'Recent', section: homeSections.recent },
   { label: 'Players & clubs', section: homeSections.catalogue },
 ]

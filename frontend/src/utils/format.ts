@@ -24,6 +24,13 @@ export function formatDate(value: string): string {
   }).format(new Date(value))
 }
 
+export function formatAge(age: number | null | undefined): string {
+  if (age == null) {
+    return '—'
+  }
+  return String(age)
+}
+
 export function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',

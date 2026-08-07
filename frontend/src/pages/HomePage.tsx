@@ -3,6 +3,10 @@ import { useEffect } from 'react'
 import { Link as RouterLink, useLocation, useSearchParams } from 'react-router-dom'
 import { CatalogueSection } from '@/components/home/CatalogueSection'
 import { HomeSection } from '@/components/home/HomeSection'
+import {
+  AllTimeLeadersSection,
+  TrendingPlayersSection,
+} from '@/components/home/LeaderboardSection'
 import { RecentPredictionsSection } from '@/components/home/RecentPredictionsSection'
 import { PredictionForm } from '@/components/prediction/PredictionForm'
 import { homeJumpLinks, homeSections, routes } from '@/constants/routes'
@@ -26,13 +30,13 @@ export function HomePage() {
 
   return (
     <Stack spacing={{ xs: 6, md: 8 }}>
-      <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
+      <Stack spacing={2.5} sx={{ maxWidth: 760 }}>
         <Typography component="h1" variant="h1">
           Kleos Transfers
         </Typography>
         <Typography color="text.secondary" variant="body1">
-          Context-aware transfer what-ifs in one place — project minutes and fit after a move,
-          review recent runs, and browse the player/club identities behind them.
+          One workspace for transfer what-ifs (including historical seasons), league leaders, and
+          the player/club catalogue behind every scenario.
         </Typography>
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }} useFlexGap>
           {homeJumpLinks.map(({ label, section }) => (
@@ -50,17 +54,20 @@ export function HomePage() {
       </Stack>
 
       <HomeSection
-        description="Choose a player, destination club, and season. Results include explainable factors, not just a score."
+        description="Run a player → club scenario for any season in the catalogue. Historical seasons act as a simulator (context as of season start). When you pick a club and season, the squad table below the form shows that season's roster — not just a same-position count."
         id={homeSections.predict}
-        title="Predict a transfer"
+        title="Transfer simulator"
       >
         <PredictionForm
           key={`${playerId ?? ''}:${clubId ?? ''}`}
           initialClubId={clubId}
           initialPlayerId={playerId}
+          showSquad
         />
       </HomeSection>
 
+      <TrendingPlayersSection />
+      <AllTimeLeadersSection />
       <RecentPredictionsSection />
       <CatalogueSection />
     </Stack>

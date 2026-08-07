@@ -6,7 +6,9 @@ import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.service.ClubService;
 import com.kleos.transfers.common.bulk.BulkImportRequest;
 import com.kleos.transfers.common.bulk.BulkImportResponse;
+import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -58,6 +60,14 @@ public class ClubController {
     @GetMapping("/{id}")
     public ResponseEntity<ClubResponse> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(clubService.findById(id));
+    }
+
+    @GetMapping("/{id}/squad")
+    public ResponseEntity<List<PlayerSeasonResponse>> findSquad(
+            @PathVariable UUID id,
+            @RequestParam UUID seasonId
+    ) {
+        return ResponseEntity.ok(clubService.findSquad(id, seasonId));
     }
 
     @PutMapping("/{id}")

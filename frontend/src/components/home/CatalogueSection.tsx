@@ -19,7 +19,7 @@ import { homeSections, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { listClubs } from '@/services/club/clubApi'
 import { listPlayers } from '@/services/player/playerApi'
-import { formatDate } from '@/utils/format'
+import { formatAge } from '@/utils/format'
 
 const PAGE_SIZE = 8
 
@@ -67,8 +67,8 @@ export function CatalogueSection() {
                 <TableRow>
                   <TableCell>Name</TableCell>
                   <TableCell>Pos</TableCell>
-                  <TableCell>Nat</TableCell>
-                  <TableCell>Born</TableCell>
+                  <TableCell>Age</TableCell>
+                  <TableCell>Club</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -84,8 +84,20 @@ export function CatalogueSection() {
                       </MuiLink>
                     </TableCell>
                     <TableCell>{player.primaryPosition}</TableCell>
-                    <TableCell>{player.nationality}</TableCell>
-                    <TableCell>{formatDate(player.dateOfBirth)}</TableCell>
+                    <TableCell>{formatAge(player.age)}</TableCell>
+                    <TableCell>
+                      {player.latestClubId && player.latestClubName ? (
+                        <MuiLink
+                          component={RouterLink}
+                          to={routes.clubDetail(player.latestClubId)}
+                          underline="hover"
+                        >
+                          {player.latestClubName}
+                        </MuiLink>
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

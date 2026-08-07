@@ -7,15 +7,20 @@ import com.kleos.transfers.common.bulk.NaturalKeys;
 import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
+import com.kleos.transfers.player.dto.LatestClubView;
 import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
 import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.player.mapper.PlayerMapper;
 import com.kleos.transfers.player.repository.PlayerRepository;
+import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -33,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlayerServiceImpl implements PlayerService {
 
     private final PlayerRepository playerRepository;
+    private final PlayerSeasonRepository playerSeasonRepository;
     private final PlayerMapper playerMapper;
     private final BulkImporter bulkImporter;
 
@@ -41,7 +47,7 @@ public class PlayerServiceImpl implements PlayerService {
     public PlayerResponse create(CreatePlayerRequest request) {
         assertUnique(request.fullName(), request.dateOfBirth(), request.nationality(), request.fbrefId(), null);
         Player player = playerMapper.toEntity(request);
-        return playerMapper.toResponse(playerRepository.save(player));
+        return enrich(playerRepository.save(player));
     }
 
     @Override
@@ -52,17 +58,20 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Page<PlayerResponse> findAll(String query, Pageable pageable) {
+        Page<Player> page;
         if (query == null || query.isBlank()) {
-            return playerRepository.findAll(pageable).map(playerMapper::toResponse);
+            page = playerRepository.findAll(pageable);
+        } else {
+            Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+            page = playerRepository.searchByName(query.trim(), unsorted);
         }
-        // Native search owns ORDER BY; drop Sort so Spring does not append invalid property names.
-        Pageable page = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-        return playerRepository.searchByName(query.trim(), page).map(playerMapper::toResponse);
+        Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(page.getContent());
+        return page.map(player -> playerMapper.toResponse(player, latestClubs.get(player.getId())));
     }
 
     @Override
     public PlayerResponse findById(UUID id) {
-        return playerMapper.toResponse(findPlayer(id));
+        return enrich(findPlayer(id));
     }
 
     @Override
@@ -71,13 +80,27 @@ public class PlayerServiceImpl implements PlayerService {
         Player player = findPlayer(id);
         assertUnique(request.fullName(), request.dateOfBirth(), request.nationality(), request.fbrefId(), id);
         playerMapper.updateEntity(player, request);
-        return playerMapper.toResponse(player);
+        return enrich(player);
     }
 
     @Override
     @Transactional
     public void softDelete(UUID id) {
         findPlayer(id).softDelete();
+    }
+
+    private PlayerResponse enrich(Player player) {
+        Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(List.of(player));
+        return playerMapper.toResponse(player, latestClubs.get(player.getId()));
+    }
+
+    private Map<UUID, LatestClubView> latestClubsByPlayerId(Collection<Player> players) {
+        if (players.isEmpty()) {
+            return Map.of();
+        }
+        List<UUID> ids = players.stream().map(Player::getId).toList();
+        return playerSeasonRepository.findLatestClubsByPlayerIds(ids).stream()
+                .collect(Collectors.toMap(LatestClubView::getPlayerId, Function.identity(), (a, b) -> a));
     }
 
     private Player findPlayer(UUID id) {
@@ -118,9 +141,6 @@ public class PlayerServiceImpl implements PlayerService {
         }
     }
 
-    /**
-     * Prefer FBref id when present; otherwise name + DOB + nationality.
-     */
     private final class PlayerBulkSpec implements BulkImportSpec<CreatePlayerRequest, PlayerResponse> {
 
         @Override
@@ -169,7 +189,11 @@ public class PlayerServiceImpl implements PlayerService {
         @Override
         public List<PlayerResponse> persist(List<CreatePlayerRequest> accepted) {
             List<Player> players = accepted.stream().map(playerMapper::toEntity).toList();
-            return playerRepository.saveAll(players).stream().map(playerMapper::toResponse).toList();
+            List<Player> saved = playerRepository.saveAll(players);
+            Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(saved);
+            return saved.stream()
+                    .map(player -> playerMapper.toResponse(player, latestClubs.get(player.getId())))
+                    .toList();
         }
     }
 }

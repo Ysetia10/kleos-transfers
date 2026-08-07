@@ -14,6 +14,9 @@ import com.kleos.transfers.club.repository.ClubRepository;
 import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.playerseason.mapper.PlayerSeasonMapper;
+import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
+import com.kleos.transfers.season.repository.SeasonRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,6 +41,15 @@ class ClubServiceImplTest {
 
     @Mock
     private BulkImporter bulkImporter;
+
+    @Mock
+    private PlayerSeasonRepository playerSeasonRepository;
+
+    @Mock
+    private PlayerSeasonMapper playerSeasonMapper;
+
+    @Mock
+    private SeasonRepository seasonRepository;
 
     @InjectMocks
     private ClubServiceImpl clubService;

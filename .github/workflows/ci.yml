@@ -37,7 +37,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: backend
@@ -48,6 +48,10 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Pre-pull PostgreSQL image
+        # Avoid burning the Gradle test step on a cold Docker Hub pull.
+        run: docker pull postgres:16-alpine
+        working-directory: .
       - name: Run backend tests
         # Integration tests use Testcontainers PostgreSQL (Docker available on runners).
         # Daemon is recommended with setup-gradle caching; --no-daemon slows cold CI.

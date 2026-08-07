@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -36,4 +38,29 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
     boolean existsByFbrefId(String fbrefId);
 
     boolean existsByFbrefIdAndIdNot(String fbrefId, UUID id);
+
+    /**
+     * Case- and accent-insensitive substring match on name or short name.
+     */
+    @Query(
+            value = """
+                    SELECT * FROM clubs c
+                    WHERE c.deleted_at IS NULL
+                      AND (
+                        unaccent(lower(c.name)) LIKE unaccent(lower(concat('%', :q, '%')))
+                        OR unaccent(lower(c.short_name)) LIKE unaccent(lower(concat('%', :q, '%')))
+                      )
+                    ORDER BY c.name
+                    """,
+            countQuery = """
+                    SELECT count(*) FROM clubs c
+                    WHERE c.deleted_at IS NULL
+                      AND (
+                        unaccent(lower(c.name)) LIKE unaccent(lower(concat('%', :q, '%')))
+                        OR unaccent(lower(c.short_name)) LIKE unaccent(lower(concat('%', :q, '%')))
+                      )
+                    """,
+            nativeQuery = true
+    )
+    Page<Club> searchByName(@Param("q") String q, Pageable pageable);
 }

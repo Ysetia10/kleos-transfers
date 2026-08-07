@@ -2,12 +2,14 @@ export const queryKeys = {
   health: ['health'] as const,
   players: {
     all: ['players'] as const,
-    list: (page: number, size: number) => ['players', 'list', page, size] as const,
+    list: (page: number, size: number, query = '') =>
+      ['players', 'list', page, size, query] as const,
     detail: (id: string) => ['players', 'detail', id] as const,
   },
   clubs: {
     all: ['clubs'] as const,
-    list: (page: number, size: number) => ['clubs', 'list', page, size] as const,
+    list: (page: number, size: number, query = '') =>
+      ['clubs', 'list', page, size, query] as const,
     detail: (id: string) => ['clubs', 'detail', id] as const,
   },
   seasons: {

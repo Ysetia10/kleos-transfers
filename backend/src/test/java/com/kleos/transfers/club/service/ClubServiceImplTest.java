@@ -75,7 +75,7 @@ class ClubServiceImplTest {
         when(clubRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(club)));
         when(clubMapper.toResponse(club)).thenReturn(expected);
 
-        Page<ClubResponse> actual = clubService.findAll(pageable);
+        Page<ClubResponse> actual = clubService.findAll(null, pageable);
 
         assertThat(actual.getContent()).containsExactly(expected);
     }

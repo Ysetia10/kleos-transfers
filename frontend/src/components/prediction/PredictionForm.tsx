@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Alert, Autocomplete, Box, Button, Stack, TextField } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
@@ -8,9 +9,9 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
-import { listClubs } from '@/services/club/clubApi'
+import { getClub, listClubs } from '@/services/club/clubApi'
 import { createPrediction } from '@/services/prediction/predictionApi'
-import { listPlayers } from '@/services/player/playerApi'
+import { getPlayer, listPlayers } from '@/services/player/playerApi'
 import { listSeasons } from '@/services/season/seasonApi'
 import { ApiError } from '@/types/api'
 import type { Club, Player, Season } from '@/types/domain'
@@ -29,25 +30,73 @@ interface PredictionFormProps {
   initialClubId?: string
 }
 
+const SEARCH_PAGE_SIZE = 25
+
+function useDebouncedSearch(value: string, delayMs = 250) {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebounced(value), delayMs)
+    return () => window.clearTimeout(handle)
+  }, [value, delayMs])
+  return debounced
+}
+
 export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFormProps) {
   const navigate = useNavigate()
+  const [playerInput, setPlayerInput] = useState('')
+  const [clubInput, setClubInput] = useState('')
+  const debouncedPlayerQuery = useDebouncedSearch(playerInput)
+  const debouncedClubQuery = useDebouncedSearch(clubInput)
 
-  const playersQuery = useQuery({
-    queryKey: queryKeys.players.list(0, 100),
-    queryFn: () => listPlayers(0, 100),
-  })
-  const clubsQuery = useQuery({
-    queryKey: queryKeys.clubs.list(0, 100),
-    queryFn: () => listClubs(0, 100),
-  })
   const seasonsQuery = useQuery({
     queryKey: queryKeys.seasons.list(0, 50),
     queryFn: () => listSeasons(0, 50),
   })
 
-  const players = playersQuery.data?.content ?? []
-  const clubs = clubsQuery.data?.content ?? []
+  const playersQuery = useQuery({
+    queryKey: queryKeys.players.list(0, SEARCH_PAGE_SIZE, debouncedPlayerQuery),
+    queryFn: () => listPlayers(0, SEARCH_PAGE_SIZE, debouncedPlayerQuery || undefined),
+  })
+
+  const clubsQuery = useQuery({
+    queryKey: queryKeys.clubs.list(0, SEARCH_PAGE_SIZE, debouncedClubQuery),
+    queryFn: () => listClubs(0, SEARCH_PAGE_SIZE, debouncedClubQuery || undefined),
+  })
+
+  const initialPlayerQuery = useQuery({
+    queryKey: queryKeys.players.detail(initialPlayerId ?? ''),
+    queryFn: () => getPlayer(initialPlayerId!),
+    enabled: !!initialPlayerId,
+  })
+
+  const initialClubQuery = useQuery({
+    queryKey: queryKeys.clubs.detail(initialClubId ?? ''),
+    queryFn: () => getClub(initialClubId!),
+    enabled: !!initialClubId,
+  })
+
   const seasons = seasonsQuery.data?.content ?? []
+  const playerOptions = useMemo(() => {
+    const byId = new Map<string, Player>()
+    for (const player of playersQuery.data?.content ?? []) {
+      byId.set(player.id, player)
+    }
+    if (initialPlayerQuery.data) {
+      byId.set(initialPlayerQuery.data.id, initialPlayerQuery.data)
+    }
+    return [...byId.values()]
+  }, [playersQuery.data?.content, initialPlayerQuery.data])
+
+  const clubOptions = useMemo(() => {
+    const byId = new Map<string, Club>()
+    for (const club of clubsQuery.data?.content ?? []) {
+      byId.set(club.id, club)
+    }
+    if (initialClubQuery.data) {
+      byId.set(initialClubQuery.data.id, initialClubQuery.data)
+    }
+    return [...byId.values()]
+  }, [clubsQuery.data?.content, initialClubQuery.data])
 
   const {
     control,
@@ -70,20 +119,13 @@ export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFor
     },
   })
 
-  if (playersQuery.isLoading || clubsQuery.isLoading || seasonsQuery.isLoading) {
+  if (seasonsQuery.isLoading) {
     return <LoadingState label="Loading form options…" />
   }
 
-  if (playersQuery.isError || clubsQuery.isError || seasonsQuery.isError) {
+  if (seasonsQuery.isError) {
     return (
-      <ErrorState
-        error={playersQuery.error ?? clubsQuery.error ?? seasonsQuery.error}
-        onRetry={() => {
-          void playersQuery.refetch()
-          void clubsQuery.refetch()
-          void seasonsQuery.refetch()
-        }}
-      />
+      <ErrorState error={seasonsQuery.error} onRetry={() => void seasonsQuery.refetch()} />
     )
   }
 
@@ -113,22 +155,29 @@ export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFor
           name="playerId"
           render={({ field }) => (
             <Autocomplete<Player>
+              filterOptions={(options) => options}
               getOptionLabel={(option) =>
                 `${option.fullName} · ${option.primaryPosition} · ${option.nationality}`
               }
               isOptionEqualToValue={(option, value) => option.id === value.id}
+              loading={playersQuery.isFetching}
               onChange={(_, value) => field.onChange(value?.id ?? '')}
-              options={players}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input' || reason === 'clear') {
+                  setPlayerInput(value)
+                }
+              }}
+              options={playerOptions}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   error={!!errors.playerId}
-                  helperText={errors.playerId?.message}
+                  helperText={errors.playerId?.message ?? 'Type a name to search all players'}
                   label="Player"
                   required
                 />
               )}
-              value={players.find((player) => player.id === field.value) ?? null}
+              value={playerOptions.find((player) => player.id === field.value) ?? null}
             />
           )}
         />
@@ -138,20 +187,27 @@ export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFor
           name="targetClubId"
           render={({ field }) => (
             <Autocomplete<Club>
+              filterOptions={(options) => options}
               getOptionLabel={(option) => `${option.name} (${option.countryCode})`}
               isOptionEqualToValue={(option, value) => option.id === value.id}
+              loading={clubsQuery.isFetching}
               onChange={(_, value) => field.onChange(value?.id ?? '')}
-              options={clubs}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input' || reason === 'clear') {
+                  setClubInput(value)
+                }
+              }}
+              options={clubOptions}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   error={!!errors.targetClubId}
-                  helperText={errors.targetClubId?.message}
+                  helperText={errors.targetClubId?.message ?? 'Type a name to search all clubs'}
                   label="Target club"
                   required
                 />
               )}
-              value={clubs.find((club) => club.id === field.value) ?? null}
+              value={clubOptions.find((club) => club.id === field.value) ?? null}
             />
           )}
         />

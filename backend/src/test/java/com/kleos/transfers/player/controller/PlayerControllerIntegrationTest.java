@@ -73,6 +73,33 @@ class PlayerControllerIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
+    void searchesPlayersByNameSubstring() throws Exception {
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validPlayerRequest()))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Kylian Mbappé",
+                                  "dateOfBirth": "1998-12-20",
+                                  "nationality": "FRA",
+                                  "heightCm": 178,
+                                  "preferredFoot": "RIGHT",
+                                  "primaryPosition": "ST"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get(PLAYERS_PATH).param("q", "mbappe"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].fullName").value("Kylian Mbappé"));
+    }
+
+    @Test
     void acceptsLowercaseNationalityAndNormalizesIt() throws Exception {
         mockMvc.perform(post(PLAYERS_PATH)
                         .contentType(MediaType.APPLICATION_JSON)

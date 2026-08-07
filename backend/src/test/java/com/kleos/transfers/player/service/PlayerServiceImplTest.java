@@ -71,7 +71,21 @@ class PlayerServiceImplTest {
         when(playerRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(player)));
         when(playerMapper.toResponse(player)).thenReturn(expected);
 
-        Page<PlayerResponse> actual = playerService.findAll(pageable);
+        Page<PlayerResponse> actual = playerService.findAll(null, pageable);
+
+        assertThat(actual.getContent()).containsExactly(expected);
+    }
+
+    @Test
+    void searchesPlayersByName() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Player player = player();
+        PlayerResponse expected = response();
+        when(playerRepository.searchByName("rice", PageRequest.of(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(player)));
+        when(playerMapper.toResponse(player)).thenReturn(expected);
+
+        Page<PlayerResponse> actual = playerService.findAll("rice", pageable);
 
         assertThat(actual.getContent()).containsExactly(expected);
     }

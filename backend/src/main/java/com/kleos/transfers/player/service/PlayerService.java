@@ -18,7 +18,7 @@ public interface PlayerService {
 
     BulkImportResponse<PlayerResponse> createAll(List<CreatePlayerRequest> requests);
 
-    Page<PlayerResponse> findAll(Pageable pageable);
+    Page<PlayerResponse> findAll(String query, Pageable pageable);
 
     PlayerResponse findById(UUID id);
 

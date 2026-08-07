@@ -20,6 +20,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,8 +52,12 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    public Page<ClubResponse> findAll(Pageable pageable) {
-        return clubRepository.findAll(pageable).map(clubMapper::toResponse);
+    public Page<ClubResponse> findAll(String query, Pageable pageable) {
+        if (query == null || query.isBlank()) {
+            return clubRepository.findAll(pageable).map(clubMapper::toResponse);
+        }
+        Pageable page = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        return clubRepository.searchByName(query.trim(), page).map(clubMapper::toResponse);
     }
 
     @Override

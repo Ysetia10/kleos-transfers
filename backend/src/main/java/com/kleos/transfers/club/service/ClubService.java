@@ -18,7 +18,7 @@ public interface ClubService {
 
     BulkImportResponse<ClubResponse> createAll(List<CreateClubRequest> requests);
 
-    Page<ClubResponse> findAll(Pageable pageable);
+    Page<ClubResponse> findAll(String query, Pageable pageable);
 
     ClubResponse findById(UUID id);
 

@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -52,11 +53,12 @@ public class PlayerController {
     }
 
     @GetMapping
-    @Operation(summary = "List players (paginated)")
+    @Operation(summary = "List players (paginated); optional q filters by name")
     public ResponseEntity<Page<PlayerResponse>> findAll(
+            @RequestParam(required = false) String q,
             @PageableDefault(size = 20, sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        return ResponseEntity.ok(playerService.findAll(pageable));
+        return ResponseEntity.ok(playerService.findAll(q, pageable));
     }
 
     @GetMapping("/{id}")

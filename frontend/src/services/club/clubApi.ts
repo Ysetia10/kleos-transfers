@@ -1,9 +1,14 @@
 import { httpClient } from '@/services/api/httpClient'
 import type { Club, SpringPage } from '@/types/domain'
 
-export async function listClubs(page = 0, size = 20): Promise<SpringPage<Club>> {
+export async function listClubs(page = 0, size = 20, query?: string): Promise<SpringPage<Club>> {
   const { data } = await httpClient.get<SpringPage<Club>>('/api/v1/clubs', {
-    params: { page, size, sort: 'name,asc' },
+    params: {
+      page,
+      size,
+      sort: 'name,asc',
+      ...(query?.trim() ? { q: query.trim() } : {}),
+    },
   })
   return data
 }

@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,8 +51,13 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
-    public Page<PlayerResponse> findAll(Pageable pageable) {
-        return playerRepository.findAll(pageable).map(playerMapper::toResponse);
+    public Page<PlayerResponse> findAll(String query, Pageable pageable) {
+        if (query == null || query.isBlank()) {
+            return playerRepository.findAll(pageable).map(playerMapper::toResponse);
+        }
+        // Native search owns ORDER BY; drop Sort so Spring does not append invalid property names.
+        Pageable page = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        return playerRepository.searchByName(query.trim(), page).map(playerMapper::toResponse);
     }
 
     @Override

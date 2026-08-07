@@ -6,6 +6,8 @@ import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
 import com.kleos.transfers.player.service.PlayerService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -30,16 +32,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/players")
 @RequiredArgsConstructor
+@Tag(name = "Players", description = "Player identity create/list/get/update/delete")
 public class PlayerController {
 
     private final PlayerService playerService;
 
     @PostMapping
+    @Operation(summary = "Create player identity")
     public ResponseEntity<PlayerResponse> create(@Valid @RequestBody CreatePlayerRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(playerService.create(request));
     }
 
     @PostMapping("/bulk")
+    @Operation(summary = "Bulk-create player identities")
     public ResponseEntity<BulkImportResponse<PlayerResponse>> createAll(
             @Valid @RequestBody BulkImportRequest<CreatePlayerRequest> request
     ) {
@@ -47,6 +52,7 @@ public class PlayerController {
     }
 
     @GetMapping
+    @Operation(summary = "List players (paginated)")
     public ResponseEntity<Page<PlayerResponse>> findAll(
             @PageableDefault(size = 20, sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable
     ) {
@@ -54,11 +60,13 @@ public class PlayerController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get player by id")
     public ResponseEntity<PlayerResponse> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(playerService.findById(id));
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Replace player identity")
     public ResponseEntity<PlayerResponse> update(
             @PathVariable UUID id,
             @Valid @RequestBody UpdatePlayerRequest request
@@ -67,6 +75,7 @@ public class PlayerController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Soft-delete player identity")
     public ResponseEntity<Void> softDelete(@PathVariable UUID id) {
         playerService.softDelete(id);
         return ResponseEntity.noContent().build();

@@ -23,7 +23,7 @@ Completed:
 - Bulk identity import API + CSV loader script
 - Material UI design system and application shell
 
-Next: run the FBref PL/La Liga ingest (2016/17–2025/26), then stronger models and prediction validation.
+Next: prediction validation against a completed season (#32), then stronger models. Historical PL + La Liga player-seasons for 2016/17–2025/26 are loaded via the FBref ingest.
 
 ## High-level architecture
 

@@ -47,6 +47,13 @@ Before running a full load against a shared database:
 - [ ] Confirm duplicate skips on a second run (idempotent).
 - [ ] Do not commit `data/cache/` or downloaded CSVs.
 
+### Runtime notes
+
+- Chrome runs **headless by default** (`--headless`; use `--no-headless` only if you need a visible window for captcha debugging). Cached FBref HTML under `~/soccerdata/data/FBref` avoids re-downloads.
+- Each league-season is upserted before the next fetch, so a long run can be resumed after interruption.
+- soccerdata season ids use `YYZZ` (e.g. `2122` for 2021/22). Do **not** pass a bare year like `2021` — soccerdata treats that as 2020/21.
+- Common non-FIFA FBref nationality aliases (e.g. `KVX` → `KOS`, `MTQ`/`GLP` → `FRA`) are mapped in the ingest script before API calls.
+
 ## Demo seed
 
 There is **no** fake demo-seed pipeline. Local UX should use the real ingest (possibly one season) or small hand-authored CSVs you own.

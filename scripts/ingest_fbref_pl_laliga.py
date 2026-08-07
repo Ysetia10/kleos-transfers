@@ -32,7 +32,6 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -63,13 +62,35 @@ POSITION_MAP = {
     "FW": "ST",
 }
 
-
-@dataclass
-class Counters:
-    clubs: int = 0
-    players: int = 0
-    club_seasons: int = 0
-    player_seasons: int = 0
+# FBref / ISO-ish codes → Kleos FIFA association codes (FootballNationalityCodes).
+NATION_ALIASES = {
+    # Kosovo (FBref uses KVX)
+    "KV": "KOS",
+    "KVX": "KOS",
+    "XK": "KOS",
+    "XKX": "KOS",
+    # Dutch / German historical
+    "HOL": "NED",
+    "FRG": "GER",
+    "GDR": "GER",
+    # Common ISO ↔ football aliases
+    "ROM": "ROU",
+    "CHL": "CHI",
+    "URY": "URU",
+    "PRY": "PAR",
+    "GRC": "GRE",
+    "CHE": "SUI",
+    "DNK": "DEN",
+    "HRV": "CRO",
+    "ZAF": "RSA",
+    # French overseas territories (not FIFA members) → FRA
+    "GLP": "FRA",  # Guadeloupe
+    "MTQ": "FRA",  # Martinique
+    "GUF": "FRA",  # French Guiana
+    "REU": "FRA",  # Réunion
+    "MYT": "FRA",  # Mayotte
+    "NCL": "FRA",  # New Caledonia (OFC assoc exists; Kleos keeps FRA for identity if needed)
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -86,8 +107,14 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated soccerdata league ids",
     )
     parser.add_argument("--dry-run", action="store_true", help="Fetch/transform only; do not call the API")
-    parser.add_argument("--sleep", type=float, default=1.0, help="Pause between FBref season fetches")
+    parser.add_argument("--sleep", type=float, default=3.0, help="Pause between FBref season fetches")
     parser.add_argument("--batch-size", type=int, default=200, help="Bulk API batch size (max 500)")
+    parser.add_argument(
+        "--headless",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Run Chrome headless (default: on). Use --no-headless only for captcha debugging.",
+    )
     return parser.parse_args()
 
 
@@ -96,6 +123,16 @@ def label_to_start_year(label: str) -> int:
     if not match:
         raise SystemExit(f"Invalid season label {label!r}; expected YYYY/YY")
     return int(match.group(1))
+
+
+def label_to_soccerdata_season(label: str) -> str:
+    """soccerdata season id as YYZZ (e.g. 2122).
+
+    Passing a bare calendar year like ``2021`` is ambiguous and is interpreted as
+    ``20-21`` (2020/21), which would silently duplicate the previous season.
+    """
+    start_year = label_to_start_year(label)
+    return f"{str(start_year)[2:]}{str(start_year + 1)[2:]}"
 
 
 def season_dates(label: str) -> tuple[str, str]:
@@ -121,11 +158,16 @@ def map_nation(raw: Any) -> str | None:
     text = str(raw).strip().upper()
     if not text or text == "NAN":
         return None
-    # FBref sometimes returns "eng ENG" / "es ESP"
+    # FBref sometimes returns "eng ENG" / "kv KV" / "es ESP"
     parts = text.replace(",", " ").split()
+    candidates: list[str] = []
     for part in reversed(parts):
-        if re.fullmatch(r"[A-Z]{3}", part):
-            return part
+        if re.fullmatch(r"[A-Z]{2,3}", part):
+            candidates.append(part)
+    for code in candidates:
+        mapped = NATION_ALIASES.get(code, code if len(code) == 3 else None)
+        if mapped:
+            return mapped
     return None
 
 
@@ -266,7 +308,7 @@ def ensure_seasons(api_url: str, labels: list[str], dry_run: bool, batch_size: i
     return {row["label"]: row["id"] for row in rows}
 
 
-def fetch_league_season(league_id: str, start_year: int):
+def fetch_league_season(league_id: str, season_code: str, *, headless: bool = True):
     try:
         import soccerdata as sd
     except ImportError as error:
@@ -274,13 +316,23 @@ def fetch_league_season(league_id: str, start_year: int):
             "soccerdata is required. Install with:\n  pip install -r scripts/requirements-ingest.txt"
         ) from error
 
-    fbref = sd.FBref(leagues=league_id, seasons=str(start_year))
-    standard = flatten_columns(fbref.read_player_season_stats(stat_type="standard").reset_index())
+    # soccerdata's FBref defaults headless=False (opens a Chrome window). Force headless
+    # so ingest does not need a visible browser; cached HTML still skips network/browser.
+    fbref = sd.FBref(leagues=league_id, seasons=season_code, headless=headless)
     try:
-        shooting = flatten_columns(fbref.read_player_season_stats(stat_type="shooting").reset_index())
-    except Exception:
-        shooting = None
-    return standard, shooting
+        standard = flatten_columns(fbref.read_player_season_stats(stat_type="standard").reset_index())
+        try:
+            shooting = flatten_columns(fbref.read_player_season_stats(stat_type="shooting").reset_index())
+        except Exception:
+            shooting = None
+        return standard, shooting
+    finally:
+        driver = getattr(fbref, "_driver", None)
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
 
 
 def merge_xg(standard, shooting):
@@ -404,87 +456,49 @@ def resolve_maps(api_url: str, dry_run: bool) -> tuple[dict[str, str], dict[str,
     return clubs, players
 
 
-def main() -> int:
-    args = parse_args()
-    labels = [part.strip() for part in args.seasons.split(",") if part.strip()]
-    league_ids = [part.strip() for part in args.leagues.split(",") if part.strip()]
-    for league_id in league_ids:
-        if league_id not in LEAGUES:
-            raise SystemExit(f"Unsupported league {league_id!r}. Choose from: {', '.join(LEAGUES)}")
+def upsert_season_batch(
+    api_url: str,
+    *,
+    dry_run: bool,
+    batch_size: int,
+    clubs: list[dict],
+    players: list[dict],
+    season_rows: list[dict],
+    season_ids: dict[str, str],
+    tournament_id: str,
+    season_id: str,
+) -> tuple[int, int]:
+    """Flush one league-season to the API so long runs keep partial progress."""
+    print("  Upserting clubs + players…")
+    bulk_post(api_url, "/api/v1/clubs", clubs, batch_size, dry_run)
+    bulk_post(api_url, "/api/v1/players", players, batch_size, dry_run)
 
-    print("Kleos FBref ingest")
-    print(f"  leagues: {', '.join(league_ids)}")
-    print(f"  seasons: {', '.join(labels)}")
-    print(f"  api:     {args.api_url}{' (dry-run)' if args.dry_run else ''}")
-    print("  policy:  docs/data-sourcing.md")
-
-    tournament_ids = ensure_tournaments(args.api_url, args.dry_run, args.batch_size)
-    season_ids = ensure_seasons(args.api_url, labels, args.dry_run, args.batch_size)
-
-    all_clubs: dict[str, dict] = {}
-    all_players: dict[str, dict] = {}
-    pending_club_seasons: list[dict] = []
-    pending_player_seasons: list[dict] = []
-    counters = Counters()
-
-    for league_id in league_ids:
-        meta = LEAGUES[league_id]
-        for label in labels:
-            start_year = label_to_start_year(label)
-            print(f"\nFetching {league_id} {label} (FBref season {start_year})…")
-            standard, shooting = fetch_league_season(league_id, start_year)
-            frame = merge_xg(standard, shooting)
-            clubs, players, season_rows = build_rows_for_frame(frame, league_id, label, meta)
-            for club in clubs:
-                all_clubs[club["fbrefId"]] = club
-            for player in players:
-                all_players[player["fbrefId"]] = player
-
-            tournament_id = tournament_ids[meta["tournament_name"]]
-            season_id = season_ids[label]
-            for row in season_rows:
-                pending_club_seasons.append(
-                    {
-                        "clubFbrefId": row["clubFbrefId"],
-                        "seasonId": season_id,
-                        "tournamentId": tournament_id,
-                    }
-                )
-                pending_player_seasons.append(row)
-
-            counters.clubs = len(all_clubs)
-            counters.players = len(all_players)
-            print(f"  rows={len(season_rows)} clubs_total={counters.clubs} players_total={counters.players}")
-            time.sleep(max(args.sleep, 0))
-
-    print("\nUpserting clubs + players…")
-    bulk_post(args.api_url, "/api/v1/clubs", list(all_clubs.values()), args.batch_size, args.dry_run)
-    bulk_post(args.api_url, "/api/v1/players", list(all_players.values()), args.batch_size, args.dry_run)
-
-    club_map, player_map = resolve_maps(args.api_url, args.dry_run)
+    club_map, player_map = resolve_maps(api_url, dry_run)
 
     club_season_items = []
-    seen_club_season = set()
-    for row in pending_club_seasons:
-        key = (row["clubFbrefId"], row["seasonId"])
+    seen_club_season: set[tuple[str, str]] = set()
+    for row in season_rows:
+        key = (row["clubFbrefId"], season_id)
         if key in seen_club_season:
             continue
         seen_club_season.add(key)
-        club_id = club_map.get(row["clubFbrefId"], "dry-club")
+        club_id = club_map.get(row["clubFbrefId"], "dry-club" if dry_run else None)
+        if not club_id:
+            continue
         club_season_items.append(
             {
                 "clubId": club_id,
-                "seasonId": row["seasonId"],
-                "tournamentId": row["tournamentId"],
+                "seasonId": season_id,
+                "tournamentId": tournament_id,
             }
         )
 
     player_season_items = []
     skipped_unresolved = 0
-    for row in pending_player_seasons:
+    for row in season_rows:
         player_id = player_map.get(row["playerFbrefId"])
         club_id = club_map.get(row["clubFbrefId"])
-        if args.dry_run:
+        if dry_run:
             player_id = player_id or "dry-player"
             club_id = club_id or "dry-club"
         if not player_id or not club_id:
@@ -507,13 +521,71 @@ def main() -> int:
     if skipped_unresolved:
         print(f"  skipped {skipped_unresolved} player-season row(s) with unresolved player/club ids")
 
-    print("\nUpserting club-seasons + player-seasons…")
-    bulk_post(args.api_url, "/api/v1/club-seasons", club_season_items, args.batch_size, args.dry_run)
-    bulk_post(args.api_url, "/api/v1/player-seasons", player_season_items, args.batch_size, args.dry_run)
+    print("  Upserting club-seasons + player-seasons…")
+    bulk_post(api_url, "/api/v1/club-seasons", club_season_items, batch_size, dry_run)
+    bulk_post(api_url, "/api/v1/player-seasons", player_season_items, batch_size, dry_run)
+    return len(club_season_items), len(player_season_items)
+
+
+def main() -> int:
+    args = parse_args()
+    labels = [part.strip() for part in args.seasons.split(",") if part.strip()]
+    league_ids = [part.strip() for part in args.leagues.split(",") if part.strip()]
+    for league_id in league_ids:
+        if league_id not in LEAGUES:
+            raise SystemExit(f"Unsupported league {league_id!r}. Choose from: {', '.join(LEAGUES)}")
+
+    print("Kleos FBref ingest")
+    print(f"  leagues: {', '.join(league_ids)}")
+    print(f"  seasons: {', '.join(labels)}")
+    print(f"  api:     {args.api_url}{' (dry-run)' if args.dry_run else ''}")
+    print(f"  headless:{args.headless}")
+    print("  policy:  docs/data-sourcing.md")
+
+    tournament_ids = ensure_tournaments(args.api_url, args.dry_run, args.batch_size)
+    season_ids = ensure_seasons(args.api_url, labels, args.dry_run, args.batch_size)
+
+    all_clubs: dict[str, dict] = {}
+    all_players: dict[str, dict] = {}
+    total_club_seasons = 0
+    total_player_seasons = 0
+
+    for league_id in league_ids:
+        meta = LEAGUES[league_id]
+        for label in labels:
+            season_code = label_to_soccerdata_season(label)
+            print(f"\nFetching {league_id} {label} (soccerdata season {season_code})…")
+            standard, shooting = fetch_league_season(league_id, season_code, headless=args.headless)
+            frame = merge_xg(standard, shooting)
+            clubs, players, season_rows = build_rows_for_frame(frame, league_id, label, meta)
+            for club in clubs:
+                all_clubs[club["fbrefId"]] = club
+            for player in players:
+                all_players[player["fbrefId"]] = player
+
+            print(
+                f"  rows={len(season_rows)} clubs_batch={len(clubs)} players_batch={len(players)} "
+                f"unique_clubs={len(all_clubs)} unique_players={len(all_players)}"
+            )
+
+            club_seasons_n, player_seasons_n = upsert_season_batch(
+                args.api_url,
+                dry_run=args.dry_run,
+                batch_size=args.batch_size,
+                clubs=clubs,
+                players=players,
+                season_rows=season_rows,
+                season_ids=season_ids,
+                tournament_id=tournament_ids[meta["tournament_name"]],
+                season_id=season_ids[label],
+            )
+            total_club_seasons += club_seasons_n
+            total_player_seasons += player_seasons_n
+            time.sleep(max(args.sleep, 0))
 
     print(
         f"\nDone. unique_clubs={len(all_clubs)} unique_players={len(all_players)} "
-        f"club_seasons={len(club_season_items)} player_seasons={len(player_season_items)}"
+        f"club_seasons={total_club_seasons} player_seasons={total_player_seasons}"
     )
     return 0
 

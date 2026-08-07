@@ -1,38 +1,36 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Stack, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
 
 interface PageHeaderProps {
+  eyebrow?: string
   title: string
   description?: string
   actions?: ReactNode
 }
 
-export function PageHeader({ title, description, actions }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, actions }: PageHeaderProps) {
   return (
     <Stack
-      direction={{ xs: 'column', sm: 'row' }}
+      direction={{ xs: 'column', md: 'row' }}
       spacing={2}
-      sx={{ alignItems: { sm: 'flex-end' }, justifyContent: 'space-between', marginBottom: 4 }}
+      sx={{ alignItems: { md: 'flex-start' }, justifyContent: 'space-between', mb: 1 }}
     >
-      <Box>
-        <Typography
-          component="h1"
-          sx={{ animation: 'kleos-rise 480ms ease both' }}
-          variant="h1"
-        >
+      <Stack spacing={1} sx={{ maxWidth: 720 }}>
+        {eyebrow ? (
+          <Typography color="primary.main" variant="caption">
+            {eyebrow}
+          </Typography>
+        ) : null}
+        <Typography component="h1" variant="h1">
           {title}
         </Typography>
         {description ? (
-          <Typography
-            color="text.secondary"
-            sx={{ animation: 'kleos-rise 560ms ease both', marginTop: 1, maxWidth: 640 }}
-            variant="body1"
-          >
+          <Typography color="text.secondary" variant="bodyLarge">
             {description}
           </Typography>
         ) : null}
-      </Box>
-      {actions}
+      </Stack>
+      {actions ? <Stack direction="row" spacing={1}>{actions}</Stack> : null}
     </Stack>
   )
 }

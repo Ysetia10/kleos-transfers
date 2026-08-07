@@ -1,35 +1,41 @@
-import { Box, Link as MuiLink, Stack, Typography } from '@mui/material'
+import { Box, Container, Link as MuiLink, Stack, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
-import { BrandMark } from '@/components/brand/BrandMark'
 import { routes } from '@/constants/routes'
 
 export function Footer() {
   return (
     <Box
       component="footer"
-      sx={(theme) => ({
-        borderTop: `1px solid ${theme.palette.divider}`,
-        backgroundColor: 'rgba(251, 252, 251, 0.9)',
-        px: 3,
-        py: 2.5,
-      })}
+      sx={{
+        borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+        py: 3,
+        mt: 'auto',
+      }}
     >
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{ alignItems: 'center', color: 'text.secondary', justifyContent: 'center' }}
-      >
-        <BrandMark size={18} />
-        <Typography variant="caption">
-          <MuiLink component={RouterLink} color="inherit" to={routes.home} underline="hover">
-            Kleos Transfers
-          </MuiLink>
-          {' · '}
-          <MuiLink component={RouterLink} color="inherit" to={routes.about} underline="hover">
-            About
-          </MuiLink>
-        </Typography>
-      </Stack>
+      <Container maxWidth="xl">
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+        >
+          <Typography color="text.secondary" variant="body2">
+            Kleos Transfers · explainable football transfer intelligence · v0.2 heuristic
+          </Typography>
+          <Stack direction="row" spacing={2}>
+            <MuiLink component={RouterLink} color="text.secondary" to={routes.home} underline="hover">
+              Simulator
+            </MuiLink>
+            <MuiLink
+              component={RouterLink}
+              color="text.secondary"
+              to={routes.methodology}
+              underline="hover"
+            >
+              Methodology
+            </MuiLink>
+          </Stack>
+        </Stack>
+      </Container>
     </Box>
   )
 }

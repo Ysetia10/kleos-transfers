@@ -6,27 +6,22 @@ export const routes = {
   playerDetail: (id: string) => `/players/${id}` as const,
   clubs: '/clubs',
   clubDetail: (id: string) => `/clubs/${id}` as const,
+  trending: '/trending',
+  methodology: '/methodology',
   dashboard: '/dashboard',
   about: '/about',
 } as const
 
-export const homeSections = {
-  predict: 'predict',
-  recent: 'recent',
-  trending: 'trending',
-  allTime: 'all-time',
-  catalogue: 'catalogue',
-} as const
-
-export type HomeSectionId = (typeof homeSections)[keyof typeof homeSections]
-
 export type AppRoute =
-  | (typeof routes)[Exclude<keyof typeof routes, 'predictionDetail' | 'playerDetail' | 'clubDetail'>]
+  | (typeof routes)[Exclude<
+      keyof typeof routes,
+      'predictionDetail' | 'playerDetail' | 'clubDetail'
+    >]
   | ReturnType<typeof routes.predictionDetail>
   | ReturnType<typeof routes.playerDetail>
   | ReturnType<typeof routes.clubDetail>
 
-/** Deep-link into the Home prediction section, optionally pre-selecting identities. */
+/** Deep-link into the simulator with optional pre-selected identities. */
 export function homePredictPath(options?: { playerId?: string; clubId?: string }) {
   const params = new URLSearchParams()
   if (options?.playerId) {
@@ -36,18 +31,13 @@ export function homePredictPath(options?: { playerId?: string; clubId?: string }
     params.set('clubId', options.clubId)
   }
   const search = params.toString()
-  return `${routes.home}${search ? `?${search}` : ''}#${homeSections.predict}`
+  return `${routes.home}${search ? `?${search}` : ''}`
 }
 
-/** Primary chrome links — workspace lives on Home; avoid a crowded top bar. */
 export const navigationItems: ReadonlyArray<{ label: string; to: AppRoute }> = [
-  { label: 'About', to: routes.about },
-]
-
-export const homeJumpLinks: ReadonlyArray<{ label: string; section: HomeSectionId }> = [
-  { label: 'Simulator', section: homeSections.predict },
-  { label: 'Trending', section: homeSections.trending },
-  { label: 'All-time', section: homeSections.allTime },
-  { label: 'Recent', section: homeSections.recent },
-  { label: 'Players & clubs', section: homeSections.catalogue },
+  { label: 'Simulator', to: routes.home },
+  { label: 'Players', to: routes.players },
+  { label: 'Clubs', to: routes.clubs },
+  { label: 'Trending', to: routes.trending },
+  { label: 'Methodology', to: routes.methodology },
 ]

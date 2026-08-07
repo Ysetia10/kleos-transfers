@@ -25,7 +25,7 @@ export function ScoreMeter({ label, value, helper }: ScoreMeterProps) {
         variant="determinate"
       />
       {helper ? (
-        <Typography color="text.secondary" variant="caption">
+        <Typography color="text.secondary" variant="body2">
           {helper}
         </Typography>
       ) : null}

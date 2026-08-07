@@ -22,9 +22,9 @@ const directionColor: Record<ExplanationDirection, 'success' | 'error' | 'defaul
 }
 
 const barColor: Record<ExplanationDirection, string> = {
-  POSITIVE: '#2f6f4e',
-  NEGATIVE: '#b42318',
-  NEUTRAL: '#5c6b63',
+  POSITIVE: '#22C55E',
+  NEGATIVE: '#F87171',
+  NEUTRAL: '#64748B',
 }
 
 export function ExplanationList({ explanations }: ExplanationListProps) {
@@ -62,34 +62,42 @@ export function ExplanationList({ explanations }: ExplanationListProps) {
         </Stack>
       ) : null}
 
-      <Stack component="ol" spacing={2} sx={{ listStyle: 'none', m: 0, p: 0 }}>
+      <Stack component="ol" spacing={1.5} sx={{ listStyle: 'none', m: 0, p: 0 }}>
         {explanations.map((item) => (
           <Stack
             component="li"
-            direction={{ xs: 'column', sm: 'row' }}
             key={item.id}
-            spacing={1.5}
+            spacing={1}
             sx={{
-              borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-              pt: 2,
+              border: (theme) => `1px solid ${theme.palette.divider}`,
+              borderLeft: (theme) =>
+                `3px solid ${
+                  item.direction === 'POSITIVE'
+                    ? theme.palette.success.main
+                    : item.direction === 'NEGATIVE'
+                      ? theme.palette.error.main
+                      : theme.palette.divider
+                }`,
+              borderRadius: 2,
+              p: 1.5,
             }}
           >
-            <Chip
-              color={directionColor[item.direction]}
-              label={item.direction.toLowerCase()}
-              size="small"
-              variant="outlined"
-            />
-            <Stack spacing={0.5} sx={{ flex: 1 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography sx={{ fontWeight: 600 }} variant="subtitle2">
                 {item.label}
               </Typography>
-              <Typography color="text.secondary" variant="body2">
-                {item.detail}
-              </Typography>
+              <Chip
+                color={directionColor[item.direction]}
+                label={item.direction.toLowerCase()}
+                size="small"
+                variant="outlined"
+              />
             </Stack>
-            <Typography color="text.secondary" variant="caption">
-              impact {Number(item.impact).toFixed(1)}
+            <Typography color="text.secondary" variant="body2">
+              {item.detail}
+            </Typography>
+            <Typography color="text.secondary" variant="body2">
+              Impact {Number(item.impact).toFixed(1)}
             </Typography>
           </Stack>
         ))}

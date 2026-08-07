@@ -169,8 +169,12 @@ export function PredictionForm({
       <Box
         sx={{
           display: 'grid',
-          gap: 3,
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 2,
+          gridTemplateColumns: {
+            xs: '1fr',
+            md: 'minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 0.9fr) auto',
+          },
+          alignItems: 'start',
         }}
       >
         <Controller
@@ -197,7 +201,7 @@ export function PredictionForm({
                 <TextField
                   {...params}
                   error={!!errors.playerId}
-                  helperText={errors.playerId?.message ?? 'Type a name to search all players'}
+                  helperText={errors.playerId?.message ?? 'Search all players'}
                   label="Player"
                   required
                 />
@@ -229,7 +233,7 @@ export function PredictionForm({
                 <TextField
                   {...params}
                   error={!!errors.targetClubId}
-                  helperText={errors.targetClubId?.message ?? 'Type a name to search all clubs'}
+                  helperText={errors.targetClubId?.message ?? 'Search all clubs'}
                   label="Target club"
                   required
                 />
@@ -253,7 +257,7 @@ export function PredictionForm({
                   {...params}
                   error={!!errors.seasonId}
                   helperText={errors.seasonId?.message}
-                  label="Season"
+                  label="Target season"
                   required
                 />
               )}
@@ -262,21 +266,30 @@ export function PredictionForm({
           )}
         />
 
-        <Controller
-          control={control}
-          name="note"
-          render={({ field }) => (
-            <TextField
-              {...field}
-              error={!!errors.note}
-              helperText={errors.note?.message}
-              label="Note (optional)"
-              multiline
-              rows={2}
-            />
-          )}
-        />
+        <Button
+          disabled={mutation.isPending}
+          sx={{ height: 56, px: 3, whiteSpace: 'nowrap' }}
+          type="submit"
+          variant="contained"
+        >
+          {mutation.isPending ? 'Running…' : 'Run prediction'}
+        </Button>
       </Box>
+
+      <Controller
+        control={control}
+        name="note"
+        render={({ field }) => (
+          <TextField
+            {...field}
+            error={!!errors.note}
+            helperText={errors.note?.message}
+            label="Note (optional)"
+            multiline
+            rows={2}
+          />
+        )}
+      />
 
       {mutation.isError ? (
         <Alert severity="error" variant="outlined">
@@ -285,15 +298,6 @@ export function PredictionForm({
             : 'Prediction request failed'}
         </Alert>
       ) : null}
-
-      <Button
-        disabled={mutation.isPending}
-        sx={{ alignSelf: 'flex-start' }}
-        type="submit"
-        variant="contained"
-      >
-        {mutation.isPending ? 'Running prediction…' : 'Run prediction'}
-      </Button>
 
       {showSquad ? (
         <Stack spacing={1.5}>

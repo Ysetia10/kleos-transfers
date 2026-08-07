@@ -12,7 +12,11 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * v0 minutes predictor: recent workload adjusted for age, injury, and squad competition.
+ * Minutes predictor: recent workload adjusted for age, injury, and squad competition.
+ *
+ * <p>v0.1 softens squad-competition haircuts (prior-season squads are dense) and weights the
+ * most recent season more heavily — addressing the systematic under-prediction found in the
+ * 2024/25 completed-season validation.
  */
 @Component
 public class MinutesPredictor {
@@ -20,6 +24,7 @@ public class MinutesPredictor {
     static final int DEFAULT_MINUTES = 1_800;
     static final int MAX_MINUTES = 3_800;
     static final int MIN_MINUTES = 0;
+    static final int ESTABLISHED_STARTER_MINUTES = 2_500;
 
     public record Result(int minutes, List<ExplanationFactor> factors) {
     }
@@ -29,7 +34,7 @@ public class MinutesPredictor {
         int baseline = baselineMinutes(context, factors);
         double ageMultiplier = ageMultiplier(context.ageAtSeasonStart(), factors);
         double injuryMultiplier = injuryMultiplier(context, factors);
-        double competitionMultiplier = competitionMultiplier(context, factors);
+        double competitionMultiplier = competitionMultiplier(context, baseline, factors);
 
         int minutes = PredictionMath.clamp(
                 (int) Math.round(baseline * ageMultiplier * injuryMultiplier * competitionMultiplier),
@@ -55,21 +60,28 @@ public class MinutesPredictor {
         }
 
         int seasons = Math.min(3, history.size());
-        int total = 0;
-        for (int i = 0; i < seasons; i++) {
-            total += history.get(i).getMinutesPlayed();
+        double weighted;
+        if (seasons == 1) {
+            weighted = history.get(0).getMinutesPlayed();
+        } else if (seasons == 2) {
+            weighted = history.get(0).getMinutesPlayed() * 0.65
+                    + history.get(1).getMinutesPlayed() * 0.35;
+        } else {
+            weighted = history.get(0).getMinutesPlayed() * 0.50
+                    + history.get(1).getMinutesPlayed() * 0.30
+                    + history.get(2).getMinutesPlayed() * 0.20;
         }
-        int average = total / seasons;
+        int average = (int) Math.round(weighted);
         factors.add(new ExplanationFactor(
                 FactorCodes.RECENT_MINUTES,
                 "Recent minutes baseline",
                 average >= 2_000 ? ExplanationDirection.POSITIVE : ExplanationDirection.NEUTRAL,
                 PredictionMath.bd(Math.min(25, 8 + average / 200.0)),
-                "Averaged "
+                "Weighted recent minutes baseline of "
                         + average
-                        + " minutes across the last "
+                        + " across the last "
                         + seasons
-                        + " club-season record(s)."
+                        + " club-season record(s) (most recent season weighted highest)."
         ));
         return average;
     }
@@ -87,11 +99,11 @@ public class MinutesPredictor {
             direction = ExplanationDirection.POSITIVE;
             detail = "Age " + age + " is inside the typical peak availability window.";
         } else if (age <= 32) {
-            multiplier = 0.92;
+            multiplier = 0.95;
             direction = ExplanationDirection.NEGATIVE;
             detail = "Age " + age + " — slight reduction for late-career workload management.";
         } else {
-            multiplier = 0.75;
+            multiplier = 0.80;
             direction = ExplanationDirection.NEGATIVE;
             detail = "Age " + age + " — larger reduction for veteran minutes expectation.";
         }
@@ -150,7 +162,11 @@ public class MinutesPredictor {
         return multiplier;
     }
 
-    private double competitionMultiplier(PredictionContext context, List<ExplanationFactor> factors) {
+    private double competitionMultiplier(
+            PredictionContext context,
+            int baselineMinutes,
+            List<ExplanationFactor> factors
+    ) {
         Position position = context.mostRecentSeason()
                 .map(PlayerSeason::getPrimaryPosition)
                 .orElse(context.player().getPrimaryPosition());
@@ -167,21 +183,30 @@ public class MinutesPredictor {
                     "Squad competition",
                     ExplanationDirection.POSITIVE,
                     PredictionMath.bd(10),
-                    "No recorded same-position rivals at the target club for this season yet."
+                    "No recorded same-position rivals at the target club in the prior season."
             ));
             return 1.05;
         }
 
-        double multiplier = rivals == 1 ? 0.92 : rivals == 2 ? 0.82 : 0.70;
+        // Softer than v0: prior-season squads almost always list 2–4 players per group.
+        double multiplier = rivals == 1 ? 0.96 : rivals == 2 ? 0.90 : rivals == 3 ? 0.85 : 0.80;
+        boolean established = baselineMinutes >= ESTABLISHED_STARTER_MINUTES;
+        if (established) {
+            // Signed / retained starters keep more of their workload through competition noise.
+            multiplier = 1.0 - ((1.0 - multiplier) * 0.45);
+        }
+
         factors.add(new ExplanationFactor(
                 FactorCodes.SQUAD_COMPETITION,
                 "Squad competition",
                 ExplanationDirection.NEGATIVE,
-                PredictionMath.bd(rivals * 8.0),
+                PredictionMath.bd(rivals * 6.0),
                 rivals
-                        + " player(s) already logged in the same position group at "
+                        + " player(s) logged in the same position group at "
                         + context.targetClub().getName()
-                        + " this season."
+                        + " in the prior season"
+                        + (established ? "; haircut softened for an established-starter baseline" : "")
+                        + "."
         ));
         return multiplier;
     }

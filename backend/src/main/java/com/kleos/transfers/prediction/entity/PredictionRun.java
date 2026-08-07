@@ -23,6 +23,9 @@ public class PredictionRun extends IdentityEntity {
 
     public static final String MODEL_VERSION_V0 = "v0-heuristic";
 
+    /** Calibrated minutes weighting / softer squad competition vs {@link #MODEL_VERSION_V0}. */
+    public static final String MODEL_VERSION_V0_1 = "v0.1-heuristic";
+
     @Column(name = "model_version", nullable = false, length = 40)
     private String modelVersion;
 

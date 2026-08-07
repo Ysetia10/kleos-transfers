@@ -394,7 +394,7 @@ Audit wrapper for one execution of the prediction engine. Stores the model versi
 | Attribute | Type | Notes |
 |-----------|------|-------|
 | `id` | UUID | Surrogate primary key |
-| `modelVersion` | String | e.g. `v0-heuristic` |
+| `modelVersion` | String | e.g. `v0.1-heuristic` |
 | `note` | String (optional) | Free-text scenario note |
 | `createdAt` / `updatedAt` | Instant | Audited timestamps |
 | `deletedAt` | Instant (nullable) | Soft-delete marker |
@@ -443,7 +443,7 @@ One transfer what-if: predicted first-season performance of a player at a target
 - Implemented in backend Version 0.3.
 - API: `POST|GET /api/v1/predictions`, `GET /api/v1/predictions/{id}`, `DELETE /api/v1/predictions/{id}`.
 - **Product decision:** metrics live on one row (not separate tables per metric). Users predict a scenario, not "minutes alone".
-- **v0 engine (`v0-heuristic`)** is deterministic and explainable: minutes from recent workload + age + injury + squad competition; goals/assists/xG/xA from historical per-90 × predicted minutes; market value from age band × contribution; compatibility/confidence from factor rules. Replaceable via `PredictionEngine` without changing the API shape.
+- **Current engine (`v0.1-heuristic`)** is deterministic and explainable: weighted recent minutes + age + injury + softened squad competition; goals/assists/xG/xA from historical per-90 × predicted minutes; market value from age band × contribution; compatibility/confidence from factor rules. Replaceable via `PredictionEngine` without changing the API shape.
 - Context is loaded **as of** the target season start (history and squad exclude the target season) so completed-season evaluation does not leak outcomes. See [`prediction-validation.md`](prediction-validation.md).
 - The same player/club/season may be predicted multiple times (different runs / model versions).
 

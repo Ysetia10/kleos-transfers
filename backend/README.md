@@ -137,7 +137,7 @@ Injury links `playerId` with `injuryType`, `severity` (`MINOR`, `MODERATE`, `SEV
 | DELETE | `/api/v1/predictions/{id}` | Soft-delete prediction |
 | GET | `/api/v1/prediction-runs/{id}` | Get run metadata with nested predictions |
 
-v0 model version is `v0-heuristic`: deterministic minutes/goals/assists/xG/xA/value plus compatibility and confidence scores, each backed by explanation factors.
+Current model version is `v0.1-heuristic`: deterministic minutes/goals/assists/xG/xA/value plus compatibility and confidence scores, each backed by explanation factors.
 
 Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
 

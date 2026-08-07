@@ -107,6 +107,50 @@ class MinutesPredictorTest {
     }
 
     @Test
+    void softensCompetitionHaircutForEstablishedStarters() {
+        Player player = player(LocalDate.of(1999, 4, 1));
+        Club priorClub = club("Ajax", "NED");
+        Club target = club("Arsenal", "ENG");
+        Season priorSeason = season("2023/24", LocalDate.of(2023, 7, 1), LocalDate.of(2024, 6, 30));
+        Season targetSeason = season("2024/25", LocalDate.of(2024, 7, 1), LocalDate.of(2025, 6, 30));
+
+        PlayerSeason history = new PlayerSeason(
+                player,
+                priorClub,
+                priorSeason,
+                34,
+                3_100,
+                8,
+                6,
+                new BigDecimal("7.0"),
+                new BigDecimal("5.0"),
+                Position.CM
+        );
+
+        List<PlayerSeason> crowdedSquad = List.of(
+                squadMate(target, targetSeason, Position.CM),
+                squadMate(target, targetSeason, Position.CM),
+                squadMate(target, targetSeason, Position.CM),
+                squadMate(target, targetSeason, Position.CM)
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                player,
+                target,
+                targetSeason,
+                List.of(history),
+                crowdedSquad,
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history)
+        ));
+
+        // v0 would apply 0.70 competition on 4 rivals (~2170); v0.1 should stay higher.
+        assertThat(result.minutes()).isGreaterThan(2_400);
+    }
+
+    @Test
     void clampsToSeasonMaximum() {
         Player player = player(LocalDate.of(2002, 1, 1));
         Club club = club("Arsenal", "ENG");
@@ -151,6 +195,22 @@ class MinutesPredictorTest {
                 List.of(),
                 Optional.empty(),
                 history.stream().findFirst()
+        );
+    }
+
+    private PlayerSeason squadMate(Club club, Season season, Position position) {
+        Player rival = player(LocalDate.of(1997, 1, 1));
+        return new PlayerSeason(
+                rival,
+                club,
+                season,
+                28,
+                2_200,
+                3,
+                2,
+                new BigDecimal("2.5"),
+                new BigDecimal("2.0"),
+                position
         );
     }
 

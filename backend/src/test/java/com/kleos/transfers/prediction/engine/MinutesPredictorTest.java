@@ -151,6 +151,90 @@ class MinutesPredictorTest {
     }
 
     @Test
+    void keepsHighMinutesForStarterGoalkeeperDespiteMultipleListedGks() {
+        Player keeper = player(LocalDate.of(1995, 3, 1), Position.GK);
+        Club priorClub = club("Brighton", "ENG");
+        Club target = club("Chelsea", "ENG");
+        Season priorSeason = season("2023/24", LocalDate.of(2023, 7, 1), LocalDate.of(2024, 6, 30));
+        Season targetSeason = season("2024/25", LocalDate.of(2024, 7, 1), LocalDate.of(2025, 6, 30));
+
+        PlayerSeason history = new PlayerSeason(
+                keeper,
+                priorClub,
+                priorSeason,
+                38,
+                3_420,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        List<PlayerSeason> squad = List.of(
+                gkSquadMate(target, priorSeason, 180),
+                gkSquadMate(target, priorSeason, 90),
+                gkSquadMate(target, priorSeason, 0)
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                keeper,
+                target,
+                targetSeason,
+                List.of(history),
+                squad,
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history)
+        ));
+
+        assertThat(result.minutes()).isGreaterThan(3_000);
+        assertThat(result.factors()).extracting(ExplanationFactor::code)
+                .contains(FactorCodes.GK_ROLE);
+    }
+
+    @Test
+    void keepsBackupGoalkeeperMinutesLowWhenClubHasStarter() {
+        Player keeper = player(LocalDate.of(1998, 8, 12), Position.GK);
+        Club priorClub = club("Burnley", "ENG");
+        Club target = club("Arsenal", "ENG");
+        Season priorSeason = season("2023/24", LocalDate.of(2023, 7, 1), LocalDate.of(2024, 6, 30));
+        Season targetSeason = season("2024/25", LocalDate.of(2024, 7, 1), LocalDate.of(2025, 6, 30));
+
+        PlayerSeason history = new PlayerSeason(
+                keeper,
+                priorClub,
+                priorSeason,
+                4,
+                360,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        List<PlayerSeason> squad = List.of(gkSquadMate(target, priorSeason, 3_420));
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                keeper,
+                target,
+                targetSeason,
+                List.of(history),
+                squad,
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history)
+        ));
+
+        assertThat(result.minutes()).isLessThan(800);
+        assertThat(result.factors()).extracting(ExplanationFactor::code)
+                .contains(FactorCodes.GK_ROLE, FactorCodes.SQUAD_COMPETITION);
+    }
+
+    @Test
     void clampsToSeasonMaximum() {
         Player player = player(LocalDate.of(2002, 1, 1));
         Club club = club("Arsenal", "ENG");
@@ -199,7 +283,7 @@ class MinutesPredictorTest {
     }
 
     private PlayerSeason squadMate(Club club, Season season, Position position) {
-        Player rival = player(LocalDate.of(1997, 1, 1));
+        Player rival = player(LocalDate.of(1997, 1, 1), position);
         return new PlayerSeason(
                 rival,
                 club,
@@ -214,14 +298,34 @@ class MinutesPredictorTest {
         );
     }
 
+    private PlayerSeason gkSquadMate(Club club, Season season, int minutes) {
+        Player rival = player(LocalDate.of(1994, 5, 5), Position.GK);
+        return new PlayerSeason(
+                rival,
+                club,
+                season,
+                Math.max(1, minutes / 90),
+                minutes,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+    }
+
     private Player player(LocalDate dob) {
+        return player(dob, Position.CM);
+    }
+
+    private Player player(LocalDate dob, Position position) {
         Player player = new Player(
                 "Test Player",
                 dob,
                 "ENG",
                 180,
                 PreferredFoot.RIGHT,
-                Position.CM
+                position
         );
         setId(player, UUID.randomUUID());
         return player;

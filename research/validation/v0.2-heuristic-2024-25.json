@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-08-07T14:33:27.170608+00:00",
+  "season": "2024/25",
+  "modelVersion": "v0.2-heuristic",
+  "selection": {
+    "minMinutes": 900,
+    "requireClubChange": true,
+    "limit": 150,
+    "candidatesFound": 128,
+    "evaluated": 128,
+    "failed": 0
+  },
+  "metrics": {
+    "n": 128,
+    "minutes": {
+      "mae": 943.55,
+      "rmse": 1169.32,
+      "bias_actual_minus_predicted": 782.21
+    },
+    "goals": {
+      "mae": 1.94,
+      "rmse": 3.212,
+      "bias_actual_minus_predicted": 1.18
+    },
+    "assists": {
+      "mae": 1.372,
+      "rmse": 1.998,
+      "bias_actual_minus_predicted": 0.775
+    },
+    "xg": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "xa": {
+      "mae": 0.0,
+      "rmse": 0.0
+    }
+  },
+  "samplePredictions": [
+    {
+      "player": "Max Kilman",
+      "club": "West Ham",
+      "predictedMinutes": 3251,
+      "actualMinutes": 3348,
+      "minutesError": 97,
+      "predictedGoals": 1.08,
+      "actualGoals": 0
+    },
+    {
+      "player": "Cole Palmer",
+      "club": "Chelsea",
+      "predictedMinutes": 1218,
+      "actualMinutes": 3191,
+      "minutesError": 1973,
+      "predictedGoals": 8.93,
+      "actualGoals": 15
+    },
+    {
+      "player": "Aaron Wan-Bissaka",
+      "club": "West Ham",
+      "predictedMinutes": 1481,
+      "actualMinutes": 3154,
+      "minutesError": 1673,
+      "predictedGoals": 0.0,
+      "actualGoals": 2
+    },
+    {
+      "player": "Dara O'Shea",
+      "club": "Ipswich Town",
+      "predictedMinutes": 3028,
+      "actualMinutes": 3122,
+      "minutesError": 94,
+      "predictedGoals": 1.68,
+      "actualGoals": 0
+    },
+    {
+      "player": "Sergi Cardona",
+      "club": "Villarreal",
+      "predictedMinutes": 2823,
+      "actualMinutes": 2945,
+      "minutesError": 122,
+      "predictedGoals": 0.94,
+      "actualGoals": 1
+    },
+    {
+      "player": "Carmona",
+      "club": "Sevilla",
+      "predictedMinutes": 822,
+      "actualMinutes": 2942,
+      "minutesError": 2120,
+      "predictedGoals": 1.37,
+      "actualGoals": 0
+    },
+    {
+      "player": "Augusto Batalla",
+      "club": "Rayo Vallecano",
+      "predictedMinutes": 910,
+      "actualMinutes": 2880,
+      "minutesError": 1970,
+      "predictedGoals": 0.0,
+      "actualGoals": 0
+    },
+    {
+      "player": "Marko Dmitrovi\u0107",
+      "club": "Legan\u00e9s",
+      "predictedMinutes": 438,
+      "actualMinutes": 2880,
+      "minutesError": 2442,
+      "predictedGoals": 0.0,
+      "actualGoals": 0
+    },
+    {
+      "player": "Luis Rioja",
+      "club": "Valencia",
+      "predictedMinutes": 2360,
+      "actualMinutes": 2831,
+      "minutesError": 471,
+      "predictedGoals": 3.15,
+      "actualGoals": 5
+    },
+    {
+      "player": "Kepa Arrizabalaga",
+      "club": "Bournemouth",
+      "predictedMinutes": 857,
+      "actualMinutes": 2790,
+      "minutesError": 1933,
+      "predictedGoals": 0.0,
+      "actualGoals": 0
+    }
+  ],
+  "failures": []
+}

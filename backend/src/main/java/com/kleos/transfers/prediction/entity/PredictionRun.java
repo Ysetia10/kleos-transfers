@@ -26,6 +26,9 @@ public class PredictionRun extends IdentityEntity {
     /** Calibrated minutes weighting / softer squad competition vs {@link #MODEL_VERSION_V0}. */
     public static final String MODEL_VERSION_V0_1 = "v0.1-heuristic";
 
+    /** Adds a goalkeeper starter/backup minutes pathway on top of {@link #MODEL_VERSION_V0_1}. */
+    public static final String MODEL_VERSION_V0_2 = "v0.2-heuristic";
+
     @Column(name = "model_version", nullable = false, length = 40)
     private String modelVersion;
 

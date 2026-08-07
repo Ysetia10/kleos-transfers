@@ -10,3 +10,4 @@ Season backtests live under [`validation/`](validation/). Methodology: [`docs/pr
 |----------|-------|-------|
 | `validation/v0-heuristic-2024-25.*` | `v0-heuristic` | First published baseline |
 | `validation/v0.1-heuristic-2024-25.*` | `v0.1-heuristic` | Softer competition + weighted recent minutes |
+| `validation/v0.2-heuristic-2024-25.*` | `v0.2-heuristic` | GK starter/backup minutes pathway |

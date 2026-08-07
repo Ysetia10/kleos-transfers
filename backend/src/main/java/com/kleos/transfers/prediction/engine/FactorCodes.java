@@ -9,6 +9,7 @@ public final class FactorCodes {
     public static final String AGE_PROFILE = "AGE_PROFILE";
     public static final String INJURY_BURDEN = "INJURY_BURDEN";
     public static final String SQUAD_COMPETITION = "SQUAD_COMPETITION";
+    public static final String GK_ROLE = "GK_ROLE";
     public static final String SCORING_RATE = "SCORING_RATE";
     public static final String CREATION_RATE = "CREATION_RATE";
     public static final String XG_RATE = "XG_RATE";

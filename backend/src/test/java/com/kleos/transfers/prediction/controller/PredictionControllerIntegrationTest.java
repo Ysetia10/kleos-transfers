@@ -73,7 +73,7 @@ class PredictionControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.playerName").value("Jude Bellingham"))
                 .andExpect(jsonPath("$.targetClubName").value("Real Madrid"))
-                .andExpect(jsonPath("$.modelVersion").value("v0.1-heuristic"))
+                .andExpect(jsonPath("$.modelVersion").value("v0.2-heuristic"))
                 .andExpect(jsonPath("$.predictedMinutes").value(greaterThan(0)))
                 .andExpect(jsonPath("$.predictedGoals").value(greaterThanOrEqualTo(0.0)))
                 .andExpect(jsonPath("$.predictedAssists").value(greaterThanOrEqualTo(0.0)))
@@ -101,7 +101,7 @@ class PredictionControllerIntegrationTest {
 
         mockMvc.perform(get("/api/v1/prediction-runs/{id}", runId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.modelVersion").value("v0.1-heuristic"))
+                .andExpect(jsonPath("$.modelVersion").value("v0.2-heuristic"))
                 .andExpect(jsonPath("$.predictions", hasSize(1)));
 
         createPlayerSeason(playerId, toClubId, seasonId, 2500, 9, 6);

@@ -1,6 +1,6 @@
 # Prediction validation methodology
 
-This document describes how Kleos compares transfer predictions (currently **`v0.1-heuristic`**) to observed end-of-season outcomes. It is the research/product checklist behind issue #32.
+This document describes how Kleos compares transfer predictions (currently **`v0.2-heuristic`**) to observed end-of-season outcomes. It is the research/product checklist behind issue #32.
 
 ## Goal
 

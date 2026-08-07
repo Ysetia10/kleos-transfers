@@ -6,6 +6,7 @@ Spring Boot 3 backend for Kleos Transfers.
 
 - Java 21 and Gradle
 - Spring Web, Validation, Data JPA, Actuator, and Lombok
+- SpringDoc OpenAPI (Swagger UI)
 - PostgreSQL and Flyway
 - H2 for automated tests (Flyway migrations applied)
 
@@ -35,6 +36,15 @@ Optional CORS origins (comma-separated). Default allows both Vite hosts:
 ```bash
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
+
+## API docs (OpenAPI)
+
+With the backend running:
+
+- Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+Player and health controllers are tagged explicitly; other `/api/v1` controllers are still picked up by SpringDoc automatically.
 
 ## Current endpoints
 
@@ -137,7 +147,7 @@ Injury links `playerId` with `injuryType`, `severity` (`MINOR`, `MODERATE`, `SEV
 | DELETE | `/api/v1/predictions/{id}` | Soft-delete prediction |
 | GET | `/api/v1/prediction-runs/{id}` | Get run metadata with nested predictions |
 
-Current model version is `v0.1-heuristic`: deterministic minutes/goals/assists/xG/xA/value plus compatibility and confidence scores, each backed by explanation factors.
+Current model version is `v0.2-heuristic`: deterministic minutes/goals/assists/xG/xA/value plus compatibility and confidence scores, each backed by explanation factors (including a GK starter/backup minutes pathway).
 
 Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
 

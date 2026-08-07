@@ -18,14 +18,15 @@ Completed:
 - Shared domain foundation (`BaseEntity`, auditing, enums)
 - Player, Club, Manager, Season, and Tournament identity modules (API, persistence, validation, tests)
 - ClubSeason, ManagerSeason, PlayerSeason, Transfer, Contract, and Injury historical modules
-- PredictionRun / Prediction / Explanation / Evaluation with explainable `v0.1-heuristic` engine
-- Completed-season validation job + published 2024/25 baseline (`docs/prediction-validation.md`)
+- PredictionRun / Prediction / Explanation / Evaluation with explainable `v0.2-heuristic` engine
+- Completed-season validation job + published 2024/25 baselines (`docs/prediction-validation.md`)
 - Frontend: players/clubs catalogue, prediction form, explainable results, dashboard
 - FBref PL + La Liga ingest for 2016/17–2025/26 (idempotent, headless)
 - Bulk identity import API + CSV loader script
+- SpringDoc OpenAPI / Swagger UI for `/api/v1`
 - Material UI design system and application shell
 
-Next: recover expected-stats (xG/xA) in the historical layer, then stronger models that beat the `v0.1` validation baseline.
+Next: recover expected-stats (xG/xA) in the historical layer (#37), then a v1 model that beats the `v0.2` validation baseline (#38).
 
 ## High-level architecture
 

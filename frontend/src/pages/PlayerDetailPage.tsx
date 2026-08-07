@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getPlayer } from '@/services/player/playerApi'
+import { formatFootballCountry } from '@/utils/footballCountry'
 import { formatAge, formatDate } from '@/utils/format'
 
 export function PlayerDetailPage() {
@@ -41,7 +42,7 @@ export function PlayerDetailPage() {
     ['Age', formatAge(player.age)],
     ['Date of birth', formatDate(player.dateOfBirth)],
     ['Latest club', latestClub],
-    ['Nationality', player.nationality],
+    ['Nationality', formatFootballCountry(player.nationality)],
     ['Height', player.heightCm == null ? '—' : `${player.heightCm} cm`],
     ['Preferred foot', player.preferredFoot ?? '—'],
     ['Primary position', player.primaryPosition],

@@ -17,6 +17,7 @@ import { getPlayer, listPlayers } from '@/services/player/playerApi'
 import { listSeasons } from '@/services/season/seasonApi'
 import { ApiError } from '@/types/api'
 import type { Club, Player, Season } from '@/types/domain'
+import { formatFootballCountry } from '@/utils/footballCountry'
 
 const schema = z.object({
   playerId: z.string().uuid('Select a player'),
@@ -212,7 +213,9 @@ export function PredictionForm({
           render={({ field }) => (
             <Autocomplete<Club>
               filterOptions={(options) => options}
-              getOptionLabel={(option) => `${option.name} (${option.countryCode})`}
+              getOptionLabel={(option) =>
+                `${option.name} (${formatFootballCountry(option.countryCode)})`
+              }
               isOptionEqualToValue={(option, value) => option.id === value.id}
               loading={clubsQuery.isFetching}
               onChange={(_, value) => field.onChange(value?.id ?? '')}

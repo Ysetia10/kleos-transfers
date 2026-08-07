@@ -49,8 +49,38 @@ jobs:
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
       - name: Run backend tests
+        # Integration tests use Testcontainers PostgreSQL (Docker available on runners).
         # Daemon is recommended with setup-gradle caching; --no-daemon slows cold CI.
         run: ./gradlew test
+      - name: Ensure integration tests executed
+        # Locally AbstractPostgresIntegrationTest skips when Docker is down; CI must not.
+        run: |
+          python3 <<'PY'
+          import glob
+          import sys
+          import xml.etree.ElementTree as ET
+
+          suites = sorted(glob.glob("build/test-results/test/*IntegrationTest.xml"))
+          if not suites:
+              print("No *IntegrationTest.xml results found", file=sys.stderr)
+              sys.exit(1)
+
+          problems = []
+          for path in suites:
+              root = ET.parse(path).getroot()
+              name = root.attrib.get("name", path)
+              tests = int(root.attrib.get("tests", 0))
+              skipped = int(root.attrib.get("skipped", 0))
+              if tests == 0 or skipped == tests:
+                  problems.append(f"{name}: tests={tests} skipped={skipped}")
+
+          if problems:
+              print("Integration tests did not run against PostgreSQL:", file=sys.stderr)
+              print("\n".join(problems), file=sys.stderr)
+              sys.exit(1)
+
+          print(f"OK: {len(suites)} integration suites executed")
+          PY
 
   frontend:
     name: Frontend

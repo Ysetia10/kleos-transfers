@@ -8,7 +8,7 @@ Spring Boot 3 backend for Kleos Transfers.
 - Spring Web, Validation, Data JPA, Actuator, and Lombok
 - SpringDoc OpenAPI (Swagger UI)
 - PostgreSQL and Flyway
-- H2 for automated tests (Flyway migrations applied)
+- Testcontainers PostgreSQL for integration tests (unit tests stay in-process)
 
 ## Architecture notes
 
@@ -20,6 +20,16 @@ Spring Boot 3 backend for Kleos Transfers.
 - Shared vocabulary lives in `com.kleos.transfers.domain`
 - Flyway owns schema; JPA uses `ddl-auto: validate`
 - Public HTTP API is versioned under `/api/v1`
+
+## Tests
+
+```bash
+# Requires Docker for @SpringBootTest integration tests (Testcontainers).
+./gradlew test
+```
+
+Pure engine/unit tests do not start containers. Integration tests extend
+`common.test.AbstractPostgresIntegrationTest` and apply Flyway against Postgres 16.
 
 ## Run locally
 

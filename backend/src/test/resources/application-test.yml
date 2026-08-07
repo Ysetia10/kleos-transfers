@@ -1,9 +1,11 @@
+# Datasource URL/user/password/driver are supplied by Testcontainers
+# (see AbstractPostgresIntegrationTest). These defaults are placeholders only.
 spring:
   datasource:
-    url: jdbc:h2:mem:kleos_transfers;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    url: jdbc:postgresql://localhost:5432/kleos_transfers_test
+    username: kleos
+    password: kleos
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate

@@ -6,8 +6,9 @@ Thanks for helping improve an open-source, explainable football transfer predict
 
 1. Read the [README](README.md) for stack and local setup.
 2. Skim [`docs/domain-model.md`](docs/domain-model.md) (identity / historical / prediction layers).
-3. If you touch ingest or publish numbers derived from FBref, read [`docs/data-sourcing.md`](docs/data-sourcing.md).
-4. Prefer an existing GitHub issue. Comment if you want to claim it.
+3. Check [`docs/adr/`](docs/adr/) for settled architecture decisions before proposing alternatives.
+4. If you touch ingest or publish numbers derived from FBref, read [`docs/data-sourcing.md`](docs/data-sourcing.md).
+5. Prefer an existing GitHub issue. Comment if you want to claim it.
 
 ## Local development
 
@@ -41,8 +42,8 @@ Methodology: [`docs/prediction-validation.md`](docs/prediction-validation.md).
 
 - Keep PRs focused (one concern per PR when practical).
 - Match existing package-by-feature layout in `backend/src/main/java/com/kleos/transfers/`.
-- Add or update tests for behavior changes (`./gradlew test`).
-- Frontend: `npm run lint` / `npm run build` when touching UI.
+- Add or update tests for behavior changes (`./gradlew test`; Docker required for integration tests).
+- Frontend: `npm run lint` / `npm run build` when touching UI. New nav items belong in `navigationItems` (desktop + mobile drawer).
 - Do not commit secrets, `.env`, or `~/soccerdata` caches.
 
 ## Issue labels (quick map)

@@ -1,5 +1,6 @@
 package com.kleos.transfers.tournament.controller;
 
+import com.kleos.transfers.common.test.AbstractPostgresIntegrationTest;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,17 +17,11 @@ import org.junit.jupiter.api.Test;
 import com.kleos.transfers.common.test.DatabaseCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class TournamentControllerIntegrationTest {
+class TournamentControllerIntegrationTest extends AbstractPostgresIntegrationTest {
 
     private static final String TOURNAMENTS_PATH = "/api/v1/tournaments";
 

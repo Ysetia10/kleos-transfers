@@ -61,6 +61,9 @@ export interface Club {
   countryCode: string
   foundedYear: number | null
   fbrefId: string | null
+  currentManagerId: string | null
+  currentManagerName: string | null
+  currentManagerSeasonLabel: string | null
   createdAt: string
   updatedAt: string
 }

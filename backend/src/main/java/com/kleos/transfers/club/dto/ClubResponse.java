@@ -13,6 +13,9 @@ public record ClubResponse(
         String countryCode,
         Integer foundedYear,
         String fbrefId,
+        UUID currentManagerId,
+        String currentManagerName,
+        String currentManagerSeasonLabel,
         Instant createdAt,
         Instant updatedAt
 ) {

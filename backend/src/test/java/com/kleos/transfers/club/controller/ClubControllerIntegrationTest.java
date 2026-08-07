@@ -49,6 +49,8 @@ class ClubControllerIntegrationTest extends AbstractPostgresIntegrationTest {
                 .andExpect(jsonPath("$.shortName").value("Barcelona"))
                 .andExpect(jsonPath("$.countryCode").value("ESP"))
                 .andExpect(jsonPath("$.foundedYear").value(1899))
+                .andExpect(jsonPath("$.currentManagerId").value(nullValue()))
+                .andExpect(jsonPath("$.currentManagerName").value(nullValue()))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andReturn();
 
@@ -57,7 +59,8 @@ class ClubControllerIntegrationTest extends AbstractPostgresIntegrationTest {
         mockMvc.perform(get(CLUBS_PATH + "/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.shortName").value("Barcelona"));
+                .andExpect(jsonPath("$.shortName").value("Barcelona"))
+                .andExpect(jsonPath("$.currentManagerName").value(nullValue()));
 
         mockMvc.perform(put(CLUBS_PATH + "/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)

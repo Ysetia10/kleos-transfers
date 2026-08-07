@@ -1,5 +1,6 @@
 import { Button, Stack, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -7,6 +8,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { homePredictPath } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getClub } from '@/services/club/clubApi'
+import { formatFootballCountry } from '@/utils/footballCountry'
 
 export function ClubDetailPage() {
   const { id = '' } = useParams()
@@ -24,13 +26,24 @@ export function ClubDetailPage() {
   }
 
   const club = query.data
-  const fields = [
+  const fields: Array<[string, ReactNode]> = [
     ['Name', club.name],
-    ['Short name', club.shortName],
-    ['Country', club.countryCode],
-    ['Founded', club.foundedYear?.toString() ?? '—'],
-    ['FBref id', club.fbrefId ?? '—'],
-  ] as const
+    ['Country', formatFootballCountry(club.countryCode)],
+  ]
+  if (club.currentManagerName) {
+    fields.push([
+      'Manager',
+      club.currentManagerSeasonLabel
+        ? `${club.currentManagerName} (${club.currentManagerSeasonLabel})`
+        : club.currentManagerName,
+    ])
+  }
+  if (club.foundedYear != null) {
+    fields.push(['Founded', String(club.foundedYear)])
+  }
+  if (club.fbrefId) {
+    fields.push(['FBref id', club.fbrefId])
+  }
 
   return (
     <Stack spacing={3}>

@@ -19,6 +19,7 @@ import { homeSections, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { listClubs } from '@/services/club/clubApi'
 import { listPlayers } from '@/services/player/playerApi'
+import { formatFootballCountry } from '@/utils/footballCountry'
 import { formatAge } from '@/utils/format'
 
 const PAGE_SIZE = 8
@@ -135,9 +136,8 @@ export function CatalogueSection() {
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
-                  <TableCell>Short</TableCell>
                   <TableCell>Country</TableCell>
-                  <TableCell>Founded</TableCell>
+                  <TableCell>Manager</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -152,9 +152,8 @@ export function CatalogueSection() {
                         {club.name}
                       </MuiLink>
                     </TableCell>
-                    <TableCell>{club.shortName}</TableCell>
-                    <TableCell>{club.countryCode}</TableCell>
-                    <TableCell>{club.foundedYear ?? '—'}</TableCell>
+                    <TableCell>{formatFootballCountry(club.countryCode)}</TableCell>
+                    <TableCell>{club.currentManagerName ?? '—'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

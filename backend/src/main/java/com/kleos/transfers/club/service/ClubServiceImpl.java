@@ -2,6 +2,7 @@ package com.kleos.transfers.club.service;
 
 import com.kleos.transfers.club.dto.ClubResponse;
 import com.kleos.transfers.club.dto.CreateClubRequest;
+import com.kleos.transfers.club.dto.CurrentManagerView;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.entity.Club;
 import com.kleos.transfers.club.mapper.ClubMapper;
@@ -12,16 +13,20 @@ import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.bulk.NaturalKeys;
 import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.managerseason.repository.ManagerSeasonRepository;
 import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
 import com.kleos.transfers.playerseason.mapper.PlayerSeasonMapper;
 import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
 import com.kleos.transfers.season.repository.SeasonRepository;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -44,13 +49,14 @@ public class ClubServiceImpl implements ClubService {
     private final PlayerSeasonRepository playerSeasonRepository;
     private final PlayerSeasonMapper playerSeasonMapper;
     private final SeasonRepository seasonRepository;
+    private final ManagerSeasonRepository managerSeasonRepository;
 
     @Override
     @Transactional
     public ClubResponse create(CreateClubRequest request) {
         assertUnique(request.name(), request.countryCode(), request.fbrefId(), null);
         Club club = clubMapper.toEntity(request);
-        return clubMapper.toResponse(clubRepository.save(club));
+        return enrich(clubRepository.save(club));
     }
 
     @Override
@@ -61,16 +67,20 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     public Page<ClubResponse> findAll(String query, Pageable pageable) {
+        Page<Club> clubs;
         if (query == null || query.isBlank()) {
-            return clubRepository.findAll(pageable).map(clubMapper::toResponse);
+            clubs = clubRepository.findAll(pageable);
+        } else {
+            Pageable page = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+            clubs = clubRepository.searchByName(query.trim(), page);
         }
-        Pageable page = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-        return clubRepository.searchByName(query.trim(), page).map(clubMapper::toResponse);
+        Map<UUID, CurrentManagerView> managers = currentManagersByClubId(clubs.getContent());
+        return clubs.map(club -> clubMapper.toResponse(club, managers.get(club.getId())));
     }
 
     @Override
     public ClubResponse findById(UUID id) {
-        return clubMapper.toResponse(findClub(id));
+        return enrich(findClub(id));
     }
 
     @Override
@@ -79,7 +89,7 @@ public class ClubServiceImpl implements ClubService {
         Club club = findClub(id);
         assertUnique(request.name(), request.countryCode(), request.fbrefId(), id);
         clubMapper.updateEntity(club, request);
-        return clubMapper.toResponse(club);
+        return enrich(club);
     }
 
     @Override
@@ -106,6 +116,20 @@ public class ClubServiceImpl implements ClubService {
     private Club findClub(UUID id) {
         return clubRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Club", id));
+    }
+
+    private ClubResponse enrich(Club club) {
+        Map<UUID, CurrentManagerView> managers = currentManagersByClubId(List.of(club));
+        return clubMapper.toResponse(club, managers.get(club.getId()));
+    }
+
+    private Map<UUID, CurrentManagerView> currentManagersByClubId(Collection<Club> clubs) {
+        if (clubs.isEmpty()) {
+            return Map.of();
+        }
+        List<UUID> ids = clubs.stream().map(Club::getId).toList();
+        return managerSeasonRepository.findCurrentManagersByClubIds(ids).stream()
+                .collect(Collectors.toMap(CurrentManagerView::getClubId, Function.identity(), (a, b) -> a));
     }
 
     private void assertUnique(String name, String countryCode, String fbrefId, UUID excludingId) {
@@ -177,8 +201,11 @@ public class ClubServiceImpl implements ClubService {
 
         @Override
         public List<ClubResponse> persist(List<CreateClubRequest> accepted) {
-            List<Club> clubs = accepted.stream().map(clubMapper::toEntity).toList();
-            return clubRepository.saveAll(clubs).stream().map(clubMapper::toResponse).toList();
+            List<Club> clubs = clubRepository.saveAll(accepted.stream().map(clubMapper::toEntity).toList());
+            Map<UUID, CurrentManagerView> managers = currentManagersByClubId(clubs);
+            return clubs.stream()
+                    .map(club -> clubMapper.toResponse(club, managers.get(club.getId())))
+                    .toList();
         }
     }
 }

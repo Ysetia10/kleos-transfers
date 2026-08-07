@@ -1,6 +1,7 @@
-import { Button, Stack, Typography } from '@mui/material'
+import { Box, Button, Stack, Typography } from '@mui/material'
 import { useEffect } from 'react'
 import { Link as RouterLink, useLocation, useSearchParams } from 'react-router-dom'
+import { BrandMark } from '@/components/brand/BrandMark'
 import { CatalogueSection } from '@/components/home/CatalogueSection'
 import { HomeSection } from '@/components/home/HomeSection'
 import {
@@ -29,32 +30,103 @@ export function HomePage() {
   }, [location.hash, location.search])
 
   return (
-    <Stack spacing={{ xs: 6, md: 8 }}>
-      <Stack spacing={2.5} sx={{ maxWidth: 760 }}>
-        <Typography component="h1" variant="h1">
-          Kleos Transfers
-        </Typography>
-        <Typography color="text.secondary" variant="body1">
-          One workspace for transfer what-ifs (including historical seasons), league leaders, and
-          the player/club catalogue behind every scenario.
-        </Typography>
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }} useFlexGap>
-          {homeJumpLinks.map(({ label, section }) => (
-            <Button
-              component={RouterLink}
-              key={section}
-              size="small"
-              to={{ pathname: routes.home, hash: `#${section}`, search: location.search }}
-              variant={section === homeSections.predict ? 'contained' : 'outlined'}
+    <Stack spacing={{ xs: 4, md: 5 }}>
+      <Box
+        sx={(theme) => ({
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: 16,
+          color: theme.palette.primary.contrastText,
+          px: { xs: 3, md: 5 },
+          py: { xs: 4.5, md: 6 },
+          background: `
+            linear-gradient(135deg, ${theme.palette.pitch.deep} 0%, ${theme.palette.primary.main} 55%, #244a38 100%)
+          `,
+          boxShadow: `0 24px 48px rgba(15, 36, 28, 0.22)`,
+          animation: 'kleos-rise 500ms ease both',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            opacity: 0.35,
+            backgroundImage: `
+              repeating-linear-gradient(
+                90deg,
+                transparent 0,
+                transparent 36px,
+                rgba(255,255,255,0.05) 36px,
+                rgba(255,255,255,0.05) 37px
+              ),
+              repeating-linear-gradient(
+                0deg,
+                transparent 0,
+                transparent 36px,
+                rgba(255,255,255,0.04) 36px,
+                rgba(255,255,255,0.04) 37px
+              )
+            `,
+          },
+        })}
+      >
+        <Stack spacing={2.5} sx={{ position: 'relative', zIndex: 1, maxWidth: 720 }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+            <Box sx={{ color: 'accent.light' }}>
+              <BrandMark animated size={36} />
+            </Box>
+            <Typography
+              sx={{
+                color: 'accent.light',
+                fontFamily: '"Barlow Condensed", sans-serif',
+                fontWeight: 600,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+              }}
+              variant="caption"
             >
-              {label}
-            </Button>
-          ))}
+              Football transfer intelligence
+            </Typography>
+          </Stack>
+          <Typography component="h1" sx={{ color: 'inherit' }} variant="display">
+            Kleos Transfers
+          </Typography>
+          <Typography sx={{ color: 'rgba(247, 250, 247, 0.82)', maxWidth: 560 }} variant="bodyLarge">
+            Model a move, read the squad around it, and browse league leaders — one pitch-side
+            workspace, not a maze of pages.
+          </Typography>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', pt: 0.5 }} useFlexGap>
+            {homeJumpLinks.map(({ label, section }) => {
+              const primary = section === homeSections.predict
+              return (
+                <Button
+                  component={RouterLink}
+                  key={section}
+                  size="medium"
+                  to={{ pathname: routes.home, hash: `#${section}`, search: location.search }}
+                  variant={primary ? 'contained' : 'outlined'}
+                  color={primary ? 'accent' : 'inherit'}
+                  sx={
+                    primary
+                      ? undefined
+                      : {
+                          borderColor: 'rgba(247,250,247,0.35)',
+                          color: 'rgba(247,250,247,0.92)',
+                          '&:hover': {
+                            borderColor: 'accent.light',
+                            backgroundColor: 'rgba(196, 154, 60, 0.12)',
+                          },
+                        }
+                  }
+                >
+                  {label}
+                </Button>
+              )
+            })}
+          </Stack>
         </Stack>
-      </Stack>
+      </Box>
 
       <HomeSection
-        description="Run a player → club scenario for any season in the catalogue. Historical seasons act as a simulator (context as of season start). When you pick a club and season, the squad table below the form shows that season's roster — not just a same-position count."
+        description="Pick a player, destination, and season. Historical seasons work as a simulator; the squad table shows the full roster for that campaign."
         id={homeSections.predict}
         title="Transfer simulator"
       >

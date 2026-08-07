@@ -15,11 +15,19 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
       sx={{ alignItems: { sm: 'flex-end' }, justifyContent: 'space-between', marginBottom: 4 }}
     >
       <Box>
-        <Typography component="h1" variant="h1">
+        <Typography
+          component="h1"
+          sx={{ animation: 'kleos-rise 480ms ease both' }}
+          variant="h1"
+        >
           {title}
         </Typography>
         {description ? (
-          <Typography color="text.secondary" sx={{ marginTop: 1, maxWidth: 640 }} variant="body1">
+          <Typography
+            color="text.secondary"
+            sx={{ animation: 'kleos-rise 560ms ease both', marginTop: 1, maxWidth: 640 }}
+            variant="body1"
+          >
             {description}
           </Typography>
         ) : null}

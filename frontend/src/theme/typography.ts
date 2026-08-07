@@ -1,6 +1,7 @@
 import type { TypographyVariantsOptions } from '@mui/material/styles'
 
 export const fontFamilies = {
+  display: '"Barlow Condensed", "Arial Narrow", sans-serif',
   sans: 'Inter, ui-sans-serif, system-ui, sans-serif',
   mono: '"JetBrains Mono", ui-monospace, monospace',
 } as const
@@ -8,37 +9,44 @@ export const fontFamilies = {
 export const typography: TypographyVariantsOptions = {
   fontFamily: fontFamilies.sans,
   display: {
-    fontFamily: fontFamilies.sans,
-    fontSize: '3.75rem',
-    fontWeight: 600,
-    lineHeight: 1.1,
-    letterSpacing: '-0.03em',
+    fontFamily: fontFamilies.display,
+    fontSize: '4rem',
+    fontWeight: 700,
+    lineHeight: 0.95,
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
   },
   h1: {
-    fontFamily: fontFamilies.sans,
-    fontSize: '2.5rem',
-    fontWeight: 600,
-    lineHeight: 1.2,
-    letterSpacing: '-0.02em',
+    fontFamily: fontFamilies.display,
+    fontSize: '2.75rem',
+    fontWeight: 700,
+    lineHeight: 1.05,
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
   },
   h2: {
-    fontFamily: fontFamilies.sans,
-    fontSize: '2rem',
-    fontWeight: 600,
-    lineHeight: 1.25,
-    letterSpacing: '-0.02em',
+    fontFamily: fontFamilies.display,
+    fontSize: '2.15rem',
+    fontWeight: 700,
+    lineHeight: 1.1,
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
   },
   h3: {
-    fontFamily: fontFamilies.sans,
-    fontSize: '1.5rem',
+    fontFamily: fontFamilies.display,
+    fontSize: '1.55rem',
     fontWeight: 600,
-    lineHeight: 1.3,
+    lineHeight: 1.2,
+    letterSpacing: '0.03em',
+    textTransform: 'uppercase',
   },
   h4: {
-    fontFamily: fontFamilies.sans,
+    fontFamily: fontFamilies.display,
     fontSize: '1.25rem',
     fontWeight: 600,
-    lineHeight: 1.35,
+    lineHeight: 1.25,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
   },
   bodyLarge: {
     fontFamily: fontFamilies.sans,
@@ -50,7 +58,7 @@ export const typography: TypographyVariantsOptions = {
     fontFamily: fontFamilies.sans,
     fontSize: '1rem',
     fontWeight: 400,
-    lineHeight: 1.5,
+    lineHeight: 1.55,
   },
   body2: {
     fontFamily: fontFamilies.sans,
@@ -67,9 +75,9 @@ export const typography: TypographyVariantsOptions = {
   button: {
     fontFamily: fontFamilies.sans,
     fontSize: '0.875rem',
-    fontWeight: 500,
+    fontWeight: 600,
     lineHeight: 1.2,
-    letterSpacing: '0.01em',
+    letterSpacing: '0.02em',
     textTransform: 'none',
   },
 }

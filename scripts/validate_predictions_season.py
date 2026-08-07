@@ -241,8 +241,9 @@ def discover_candidates(
 def write_report(out_dir: Path, season: str, payload: dict[str, Any]) -> tuple[Path, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = season.replace("/", "-")
-    json_path = out_dir / f"v0-heuristic-{stamp}.json"
-    md_path = out_dir / f"v0-heuristic-{stamp}.md"
+    model_slug = str(payload.get("modelVersion") or "model").replace("/", "-")
+    json_path = out_dir / f"{model_slug}-{stamp}.json"
+    md_path = out_dir / f"{model_slug}-{stamp}.md"
     json_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
     metrics = payload["metrics"]

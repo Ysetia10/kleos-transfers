@@ -2,39 +2,43 @@ import type { PaletteOptions } from '@mui/material/styles'
 
 export type ApplicationThemeMode = 'light' | 'dark'
 
+/**
+ * Analytics workspace tokens — blue CTAs, green brand/positive, readable light+dark.
+ * Inspired by the product mockups (dark-first), with a proper light counterpart.
+ */
 export const palettes: Record<ApplicationThemeMode, PaletteOptions> = {
   light: {
-    primary: { main: '#163528', light: '#2a5240', dark: '#0e241b', contrastText: '#f7faf7' },
-    secondary: { main: '#4a6356', contrastText: '#ffffff' },
-    accent: { main: '#c49a3c', light: '#dbb65d', dark: '#8f6e24', contrastText: '#1a1408' },
-    success: { main: '#2f6f4e', contrastText: '#ffffff' },
-    warning: { main: '#b7791f', contrastText: '#ffffff' },
-    error: { main: '#b42318', contrastText: '#ffffff' },
-    info: { main: '#2f5d7a', contrastText: '#ffffff' },
-    background: { default: '#eef2ee', paper: '#fbfcfb' },
-    text: { primary: '#121a15', secondary: '#45544c' },
-    divider: '#cfd8d2',
+    primary: { main: '#2563EB', light: '#60A5FA', dark: '#1D4ED8', contrastText: '#FFFFFF' },
+    secondary: { main: '#64748B', contrastText: '#FFFFFF' },
+    accent: { main: '#059669', light: '#34D399', dark: '#047857', contrastText: '#FFFFFF' },
+    success: { main: '#059669', contrastText: '#FFFFFF' },
+    warning: { main: '#D97706', contrastText: '#FFFFFF' },
+    error: { main: '#DC2626', contrastText: '#FFFFFF' },
+    info: { main: '#2563EB', contrastText: '#FFFFFF' },
+    background: { default: '#F4F6F8', paper: '#FFFFFF' },
+    text: { primary: '#0F172A', secondary: '#475569' },
+    divider: '#E2E8F0',
     pitch: {
-      line: 'rgba(22, 53, 40, 0.08)',
-      deep: '#0f241c',
-      mist: 'rgba(196, 154, 60, 0.12)',
+      line: 'rgba(15, 23, 42, 0.06)',
+      deep: '#0B1220',
+      mist: 'rgba(37, 99, 235, 0.08)',
     },
   },
   dark: {
-    primary: { main: '#9bb8a7', contrastText: '#122018' },
-    secondary: { main: '#a7b3ad', contrastText: '#122018' },
-    accent: { main: '#e0b35c', contrastText: '#1a1408' },
-    success: { main: '#6fbf93', contrastText: '#122018' },
-    warning: { main: '#e0b35c', contrastText: '#122018' },
-    error: { main: '#f0887e', contrastText: '#122018' },
-    info: { main: '#7eafcb', contrastText: '#122018' },
-    background: { default: '#121916', paper: '#1c2420' },
-    text: { primary: '#f2f5f3', secondary: '#b7c2bc' },
-    divider: '#334039',
+    primary: { main: '#3B82F6', light: '#60A5FA', dark: '#2563EB', contrastText: '#FFFFFF' },
+    secondary: { main: '#94A3B8', contrastText: '#0B0E14' },
+    accent: { main: '#22C55E', light: '#4ADE80', dark: '#16A34A', contrastText: '#052E16' },
+    success: { main: '#22C55E', contrastText: '#052E16' },
+    warning: { main: '#FBBF24', contrastText: '#1C1400' },
+    error: { main: '#F87171', contrastText: '#1C0A0A' },
+    info: { main: '#60A5FA', contrastText: '#0B0E14' },
+    background: { default: '#0B0E14', paper: '#141A22' },
+    text: { primary: '#F8FAFC', secondary: '#94A3B8' },
+    divider: 'rgba(148, 163, 184, 0.16)',
     pitch: {
-      line: 'rgba(155, 184, 167, 0.12)',
-      deep: '#0a100e',
-      mist: 'rgba(224, 179, 92, 0.1)',
+      line: 'rgba(148, 163, 184, 0.1)',
+      deep: '#07090D',
+      mist: 'rgba(59, 130, 246, 0.12)',
     },
   },
 }

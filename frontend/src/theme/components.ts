@@ -4,7 +4,7 @@ export const components: Components<Theme> = {
   MuiCssBaseline: {
     styleOverrides: {
       '@keyframes kleos-rise': {
-        from: { opacity: 0, transform: 'translateY(14px)' },
+        from: { opacity: 0, transform: 'translateY(12px)' },
         to: { opacity: 1, transform: 'translateY(0)' },
       },
       '@keyframes kleos-mark-in': {
@@ -12,27 +12,10 @@ export const components: Components<Theme> = {
         '100%': { opacity: 1, transform: 'scale(1) rotate(0deg)' },
       },
       body: {
-        backgroundImage: `
-          linear-gradient(180deg, rgba(238, 242, 238, 0.92) 0%, rgba(238, 242, 238, 0.97) 40%, rgba(238, 242, 238, 1) 100%),
-          repeating-linear-gradient(
-            90deg,
-            transparent 0,
-            transparent 47px,
-            rgba(22, 53, 40, 0.045) 47px,
-            rgba(22, 53, 40, 0.045) 48px
-          ),
-          repeating-linear-gradient(
-            0deg,
-            transparent 0,
-            transparent 47px,
-            rgba(22, 53, 40, 0.035) 47px,
-            rgba(22, 53, 40, 0.035) 48px
-          )
-        `,
-        backgroundAttachment: 'fixed',
+        backgroundImage: 'none',
       },
       '::selection': {
-        backgroundColor: 'rgba(196, 154, 60, 0.35)',
+        backgroundColor: 'rgba(59, 130, 246, 0.35)',
       },
     },
   },
@@ -42,8 +25,9 @@ export const components: Components<Theme> = {
     },
     styleOverrides: {
       root: ({ theme }) => ({
-        backgroundColor: 'rgba(251, 252, 251, 0.86)',
-        backdropFilter: 'blur(12px)',
+        backgroundColor:
+          theme.palette.mode === 'dark' ? 'rgba(11, 14, 20, 0.88)' : 'rgba(244, 246, 248, 0.88)',
+        backdropFilter: 'blur(14px)',
         borderBottom: `1px solid ${theme.palette.divider}`,
         color: theme.palette.text.primary,
       }),
@@ -55,8 +39,10 @@ export const components: Components<Theme> = {
     },
     styleOverrides: {
       root: ({ theme, ownerState }) => ({
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: 10,
         padding: theme.spacing(1, 2),
+        textTransform: 'none',
+        fontWeight: 600,
         transition: 'transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease',
         '&:hover': {
           transform: 'translateY(-1px)',
@@ -66,7 +52,7 @@ export const components: Components<Theme> = {
         },
         ...(ownerState.variant === 'contained' && ownerState.color === 'primary'
           ? {
-              boxShadow: `0 8px 20px ${theme.palette.pitch.mist}`,
+              boxShadow: `0 10px 24px ${theme.palette.pitch.mist}`,
             }
           : {}),
         ...(ownerState.variant === 'contained' && ownerState.color === 'accent'
@@ -85,45 +71,58 @@ export const components: Components<Theme> = {
   MuiPaper: {
     styleOverrides: {
       root: ({ theme }) => ({
-        borderRadius: theme.shape.borderRadius,
         backgroundImage: 'none',
         border: `1px solid ${theme.palette.divider}`,
       }),
     },
   },
-  MuiTableRow: {
+  MuiCard: {
     styleOverrides: {
       root: ({ theme }) => ({
-        transition: 'background-color 140ms ease',
-        '&.MuiTableRow-hover:hover': {
-          backgroundColor: theme.palette.pitch.mist,
-        },
-      }),
-    },
-  },
-  MuiTableHead: {
-    styleOverrides: {
-      root: ({ theme }) => ({
-        '& .MuiTableCell-head': {
-          fontFamily: '"Barlow Condensed", "Arial Narrow", sans-serif',
-          fontWeight: 600,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          color: theme.palette.text.secondary,
-          borderBottomColor: theme.palette.divider,
-        },
+        backgroundImage: 'none',
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 16,
+        boxShadow: 'none',
       }),
     },
   },
   MuiOutlinedInput: {
     styleOverrides: {
       root: ({ theme }) => ({
-        backgroundColor: theme.palette.background.paper,
-        transition: 'box-shadow 160ms ease',
-        '&.Mui-focused': {
-          boxShadow: `0 0 0 3px ${theme.palette.pitch.mist}`,
-        },
+        borderRadius: 12,
+        backgroundColor:
+          theme.palette.mode === 'dark' ? 'rgba(20, 26, 34, 0.9)' : theme.palette.background.paper,
       }),
+    },
+  },
+  MuiTableCell: {
+    styleOverrides: {
+      head: ({ theme }) => ({
+        color: theme.palette.text.secondary,
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        borderBottomColor: theme.palette.divider,
+      }),
+      body: ({ theme }) => ({
+        borderBottomColor: theme.palette.divider,
+      }),
+    },
+  },
+  MuiChip: {
+    styleOverrides: {
+      root: {
+        borderRadius: 8,
+        fontWeight: 600,
+      },
+    },
+  },
+  MuiLink: {
+    styleOverrides: {
+      root: {
+        fontWeight: 600,
+      },
     },
   },
 }

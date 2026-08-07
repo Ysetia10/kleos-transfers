@@ -5,7 +5,7 @@ interface BrandMarkProps {
   animated?: boolean
 }
 
-/** Minimal transfer mark: pitch circle + directional swap — no emoji clutter. */
+/** Green bolt mark used across the analytics shell. */
 export function BrandMark({ size = 28, animated = false }: BrandMarkProps) {
   return (
     <Box
@@ -17,22 +17,14 @@ export function BrandMark({ size = 28, animated = false }: BrandMarkProps) {
         height: size,
         flexShrink: 0,
         animation: animated ? 'kleos-mark-in 520ms ease both' : undefined,
+        color: 'accent.main',
       }}
     >
       <svg fill="none" height={size} viewBox="0 0 32 32" width={size} xmlns="http://www.w3.org/2000/svg">
-        <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="1.6" />
+        <rect fill="currentColor" height="32" rx="9" width="32" />
         <path
-          d="M16 4.5c2.4 2.2 3.8 5.4 3.8 11.5S18.4 25.3 16 27.5c-2.4-2.2-3.8-5.4-3.8-11.5S13.6 6.7 16 4.5Z"
-          stroke="currentColor"
-          strokeWidth="1.2"
-        />
-        <path d="M5.5 16h21" stroke="currentColor" strokeWidth="1.2" />
-        <path
-          d="M11 12.5 8 16l3 3.5M21 12.5l3 3.5-3 3.5"
-          stroke="#c49a3c"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.8"
+          d="M17.8 6.5 10 17.2h5.1l-1.2 8.3L22 14.8h-5.2l1-8.3Z"
+          fill="#0B0E14"
         />
       </svg>
     </Box>

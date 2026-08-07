@@ -7,7 +7,15 @@ export function MainLayout() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
-      <Container component="main" maxWidth="xl" sx={(theme) => ({ flexGrow: 1, paddingBottom: theme.spacing(6), paddingTop: theme.spacing(6) })}>
+      <Container
+        component="main"
+        maxWidth="xl"
+        sx={(theme) => ({
+          flexGrow: 1,
+          paddingBottom: theme.spacing(8),
+          paddingTop: theme.spacing(4),
+        })}
+      >
         <Outlet />
       </Container>
       <Footer />

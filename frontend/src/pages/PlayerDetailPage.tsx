@@ -4,7 +4,7 @@ import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
-import { routes } from '@/constants/routes'
+import { homePredictPath } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getPlayer } from '@/services/player/playerApi'
 import { formatDate } from '@/utils/format'
@@ -41,7 +41,7 @@ export function PlayerDetailPage() {
         actions={
           <Button
             component={RouterLink}
-            to={`${routes.prediction}?playerId=${player.id}`}
+            to={homePredictPath({ playerId: player.id })}
             variant="contained"
           >
             Predict transfer

@@ -4,7 +4,7 @@ import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
-import { routes } from '@/constants/routes'
+import { homePredictPath } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getClub } from '@/services/club/clubApi'
 
@@ -38,7 +38,7 @@ export function ClubDetailPage() {
         actions={
           <Button
             component={RouterLink}
-            to={`${routes.prediction}?clubId=${club.id}`}
+            to={homePredictPath({ clubId: club.id })}
             variant="contained"
           >
             Predict arrival here

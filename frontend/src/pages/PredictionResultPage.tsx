@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { ExplanationList } from '@/components/prediction/ExplanationList'
 import { MetricGrid } from '@/components/prediction/MetricGrid'
 import { ScoreMeter } from '@/components/prediction/ScoreMeter'
-import { routes } from '@/constants/routes'
+import { homePredictPath } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getPrediction } from '@/services/prediction/predictionApi'
 import { formatDateTime } from '@/utils/format'
@@ -33,7 +33,7 @@ export function PredictionResultPage() {
     <Stack spacing={5}>
       <PageHeader
         actions={
-          <Button component={RouterLink} to={routes.prediction} variant="outlined">
+          <Button component={RouterLink} to={homePredictPath()} variant="outlined">
             New prediction
           </Button>
         }

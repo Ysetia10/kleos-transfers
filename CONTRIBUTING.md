@@ -43,7 +43,7 @@ Methodology: [`docs/prediction-validation.md`](docs/prediction-validation.md).
 - Keep PRs focused (one concern per PR when practical).
 - Match existing package-by-feature layout in `backend/src/main/java/com/kleos/transfers/`.
 - Add or update tests for behavior changes (`./gradlew test`; Docker required for integration tests).
-- Frontend: `npm run lint` / `npm run build` when touching UI. New nav items belong in `navigationItems` (desktop + mobile drawer).
+- Frontend: `npm run lint` / `npm run build` when touching UI. Keep the top bar minimal (`navigationItems`); primary product surfaces belong on Home sections (`homeJumpLinks` / `homeSections`).
 - Do not commit secrets, `.env`, or `~/soccerdata` caches.
 
 ## Issue labels (quick map)

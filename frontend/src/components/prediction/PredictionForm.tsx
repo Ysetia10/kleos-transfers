@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Alert, Autocomplete, Button, Stack, TextField } from '@mui/material'
+import { Alert, Autocomplete, Box, Button, Stack, TextField } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Controller, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -100,93 +100,100 @@ export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFor
         })
       })}
       spacing={3}
-      sx={{ maxWidth: 640 }}
     >
-      <Controller
-        control={control}
-        name="playerId"
-        render={({ field }) => (
-          <Autocomplete<Player>
-            getOptionLabel={(option) =>
-              `${option.fullName} · ${option.primaryPosition} · ${option.nationality}`
-            }
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            onChange={(_, value) => field.onChange(value?.id ?? '')}
-            options={players}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                error={!!errors.playerId}
-                helperText={errors.playerId?.message}
-                label="Player"
-                required
-              />
-            )}
-            value={players.find((player) => player.id === field.value) ?? null}
-          />
-        )}
-      />
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 3,
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+        }}
+      >
+        <Controller
+          control={control}
+          name="playerId"
+          render={({ field }) => (
+            <Autocomplete<Player>
+              getOptionLabel={(option) =>
+                `${option.fullName} · ${option.primaryPosition} · ${option.nationality}`
+              }
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, value) => field.onChange(value?.id ?? '')}
+              options={players}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  error={!!errors.playerId}
+                  helperText={errors.playerId?.message}
+                  label="Player"
+                  required
+                />
+              )}
+              value={players.find((player) => player.id === field.value) ?? null}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="targetClubId"
-        render={({ field }) => (
-          <Autocomplete<Club>
-            getOptionLabel={(option) => `${option.name} (${option.countryCode})`}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            onChange={(_, value) => field.onChange(value?.id ?? '')}
-            options={clubs}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                error={!!errors.targetClubId}
-                helperText={errors.targetClubId?.message}
-                label="Target club"
-                required
-              />
-            )}
-            value={clubs.find((club) => club.id === field.value) ?? null}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="targetClubId"
+          render={({ field }) => (
+            <Autocomplete<Club>
+              getOptionLabel={(option) => `${option.name} (${option.countryCode})`}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, value) => field.onChange(value?.id ?? '')}
+              options={clubs}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  error={!!errors.targetClubId}
+                  helperText={errors.targetClubId?.message}
+                  label="Target club"
+                  required
+                />
+              )}
+              value={clubs.find((club) => club.id === field.value) ?? null}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="seasonId"
-        render={({ field }) => (
-          <Autocomplete<Season>
-            getOptionLabel={(option) => option.label}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            onChange={(_, value) => field.onChange(value?.id ?? '')}
-            options={seasons}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                error={!!errors.seasonId}
-                helperText={errors.seasonId?.message}
-                label="Season"
-                required
-              />
-            )}
-            value={seasons.find((season) => season.id === field.value) ?? null}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="seasonId"
+          render={({ field }) => (
+            <Autocomplete<Season>
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, value) => field.onChange(value?.id ?? '')}
+              options={seasons}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  error={!!errors.seasonId}
+                  helperText={errors.seasonId?.message}
+                  label="Season"
+                  required
+                />
+              )}
+              value={seasons.find((season) => season.id === field.value) ?? null}
+            />
+          )}
+        />
 
-      <Controller
-        control={control}
-        name="note"
-        render={({ field }) => (
-          <TextField
-            {...field}
-            error={!!errors.note}
-            helperText={errors.note?.message}
-            label="Note (optional)"
-            multiline
-            rows={2}
-          />
-        )}
-      />
+        <Controller
+          control={control}
+          name="note"
+          render={({ field }) => (
+            <TextField
+              {...field}
+              error={!!errors.note}
+              helperText={errors.note?.message}
+              label="Note (optional)"
+              multiline
+              rows={2}
+            />
+          )}
+        />
+      </Box>
 
       {mutation.isError ? (
         <Alert severity="error" variant="outlined">
@@ -196,7 +203,12 @@ export function PredictionForm({ initialPlayerId, initialClubId }: PredictionFor
         </Alert>
       ) : null}
 
-      <Button disabled={mutation.isPending} type="submit" variant="contained">
+      <Button
+        disabled={mutation.isPending}
+        sx={{ alignSelf: 'flex-start' }}
+        type="submit"
+        variant="contained"
+      >
         {mutation.isPending ? 'Running prediction…' : 'Run prediction'}
       </Button>
     </Stack>

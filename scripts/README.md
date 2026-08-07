@@ -43,3 +43,17 @@ pip install -r scripts/requirements-ingest.txt
 Policy and attribution: [`docs/data-sourcing.md`](../docs/data-sourcing.md).
 
 Do not commit downloaded caches or bulk CSVs (`data/` is gitignored).
+
+## `validate_predictions_season.py`
+
+Backtests `v0-heuristic` against a completed season: creates predictions via the API, evaluates them into `PredictionEvaluation`, and writes MAE/RMSE summaries under `research/validation/`.
+
+```bash
+# backend running; historical seasons loaded
+./scripts/validate_predictions_season.py --season 2024/25 --dry-run
+./scripts/validate_predictions_season.py --season 2024/25 --limit 200
+```
+
+Methodology: [`docs/prediction-validation.md`](../docs/prediction-validation.md).
+
+Requires `psql` for candidate discovery against the local Postgres DB (default `postgresql://kleos:kleos@localhost:5432/kleos_transfers`).

@@ -16,9 +16,9 @@ export function PageHeader({ eyebrow, title, description, actions, leading }: Pa
       spacing={2}
       sx={{ alignItems: { md: 'flex-start' }, justifyContent: 'space-between', mb: 1 }}
     >
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start', maxWidth: 820 }}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', maxWidth: 820 }}>
         {leading}
-        <Stack spacing={1} sx={{ minWidth: 0 }}>
+        <Stack spacing={0.75} sx={{ minWidth: 0 }}>
           {eyebrow ? (
             <Typography color="primary.main" variant="caption">
               {eyebrow}

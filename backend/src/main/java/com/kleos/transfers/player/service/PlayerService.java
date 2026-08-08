@@ -1,6 +1,7 @@
 package com.kleos.transfers.player.service;
 
 import com.kleos.transfers.common.bulk.BulkImportResponse;
+import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
@@ -23,6 +24,8 @@ public interface PlayerService {
     PlayerResponse findById(UUID id);
 
     PlayerResponse update(UUID id, UpdatePlayerRequest request);
+
+    PlayerResponse updateMedia(UUID id, UpdateIdentityMediaRequest request);
 
     void softDelete(UUID id);
 }

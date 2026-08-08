@@ -6,6 +6,7 @@ import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.service.ClubService;
 import com.kleos.transfers.common.bulk.BulkImportRequest;
 import com.kleos.transfers.common.bulk.BulkImportResponse;
+import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
 import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -76,6 +77,14 @@ public class ClubController {
             @Valid @RequestBody UpdateClubRequest request
     ) {
         return ResponseEntity.ok(clubService.update(id, request));
+    }
+
+    @PutMapping("/{id}/media")
+    public ResponseEntity<ClubResponse> updateMedia(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateIdentityMediaRequest request
+    ) {
+        return ResponseEntity.ok(clubService.updateMedia(id, request));
     }
 
     @DeleteMapping("/{id}")

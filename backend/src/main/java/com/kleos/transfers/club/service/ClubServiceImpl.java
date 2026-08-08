@@ -13,6 +13,9 @@ import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.bulk.NaturalKeys;
 import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
+import com.kleos.transfers.common.search.SearchQueries;
+import com.kleos.transfers.domain.FootballCountryNames;
 import com.kleos.transfers.managerseason.repository.ManagerSeasonRepository;
 import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
 import com.kleos.transfers.playerseason.mapper.PlayerSeasonMapper;
@@ -72,7 +75,16 @@ public class ClubServiceImpl implements ClubService {
             clubs = clubRepository.findAll(pageable);
         } else {
             Pageable page = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-            clubs = clubRepository.searchByName(query.trim(), page);
+            String normalized = SearchQueries.normalize(query);
+            Set<String> codes = FootballCountryNames.codesMatchingQuery(normalized);
+            boolean hasCodes = !codes.isEmpty();
+            Collection<String> codeParams = hasCodes ? codes : List.of("__none__");
+            clubs = clubRepository.search(
+                    SearchQueries.escapeLike(normalized),
+                    hasCodes,
+                    codeParams,
+                    page
+            );
         }
         Map<UUID, CurrentManagerView> managers = currentManagersByClubId(clubs.getContent());
         return clubs.map(club -> clubMapper.toResponse(club, managers.get(club.getId())));
@@ -89,6 +101,14 @@ public class ClubServiceImpl implements ClubService {
         Club club = findClub(id);
         assertUnique(request.name(), request.countryCode(), request.fbrefId(), id);
         clubMapper.updateEntity(club, request);
+        return enrich(club);
+    }
+
+    @Override
+    @Transactional
+    public ClubResponse updateMedia(UUID id, UpdateIdentityMediaRequest request) {
+        Club club = findClub(id);
+        clubMapper.updateMedia(club, request);
         return enrich(club);
     }
 

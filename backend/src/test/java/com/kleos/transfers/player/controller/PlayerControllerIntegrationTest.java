@@ -1,6 +1,7 @@
 package com.kleos.transfers.player.controller;
 
 import com.kleos.transfers.common.test.AbstractPostgresIntegrationTest;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -97,6 +98,47 @@ class PlayerControllerIntegrationTest extends AbstractPostgresIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].fullName").value("Kylian Mbappé"));
+    }
+
+    @Test
+    void searchesPlayersByNationalityCodeAndCountryName() throws Exception {
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Kylian Mbappé",
+                                  "dateOfBirth": "1998-12-20",
+                                  "nationality": "FRA",
+                                  "heightCm": 178,
+                                  "preferredFoot": "RIGHT",
+                                  "primaryPosition": "ST"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Harry Kane",
+                                  "dateOfBirth": "1993-07-28",
+                                  "nationality": "ENG",
+                                  "heightCm": 188,
+                                  "preferredFoot": "RIGHT",
+                                  "primaryPosition": "ST"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get(PLAYERS_PATH).param("q", "FRA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].fullName").value("Kylian Mbappé"));
+
+        mockMvc.perform(get(PLAYERS_PATH).param("q", "France"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].nationality").value("FRA"));
     }
 
     @Test
@@ -220,6 +262,48 @@ class PlayerControllerIntegrationTest extends AbstractPostgresIntegrationTest {
 
         mockMvc.perform(delete(PLAYERS_PATH + "/{id}", id))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updatesAndClearsPlayerPhotoMedia() throws Exception {
+        MvcResult createResult = mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validPlayerRequest()))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        UUID id = UUID.fromString(readId(createResult));
+
+        mockMvc.perform(put(PLAYERS_PATH + "/{id}/media", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Example.jpg/200px-Example.jpg",
+                                  "attribution": "Example Author via Wikimedia",
+                                  "license": "CC BY-SA 4.0",
+                                  "source": "wikimedia"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photoUrl").value(
+                        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Example.jpg/200px-Example.jpg"))
+                .andExpect(jsonPath("$.photoAttribution").value("Example Author via Wikimedia"))
+                .andExpect(jsonPath("$.photoLicense").value("CC BY-SA 4.0"))
+                .andExpect(jsonPath("$.photoSource").value("wikimedia"));
+
+        mockMvc.perform(put(PLAYERS_PATH + "/{id}/media", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "imageUrl": null,
+                                  "attribution": null,
+                                  "license": null,
+                                  "source": null
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photoUrl").value(nullValue()))
+                .andExpect(jsonPath("$.photoSource").value(nullValue()));
     }
 
     private String readId(MvcResult result) throws Exception {

@@ -1,5 +1,6 @@
 package com.kleos.transfers.player.mapper;
 
+import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.LatestClubView;
 import com.kleos.transfers.player.dto.PlayerResponse;
@@ -39,8 +40,13 @@ public class PlayerMapper {
         );
     }
 
-    public PlayerResponse toResponse(Player player) {
-        return toResponse(player, null);
+    public void updateMedia(Player player, UpdateIdentityMediaRequest request) {
+        player.updateMedia(
+                request.imageUrl(),
+                request.attribution(),
+                request.license(),
+                request.source()
+        );
     }
 
     public PlayerResponse toResponse(Player player, LatestClubView latestClub) {
@@ -54,6 +60,10 @@ public class PlayerMapper {
                 player.getPreferredFoot(),
                 player.getPrimaryPosition(),
                 player.getFbrefId(),
+                player.getPhotoUrl(),
+                player.getPhotoAttribution(),
+                player.getPhotoLicense(),
+                player.getPhotoSource(),
                 latestClub == null ? null : latestClub.getClubId(),
                 latestClub == null ? null : latestClub.getClubName(),
                 latestClub == null ? null : latestClub.getSeasonLabel(),

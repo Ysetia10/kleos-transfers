@@ -90,7 +90,7 @@ class PlayerServiceImplTest {
         Pageable pageable = PageRequest.of(0, 20);
         Player player = player();
         PlayerResponse expected = response();
-        when(playerRepository.searchByName("rice", PageRequest.of(0, 20)))
+        when(playerRepository.search(eq("rice"), eq(false), any(), eq(PageRequest.of(0, 20))))
                 .thenReturn(new PageImpl<>(List.of(player)));
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
         when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
@@ -222,6 +222,10 @@ class PlayerServiceImplTest {
                 180,
                 PreferredFoot.RIGHT,
                 Position.CM,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,

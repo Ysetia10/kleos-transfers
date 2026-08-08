@@ -2,6 +2,7 @@ package com.kleos.transfers.player.controller;
 
 import com.kleos.transfers.common.bulk.BulkImportRequest;
 import com.kleos.transfers.common.bulk.BulkImportResponse;
+import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
@@ -74,6 +75,15 @@ public class PlayerController {
             @Valid @RequestBody UpdatePlayerRequest request
     ) {
         return ResponseEntity.ok(playerService.update(id, request));
+    }
+
+    @PutMapping("/{id}/media")
+    @Operation(summary = "Replace player photo metadata (URL + attribution)")
+    public ResponseEntity<PlayerResponse> updateMedia(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateIdentityMediaRequest request
+    ) {
+        return ResponseEntity.ok(playerService.updateMedia(id, request));
     }
 
     @DeleteMapping("/{id}")

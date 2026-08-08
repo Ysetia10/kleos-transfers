@@ -93,6 +93,41 @@ class ClubControllerIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
+    void searchesClubsByCountryCodeAndCountryName() throws Exception {
+        mockMvc.perform(post(CLUBS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Arsenal",
+                                  "shortName": "Arsenal",
+                                  "countryCode": "ENG"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post(CLUBS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Barcelona",
+                                  "shortName": "Barça",
+                                  "countryCode": "ESP"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get(CLUBS_PATH).param("q", "ESP"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Barcelona"));
+
+        mockMvc.perform(get(CLUBS_PATH).param("q", "Spain"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].countryCode").value("ESP"));
+    }
+
+    @Test
     void normalizesLowercaseCountryCode() throws Exception {
         mockMvc.perform(post(CLUBS_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -185,6 +220,48 @@ class ClubControllerIntegrationTest extends AbstractPostgresIntegrationTest {
         mockMvc.perform(get(CLUBS_PATH + "/{id}", UUID.randomUUID()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void updatesAndClearsClubCrestMedia() throws Exception {
+        MvcResult createResult = mockMvc.perform(post(CLUBS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validClubRequest()))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        UUID id = UUID.fromString(readId(createResult));
+
+        mockMvc.perform(put(CLUBS_PATH + "/{id}/media", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "imageUrl": "https://upload.wikimedia.org/wikipedia/en/thumb/a/a7/Barcelona.svg/200px-Barcelona.svg.png",
+                                  "attribution": "Wikimedia Commons",
+                                  "license": "Public domain",
+                                  "source": "wikimedia"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.crestUrl").value(
+                        "https://upload.wikimedia.org/wikipedia/en/thumb/a/a7/Barcelona.svg/200px-Barcelona.svg.png"))
+                .andExpect(jsonPath("$.crestAttribution").value("Wikimedia Commons"))
+                .andExpect(jsonPath("$.crestLicense").value("Public domain"))
+                .andExpect(jsonPath("$.crestSource").value("wikimedia"));
+
+        mockMvc.perform(put(CLUBS_PATH + "/{id}/media", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "imageUrl": null,
+                                  "attribution": null,
+                                  "license": null,
+                                  "source": null
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.crestUrl").value(nullValue()))
+                .andExpect(jsonPath("$.crestSource").value(nullValue()));
     }
 
     private String readId(MvcResult result) throws Exception {

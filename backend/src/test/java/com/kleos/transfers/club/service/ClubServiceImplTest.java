@@ -176,6 +176,10 @@ class ClubServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
                 null
         );
     }

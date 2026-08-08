@@ -5,6 +5,7 @@ import com.kleos.transfers.club.dto.CreateClubRequest;
 import com.kleos.transfers.club.dto.CurrentManagerView;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.entity.Club;
+import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,8 +34,13 @@ public class ClubMapper {
         );
     }
 
-    public ClubResponse toResponse(Club club) {
-        return toResponse(club, null);
+    public void updateMedia(Club club, UpdateIdentityMediaRequest request) {
+        club.updateMedia(
+                request.imageUrl(),
+                request.attribution(),
+                request.license(),
+                request.source()
+        );
     }
 
     public ClubResponse toResponse(Club club, CurrentManagerView currentManager) {
@@ -45,6 +51,10 @@ public class ClubMapper {
                 club.getCountryCode(),
                 club.getFoundedYear(),
                 club.getFbrefId(),
+                club.getCrestUrl(),
+                club.getCrestAttribution(),
+                club.getCrestLicense(),
+                club.getCrestSource(),
                 currentManager == null ? null : currentManager.getManagerId(),
                 currentManager == null ? null : currentManager.getManagerName(),
                 currentManager == null ? null : currentManager.getSeasonLabel(),

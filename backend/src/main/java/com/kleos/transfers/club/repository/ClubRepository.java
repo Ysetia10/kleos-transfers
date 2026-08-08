@@ -3,7 +3,6 @@ package com.kleos.transfers.club.repository;
 import com.kleos.transfers.club.entity.Club;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,8 +22,6 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
     @Query("select c from Club c where c.nameNormalized in :normalizedNames")
     List<Club> findAllByNormalizedName(@Param("normalizedNames") Collection<String> normalizedNames);
 
-    Optional<Club> findByFbrefId(String fbrefId);
-
     List<Club> findAllByFbrefIdIn(Collection<String> fbrefIds);
 
     boolean existsByNameNormalizedAndCountryCode(String nameNormalized, String countryCode);
@@ -40,15 +37,19 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
     boolean existsByFbrefIdAndIdNot(String fbrefId, UUID id);
 
     /**
-     * Case- and accent-insensitive substring match on name or short name.
+     * Case- and accent-insensitive match on name/short name and/or country codes.
+     *
+     * <p>{@code codes} must be non-empty when {@code hasCodes} is true. When false, pass a
+     * dummy singleton so {@code IN (:codes)} stays syntactically valid.
      */
     @Query(
             value = """
                     SELECT * FROM clubs c
                     WHERE c.deleted_at IS NULL
                       AND (
-                        unaccent(lower(c.name)) LIKE unaccent(lower(concat('%', :q, '%')))
-                        OR unaccent(lower(c.short_name)) LIKE unaccent(lower(concat('%', :q, '%')))
+                        unaccent(lower(c.name)) LIKE unaccent(lower(concat('%', :q, '%'))) ESCAPE '\\'
+                        OR unaccent(lower(c.short_name)) LIKE unaccent(lower(concat('%', :q, '%'))) ESCAPE '\\'
+                        OR (CAST(:hasCodes AS boolean) AND c.country_code IN (:codes))
                       )
                     ORDER BY c.name
                     """,
@@ -56,11 +57,17 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
                     SELECT count(*) FROM clubs c
                     WHERE c.deleted_at IS NULL
                       AND (
-                        unaccent(lower(c.name)) LIKE unaccent(lower(concat('%', :q, '%')))
-                        OR unaccent(lower(c.short_name)) LIKE unaccent(lower(concat('%', :q, '%')))
+                        unaccent(lower(c.name)) LIKE unaccent(lower(concat('%', :q, '%'))) ESCAPE '\\'
+                        OR unaccent(lower(c.short_name)) LIKE unaccent(lower(concat('%', :q, '%'))) ESCAPE '\\'
+                        OR (CAST(:hasCodes AS boolean) AND c.country_code IN (:codes))
                       )
                     """,
             nativeQuery = true
     )
-    Page<Club> searchByName(@Param("q") String q, Pageable pageable);
+    Page<Club> search(
+            @Param("q") String q,
+            @Param("hasCodes") boolean hasCodes,
+            @Param("codes") Collection<String> codes,
+            Pageable pageable
+    );
 }

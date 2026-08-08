@@ -54,6 +54,18 @@ public class Player extends IdentityEntity {
     @Column(name = "fbref_id", length = 120)
     private String fbrefId;
 
+    @Column(name = "photo_url", length = 1000)
+    private String photoUrl;
+
+    @Column(name = "photo_attribution", length = 500)
+    private String photoAttribution;
+
+    @Column(name = "photo_license", length = 80)
+    private String photoLicense;
+
+    @Column(name = "photo_source", length = 40)
+    private String photoSource;
+
     public Player(
             String fullName,
             LocalDate dateOfBirth,
@@ -96,6 +108,13 @@ public class Player extends IdentityEntity {
         this.fbrefId = normalizeFbrefId(fbrefId);
     }
 
+    public void updateMedia(String photoUrl, String photoAttribution, String photoLicense, String photoSource) {
+        this.photoUrl = blankToNull(photoUrl);
+        this.photoAttribution = blankToNull(photoAttribution);
+        this.photoLicense = blankToNull(photoLicense);
+        this.photoSource = blankToNull(photoSource);
+    }
+
     @Override
     public void softDelete() {
         if (isDeleted()) {
@@ -109,9 +128,13 @@ public class Player extends IdentityEntity {
     }
 
     private static String normalizeFbrefId(String fbrefId) {
-        if (fbrefId == null || fbrefId.isBlank()) {
+        return blankToNull(fbrefId);
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
-        return fbrefId.trim();
+        return value.trim();
     }
 }

@@ -6,6 +6,9 @@ import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.bulk.NaturalKeys;
 import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
+import com.kleos.transfers.common.search.SearchQueries;
+import com.kleos.transfers.domain.FootballCountryNames;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.LatestClubView;
 import com.kleos.transfers.player.dto.PlayerResponse;
@@ -63,7 +66,16 @@ public class PlayerServiceImpl implements PlayerService {
             page = playerRepository.findAll(pageable);
         } else {
             Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-            page = playerRepository.searchByName(query.trim(), unsorted);
+            String normalized = SearchQueries.normalize(query);
+            Set<String> codes = FootballCountryNames.codesMatchingQuery(normalized);
+            boolean hasCodes = !codes.isEmpty();
+            Collection<String> codeParams = hasCodes ? codes : List.of("__none__");
+            page = playerRepository.search(
+                    SearchQueries.escapeLike(normalized),
+                    hasCodes,
+                    codeParams,
+                    unsorted
+            );
         }
         Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(page.getContent());
         return page.map(player -> playerMapper.toResponse(player, latestClubs.get(player.getId())));
@@ -80,6 +92,14 @@ public class PlayerServiceImpl implements PlayerService {
         Player player = findPlayer(id);
         assertUnique(request.fullName(), request.dateOfBirth(), request.nationality(), request.fbrefId(), id);
         playerMapper.updateEntity(player, request);
+        return enrich(player);
+    }
+
+    @Override
+    @Transactional
+    public PlayerResponse updateMedia(UUID id, UpdateIdentityMediaRequest request) {
+        Player player = findPlayer(id);
+        playerMapper.updateMedia(player, request);
         return enrich(player);
     }
 

@@ -4,6 +4,7 @@ import com.kleos.transfers.club.dto.ClubResponse;
 import com.kleos.transfers.club.dto.CreateClubRequest;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.common.bulk.BulkImportResponse;
+import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
 import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +25,8 @@ public interface ClubService {
     ClubResponse findById(UUID id);
 
     ClubResponse update(UUID id, UpdateClubRequest request);
+
+    ClubResponse updateMedia(UUID id, UpdateIdentityMediaRequest request);
 
     void softDelete(UUID id);
 

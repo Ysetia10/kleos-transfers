@@ -14,7 +14,9 @@ Kleos Transfers is an open-source research/product project. Historical football 
 |--------|---------|----------------|-------|
 | **FBref** (via [`soccerdata`](https://soccerdata.readthedocs.io/) or equivalent) | Clubs, players, PlayerSeason counting/expected stats | Do **not** republish raw FBref dumps in this repo | Primary ingest path (`scripts/ingest_fbref_pl_laliga.py`). Respect crawl delays; personal/research use only unless you obtain broader rights. |
 | **TheSportsDB** | Club crest **HTTPS badge URLs** | Hotlink badge URLs; do not mirror binaries into git | Primary club crest path in `scripts/enrich_identity_media.py` (`strBadge`). Research/UI display; respect TheSportsDB terms. |
-| **Wikimedia** (Wikidata + English Wikipedia + Commons APIs) | Player photos; club crest fallback | Hotlink URLs only; **do not** mirror binaries into git | **Players:** free licenses only (CC0 / PD / CC-BY / CC-BY-SA / GFDL). Club Wikipedia logos are often omitted now (trademark). Never scrape Google Images or Transfermarkt/FBref CDNs. |
+| **Wikimedia** (Wikidata + English Wikipedia + Commons APIs) | Player photos; club crest fallback; player **height** (Wikidata P2048) | Hotlink image URLs only; **do not** mirror binaries into git | **Players photos:** free licenses only (CC0 / PD / CC-BY / CC-BY-SA / GFDL). Height via Wikidata quantity claims. Never scrape Google Images or Transfermarkt/FBref CDNs. |
+| **Wikipedia / Wikidata** | Player height (P2048); preferred foot when stated in article/infobox | Derived fields only | Bio enricher: `scripts/enrich_player_bio.py`. |
+| **FBref player profile pages** | Preferred foot (+ height fallback) | Do **not** republish raw HTML dumps | Season tables omit bio; profiles expose `Footed:` / `cm`. Optional path in `enrich_player_bio.py` (crawl delay; may 403 without a residential IP). |
 | **Manual / first-party curated CSVs** | Small identity patches | OK if you created them | Use `scripts/import-identities.py`. |
 | **StatsBomb Open Data** | Event research, not full PL/La Liga season coverage | Allowed under StatsBomb open-data terms | Not the PL/La Liga completeness path. |
 

@@ -39,6 +39,21 @@ python3 scripts/enrich_identity_media.py players --limit 100
 
 Prefer clubs first. Missing media stays null; the UI falls back to initials. Policy: [`docs/data-sourcing.md`](../docs/data-sourcing.md).
 
+## `enrich_player_bio.py`
+
+Fills missing `heightCm` / `preferredFoot` on player identities:
+
+- **Height:** Wikidata `P2048` (name search + nationality filter)
+- **Preferred foot:** Wikipedia article/infobox (`left-footed` / `right-footed`), then optional FBref profile (`Footed:`)
+
+```bash
+python3 scripts/enrich_player_bio.py --dry-run --limit 20
+python3 scripts/enrich_player_bio.py --skip-fbref --limit 500   # Wikidata + Wikipedia (recommended)
+python3 scripts/enrich_player_bio.py --limit 200                # also try FBref (~3s/player; may 403)
+```
+
+Season-stat ingest intentionally leaves these null; run this enricher after identities exist.
+
 ## `ingest_fbref_pl_laliga.py`
 
 **Primary historical load** for Premier League + La Liga, seasons **2016/17–2025/26**.

@@ -13,6 +13,7 @@ import { homePredictPath } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getClubSquad } from '@/services/club/squadApi'
 import { getPrediction } from '@/services/prediction/predictionApi'
+import { downloadPredictionBrief } from '@/utils/exportPredictionBrief'
 import { formatDateTime, formatNumber } from '@/utils/format'
 
 export function PredictionResultPage() {
@@ -48,9 +49,14 @@ export function PredictionResultPage() {
     <Stack spacing={4}>
       <PageHeader
         actions={
-          <Button component={RouterLink} to={homePredictPath()} variant="outlined">
-            New prediction
-          </Button>
+          <>
+            <Button onClick={() => downloadPredictionBrief(prediction)} variant="outlined">
+              Export brief
+            </Button>
+            <Button component={RouterLink} to={homePredictPath()} variant="outlined">
+              New prediction
+            </Button>
+          </>
         }
         description={`${prediction.playerName} → ${prediction.targetClubName} · ${prediction.seasonLabel}`}
         eyebrow="Prediction workspace"

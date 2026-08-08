@@ -1,4 +1,5 @@
 export type PreferredFoot = 'LEFT' | 'RIGHT' | 'BOTH'
+export type DateOfBirthPrecision = 'DAY' | 'YEAR'
 export type Position =
   | 'GK'
   | 'RB'
@@ -22,6 +23,7 @@ export interface Player {
   id: string
   fullName: string
   dateOfBirth: string
+  dateOfBirthPrecision: DateOfBirthPrecision
   age: number | null
   nationality: string
   heightCm: number | null

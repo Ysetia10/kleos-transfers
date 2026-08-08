@@ -10,7 +10,7 @@ import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getPlayer } from '@/services/player/playerApi'
 import { formatFootballCountry } from '@/utils/footballCountry'
-import { formatAge, formatDate } from '@/utils/format'
+import { formatAge, formatDateOfBirth } from '@/utils/format'
 
 export function PlayerDetailPage() {
   const { id = '' } = useParams()
@@ -70,7 +70,7 @@ export function PlayerDetailPage() {
             {player.fullName}
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
-            Born {formatDate(player.dateOfBirth)}
+            Born {formatDateOfBirth(player.dateOfBirth, player.dateOfBirthPrecision)}
           </Typography>
           <Box
             sx={{

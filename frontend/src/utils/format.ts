@@ -24,6 +24,18 @@ export function formatDate(value: string): string {
   }).format(new Date(value))
 }
 
+/** Full date when known; year only when ingest stored a mid-year (1 July) anchor. */
+export function formatDateOfBirth(
+  value: string,
+  precision: 'DAY' | 'YEAR' | null | undefined,
+): string {
+  if (precision === 'YEAR') {
+    const year = Number.parseInt(value.slice(0, 4), 10)
+    return Number.isFinite(year) ? String(year) : value.slice(0, 4)
+  }
+  return formatDate(value)
+}
+
 export function formatAge(age: number | null | undefined): string {
   if (age == null) {
     return '—'

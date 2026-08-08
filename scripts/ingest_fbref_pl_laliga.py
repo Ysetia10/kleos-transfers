@@ -399,6 +399,8 @@ def build_rows_for_frame(df, league_id: str, label: str, meta: dict) -> tuple[li
         if born < 1960:
             age = safe_int(row[age_col], 0) if age_col else 0
             born = start_year - age if age > 0 else start_year - 22
+        # FBref season tables expose birth year only. Store 1 July as a mid-year
+        # age anchor and mark precision YEAR so the UI shows the year alone.
         dob = f"{born}-07-01"
 
         club_fbref = f"fbref-club:{slug(team_name)}:{meta['club_country']}"
@@ -414,6 +416,7 @@ def build_rows_for_frame(df, league_id: str, label: str, meta: dict) -> tuple[li
         players[player_fbref] = {
             "fullName": player_name[:100],
             "dateOfBirth": dob,
+            "dateOfBirthPrecision": "YEAR",
             "nationality": nation,
             "heightCm": None,
             "preferredFoot": None,

@@ -52,6 +52,7 @@ When publishing demos, papers, or public datasets derived from FBref:
 - **Club:** unique on `(nameNormalized, countryCode)`; when present, `fbrefId` is also unique.
 - Soft delete frees those slots by suffixing `#<id>` (same pattern as elsewhere).
 - Height and preferred foot are optional — season tables often omit them.
+- Birth dates: FBref season tables usually expose **birth year only**. Ingest stores `YYYY-07-01` as a mid-year age anchor with `dateOfBirthPrecision=YEAR` so the UI shows the year alone (age still uses 1 July).
 
 ## Ingest checklist
 

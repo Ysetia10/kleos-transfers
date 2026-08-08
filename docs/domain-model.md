@@ -31,7 +31,8 @@ Represent the permanent identity of a football player. Player identity never sto
 |-----------|------|-------|
 | `id` | UUID | Surrogate primary key |
 | `fullName` | String (2–100) | Display name |
-| `dateOfBirth` | LocalDate | Must be past or present |
+| `dateOfBirth` | LocalDate | Must be past or present. When only birth year is known, stored as `YYYY-07-01` mid-year age anchor |
+| `dateOfBirthPrecision` | `DAY` \| `YEAR` | `YEAR` = UI shows year only; age still uses stored date. Defaults to `DAY` on manual create |
 | `nationality` | String (3) | FIFA association code (`ENG`, `GER`, `NED`, …) |
 | `heightCm` | Integer (optional) | Range 140–230 when present; often omitted by season-stat sources |
 | `preferredFoot` | Enum (optional) | `LEFT`, `RIGHT`, `BOTH` when present |

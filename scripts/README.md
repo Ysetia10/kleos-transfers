@@ -48,7 +48,12 @@ Fills missing `heightCm` / `preferredFoot` on player identities:
 
 ```bash
 python3 scripts/enrich_player_bio.py --dry-run --limit 20
-python3 scripts/enrich_player_bio.py --skip-fbref --limit 500   # Wikidata + Wikipedia (recommended)
+# full backfill: SPARQL height batches + concurrent Wikipedia foot/height fallback
+python3 scripts/enrich_player_bio.py --skip-fbref --workers 8
+# heights only (fast)
+python3 scripts/enrich_player_bio.py --skip-fbref --skip-foot --workers 8
+# upgrade YEAR → full day DOB from Wikidata (year must match FBref year)
+python3 scripts/enrich_player_bio.py --dob-only --workers 8
 python3 scripts/enrich_player_bio.py --limit 200                # also try FBref (~3s/player; may 403)
 ```
 

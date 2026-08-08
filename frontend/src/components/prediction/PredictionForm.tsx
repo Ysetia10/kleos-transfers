@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Alert, Autocomplete, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { ErrorState } from '@/components/common/ErrorState'
+import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { LoadingState } from '@/components/common/LoadingState'
 import { SquadTable } from '@/components/home/SquadTable'
 import { routes } from '@/constants/routes'
@@ -18,6 +19,7 @@ import { listSeasons } from '@/services/season/seasonApi'
 import { ApiError } from '@/types/api'
 import type { Club, Player, Season } from '@/types/domain'
 import { formatFootballCountry } from '@/utils/footballCountry'
+import { useDebouncedValue } from '@/utils/useDebouncedValue'
 
 const schema = z.object({
   playerId: z.string().uuid('Select a player'),
@@ -36,15 +38,6 @@ interface PredictionFormProps {
 
 const SEARCH_PAGE_SIZE = 25
 
-function useDebouncedSearch(value: string, delayMs = 250) {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const handle = window.setTimeout(() => setDebounced(value), delayMs)
-    return () => window.clearTimeout(handle)
-  }, [value, delayMs])
-  return debounced
-}
-
 export function PredictionForm({
   initialPlayerId,
   initialClubId,
@@ -53,8 +46,8 @@ export function PredictionForm({
   const navigate = useNavigate()
   const [playerInput, setPlayerInput] = useState('')
   const [clubInput, setClubInput] = useState('')
-  const debouncedPlayerQuery = useDebouncedSearch(playerInput)
-  const debouncedClubQuery = useDebouncedSearch(clubInput)
+  const debouncedPlayerQuery = useDebouncedValue(playerInput)
+  const debouncedClubQuery = useDebouncedValue(clubInput)
 
   const seasonsQuery = useQuery({
     queryKey: queryKeys.seasons.list(0, 50),
@@ -206,6 +199,20 @@ export function PredictionForm({
                   required
                 />
               )}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option.id} sx={{ display: 'flex', gap: 1.25 }}>
+                  <IdentityMedia imageUrl={option.photoUrl} label={option.fullName} size={28} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography noWrap variant="body2">
+                      {option.fullName}
+                    </Typography>
+                    <Typography color="text.secondary" noWrap variant="caption">
+                      {option.primaryPosition}
+                      {option.latestClubName ? ` · ${option.latestClubName}` : ''}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
               value={playerOptions.find((player) => player.id === field.value) ?? null}
             />
           )}
@@ -237,6 +244,24 @@ export function PredictionForm({
                   label="Target club"
                   required
                 />
+              )}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option.id} sx={{ display: 'flex', gap: 1.25 }}>
+                  <IdentityMedia
+                    imageUrl={option.crestUrl}
+                    label={option.name}
+                    rounded="soft"
+                    size={28}
+                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography noWrap variant="body2">
+                      {option.name}
+                    </Typography>
+                    <Typography color="text.secondary" noWrap variant="caption">
+                      {formatFootballCountry(option.countryCode)}
+                    </Typography>
+                  </Box>
+                </Box>
               )}
               value={clubOptions.find((club) => club.id === field.value) ?? null}
             />

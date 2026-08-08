@@ -28,6 +28,10 @@ export interface Player {
   preferredFoot: PreferredFoot | null
   primaryPosition: Position
   fbrefId: string | null
+  photoUrl: string | null
+  photoAttribution: string | null
+  photoLicense: string | null
+  photoSource: string | null
   latestClubId: string | null
   latestClubName: string | null
   latestSeasonLabel: string | null
@@ -61,6 +65,10 @@ export interface Club {
   countryCode: string
   foundedYear: number | null
   fbrefId: string | null
+  crestUrl: string | null
+  crestAttribution: string | null
+  crestLicense: string | null
+  crestSource: string | null
   currentManagerId: string | null
   currentManagerName: string | null
   currentManagerSeasonLabel: string | null

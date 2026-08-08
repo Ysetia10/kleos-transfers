@@ -14,6 +14,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
+import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { PageHeader } from '@/components/common/PageHeader'
 import { QueryState } from '@/components/common/QueryState'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
@@ -22,18 +23,14 @@ import { queryKeys } from '@/services/api/queryKeys'
 import { listPlayers } from '@/services/player/playerApi'
 import { formatFootballCountry } from '@/utils/footballCountry'
 import { formatAge } from '@/utils/format'
+import { useDebouncedValue } from '@/utils/useDebouncedValue'
 
 const PAGE_SIZE = 20
 
 export function PlayersPage() {
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
-  const [debounced, setDebounced] = useState('')
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => setDebounced(search), 250)
-    return () => window.clearTimeout(handle)
-  }, [search])
+  const debounced = useDebouncedValue(search)
 
   useEffect(() => {
     setPage(0)
@@ -83,16 +80,25 @@ export function PlayersPage() {
               {playersQuery.data?.content.map((player) => (
                 <TableRow hover key={player.id}>
                   <TableCell>
-                    <MuiLink
-                      component={RouterLink}
-                      to={routes.playerDetail(player.id)}
-                      underline="hover"
-                    >
-                      {player.fullName}
-                    </MuiLink>
-                    <Typography color="text.secondary" sx={{ display: 'block' }} variant="caption">
-                      {player.primaryPosition} · {formatFootballCountry(player.nationality)}
-                    </Typography>
+                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                      <IdentityMedia
+                        imageUrl={player.photoUrl}
+                        label={player.fullName}
+                        size={36}
+                      />
+                      <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                        <MuiLink
+                          component={RouterLink}
+                          to={routes.playerDetail(player.id)}
+                          underline="hover"
+                        >
+                          {player.fullName}
+                        </MuiLink>
+                        <Typography color="text.secondary" variant="caption">
+                          {player.primaryPosition} · {formatFootballCountry(player.nationality)}
+                        </Typography>
+                      </Stack>
+                    </Stack>
                   </TableCell>
                   <TableCell>
                     {player.latestClubId && player.latestClubName ? (

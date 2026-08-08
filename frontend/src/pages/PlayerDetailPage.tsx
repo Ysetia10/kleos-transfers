@@ -2,6 +2,7 @@ import { Box, Button, Stack, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
+import { IdentityMediaWithCredit } from '@/components/common/IdentityMedia'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
@@ -50,6 +51,15 @@ export function PlayerDetailPage() {
           player.latestClubName ? ` · ${player.latestClubName}` : ''
         }`}
         eyebrow="Player workspace"
+        leading={
+          <IdentityMediaWithCredit
+            attribution={player.photoAttribution}
+            imageUrl={player.photoUrl}
+            label={player.fullName}
+            license={player.photoLicense}
+            size={72}
+          />
+        }
         title={player.fullName}
       />
 

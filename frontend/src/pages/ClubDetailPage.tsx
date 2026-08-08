@@ -2,6 +2,7 @@ import { Box, Button, Stack, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
+import { IdentityMediaWithCredit } from '@/components/common/IdentityMedia'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
@@ -64,6 +65,16 @@ export function ClubDetailPage() {
           club.foundedYear != null ? ` · Founded ${club.foundedYear}` : ''
         }`}
         eyebrow="Target club workspace"
+        leading={
+          <IdentityMediaWithCredit
+            attribution={club.crestAttribution}
+            imageUrl={club.crestUrl}
+            label={club.name}
+            license={club.crestLicense}
+            rounded="soft"
+            size={72}
+          />
+        }
         title={club.name}
       />
 

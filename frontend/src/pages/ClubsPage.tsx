@@ -9,6 +9,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
+import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { PageHeader } from '@/components/common/PageHeader'
 import { QueryState } from '@/components/common/QueryState'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
@@ -16,18 +17,14 @@ import { routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { listClubs } from '@/services/club/clubApi'
 import { formatFootballCountry } from '@/utils/footballCountry'
+import { useDebouncedValue } from '@/utils/useDebouncedValue'
 
 const PAGE_SIZE = 12
 
 export function ClubsPage() {
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
-  const [debounced, setDebounced] = useState('')
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => setDebounced(search), 250)
-    return () => window.clearTimeout(handle)
-  }, [search])
+  const debounced = useDebouncedValue(search)
 
   useEffect(() => {
     setPage(0)
@@ -76,20 +73,12 @@ export function ClubsPage() {
           {clubsQuery.data?.content.map((club) => (
             <SurfaceCard key={club.id} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 2,
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontWeight: 700,
-                    color: 'primary.contrastText',
-                    backgroundColor: 'primary.main',
-                  }}
-                >
-                  {club.name.slice(0, 1)}
-                </Box>
+                <IdentityMedia
+                  imageUrl={club.crestUrl}
+                  label={club.name}
+                  rounded="soft"
+                  size={44}
+                />
                 <Stack spacing={0.25} sx={{ minWidth: 0 }}>
                   <Typography noWrap variant="h4">
                     {club.name}

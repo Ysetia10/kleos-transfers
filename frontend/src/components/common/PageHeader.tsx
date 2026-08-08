@@ -6,29 +6,33 @@ interface PageHeaderProps {
   title: string
   description?: string
   actions?: ReactNode
+  leading?: ReactNode
 }
 
-export function PageHeader({ eyebrow, title, description, actions }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, actions, leading }: PageHeaderProps) {
   return (
     <Stack
       direction={{ xs: 'column', md: 'row' }}
       spacing={2}
       sx={{ alignItems: { md: 'flex-start' }, justifyContent: 'space-between', mb: 1 }}
     >
-      <Stack spacing={1} sx={{ maxWidth: 720 }}>
-        {eyebrow ? (
-          <Typography color="primary.main" variant="caption">
-            {eyebrow}
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start', maxWidth: 820 }}>
+        {leading}
+        <Stack spacing={1} sx={{ minWidth: 0 }}>
+          {eyebrow ? (
+            <Typography color="primary.main" variant="caption">
+              {eyebrow}
+            </Typography>
+          ) : null}
+          <Typography component="h1" variant="h1">
+            {title}
           </Typography>
-        ) : null}
-        <Typography component="h1" variant="h1">
-          {title}
-        </Typography>
-        {description ? (
-          <Typography color="text.secondary" variant="bodyLarge">
-            {description}
-          </Typography>
-        ) : null}
+          {description ? (
+            <Typography color="text.secondary" variant="bodyLarge">
+              {description}
+            </Typography>
+          ) : null}
+        </Stack>
       </Stack>
       {actions ? <Stack direction="row" spacing={1}>{actions}</Stack> : null}
     </Stack>

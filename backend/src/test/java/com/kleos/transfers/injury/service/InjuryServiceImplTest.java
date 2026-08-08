@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.domain.InjurySeverity;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import com.kleos.transfers.injury.dto.CreateInjuryRequest;
@@ -136,6 +137,7 @@ class InjuryServiceImplTest {
         Player player = new Player(
                 "Jude Bellingham",
                 LocalDate.of(2003, 6, 29),
+                DateOfBirthPrecision.DAY,
                 "ENG",
                 186,
                 PreferredFoot.RIGHT,

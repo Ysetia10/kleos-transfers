@@ -1,6 +1,7 @@
 package com.kleos.transfers.player.mapper;
 
 import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
 import com.kleos.transfers.player.dto.LatestClubView;
 import com.kleos.transfers.player.dto.PlayerResponse;
@@ -20,6 +21,7 @@ public class PlayerMapper {
         return new Player(
                 request.fullName(),
                 request.dateOfBirth(),
+                precisionOrDay(request.dateOfBirthPrecision()),
                 request.nationality(),
                 request.heightCm(),
                 request.preferredFoot(),
@@ -32,6 +34,9 @@ public class PlayerMapper {
         player.update(
                 request.fullName(),
                 request.dateOfBirth(),
+                request.dateOfBirthPrecision() == null
+                        ? player.getDateOfBirthPrecision()
+                        : request.dateOfBirthPrecision(),
                 request.nationality(),
                 request.heightCm(),
                 request.preferredFoot(),
@@ -54,6 +59,7 @@ public class PlayerMapper {
                 player.getId(),
                 player.getFullName(),
                 player.getDateOfBirth(),
+                player.getDateOfBirthPrecision(),
                 ageYears(player.getDateOfBirth()),
                 player.getNationality(),
                 player.getHeightCm(),
@@ -77,5 +83,9 @@ public class PlayerMapper {
             return null;
         }
         return Period.between(dateOfBirth, LocalDate.now()).getYears();
+    }
+
+    private static DateOfBirthPrecision precisionOrDay(DateOfBirthPrecision precision) {
+        return precision == null ? DateOfBirthPrecision.DAY : precision;
     }
 }

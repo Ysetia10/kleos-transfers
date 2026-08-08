@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.kleos.transfers.club.entity.Club;
 import com.kleos.transfers.domain.InjurySeverity;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import com.kleos.transfers.injury.entity.Injury;
@@ -322,6 +323,7 @@ class MinutesPredictorTest {
         Player player = new Player(
                 "Test Player",
                 dob,
+                DateOfBirthPrecision.DAY,
                 "ENG",
                 180,
                 PreferredFoot.RIGHT,

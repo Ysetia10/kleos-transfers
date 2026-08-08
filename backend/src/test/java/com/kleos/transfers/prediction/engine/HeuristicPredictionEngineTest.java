@@ -3,6 +3,7 @@ package com.kleos.transfers.prediction.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.kleos.transfers.club.entity.Club;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import com.kleos.transfers.player.entity.Player;
@@ -92,6 +93,7 @@ class HeuristicPredictionEngineTest {
         Player player = new Player(
                 "Jude Bellingham",
                 dob,
+                DateOfBirthPrecision.DAY,
                 "ENG",
                 186,
                 PreferredFoot.RIGHT,

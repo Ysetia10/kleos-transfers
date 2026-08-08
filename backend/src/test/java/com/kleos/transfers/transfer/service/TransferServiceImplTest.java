@@ -9,6 +9,7 @@ import com.kleos.transfers.club.entity.Club;
 import com.kleos.transfers.club.repository.ClubRepository;
 import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import com.kleos.transfers.domain.TransferType;
@@ -166,6 +167,7 @@ class TransferServiceImplTest {
         Player player = new Player(
                 "Jude Bellingham",
                 LocalDate.of(2003, 6, 29),
+                DateOfBirthPrecision.DAY,
                 "ENG",
                 186,
                 PreferredFoot.RIGHT,

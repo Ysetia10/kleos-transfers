@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import com.kleos.transfers.player.dto.CreatePlayerRequest;
@@ -181,6 +182,7 @@ class PlayerServiceImplTest {
         return new CreatePlayerRequest(
                 "Test Player",
                 LocalDate.of(2000, 1, 1),
+                DateOfBirthPrecision.DAY,
                 "ENG",
                 180,
                 PreferredFoot.RIGHT,
@@ -193,6 +195,7 @@ class PlayerServiceImplTest {
         return new UpdatePlayerRequest(
                 "Updated Player",
                 LocalDate.of(2000, 1, 1),
+                DateOfBirthPrecision.DAY,
                 "NED",
                 181,
                 PreferredFoot.LEFT,
@@ -205,6 +208,7 @@ class PlayerServiceImplTest {
         return new Player(
                 "Test Player",
                 LocalDate.of(2000, 1, 1),
+                DateOfBirthPrecision.DAY,
                 "ENG",
                 180,
                 PreferredFoot.RIGHT,
@@ -217,6 +221,7 @@ class PlayerServiceImplTest {
                 UUID.randomUUID(),
                 "Test Player",
                 LocalDate.of(2000, 1, 1),
+                DateOfBirthPrecision.DAY,
                 26,
                 "ENG",
                 180,

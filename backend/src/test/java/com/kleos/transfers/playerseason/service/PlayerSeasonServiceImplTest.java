@@ -9,6 +9,7 @@ import com.kleos.transfers.club.entity.Club;
 import com.kleos.transfers.club.repository.ClubRepository;
 import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import com.kleos.transfers.player.entity.Player;
@@ -138,6 +139,7 @@ class PlayerSeasonServiceImplTest {
         Player player = new Player(
                 "Bukayo Saka",
                 LocalDate.of(2001, 9, 5),
+                DateOfBirthPrecision.DAY,
                 "ENG",
                 178,
                 PreferredFoot.LEFT,

@@ -1,5 +1,6 @@
 package com.kleos.transfers.player.dto;
 
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import java.time.Instant;
@@ -13,6 +14,7 @@ public record PlayerResponse(
         UUID id,
         String fullName,
         LocalDate dateOfBirth,
+        DateOfBirthPrecision dateOfBirthPrecision,
         Integer age,
         String nationality,
         Integer heightCm,

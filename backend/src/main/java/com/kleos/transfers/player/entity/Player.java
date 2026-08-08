@@ -1,6 +1,7 @@
 package com.kleos.transfers.player.entity;
 
 import com.kleos.transfers.common.entity.IdentityEntity;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import jakarta.persistence.Column;
@@ -37,6 +38,10 @@ public class Player extends IdentityEntity {
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "date_of_birth_precision", nullable = false, length = 4)
+    private DateOfBirthPrecision dateOfBirthPrecision;
+
     @Column(nullable = false, length = 3)
     private String nationality;
 
@@ -69,29 +74,41 @@ public class Player extends IdentityEntity {
     public Player(
             String fullName,
             LocalDate dateOfBirth,
+            DateOfBirthPrecision dateOfBirthPrecision,
             String nationality,
             Integer heightCm,
             PreferredFoot preferredFoot,
             Position primaryPosition
     ) {
-        this(fullName, dateOfBirth, nationality, heightCm, preferredFoot, primaryPosition, null);
+        this(fullName, dateOfBirth, dateOfBirthPrecision, nationality, heightCm, preferredFoot, primaryPosition, null);
     }
 
     public Player(
             String fullName,
             LocalDate dateOfBirth,
+            DateOfBirthPrecision dateOfBirthPrecision,
             String nationality,
             Integer heightCm,
             PreferredFoot preferredFoot,
             Position primaryPosition,
             String fbrefId
     ) {
-        update(fullName, dateOfBirth, nationality, heightCm, preferredFoot, primaryPosition, fbrefId);
+        update(
+                fullName,
+                dateOfBirth,
+                dateOfBirthPrecision,
+                nationality,
+                heightCm,
+                preferredFoot,
+                primaryPosition,
+                fbrefId
+        );
     }
 
     public void update(
             String fullName,
             LocalDate dateOfBirth,
+            DateOfBirthPrecision dateOfBirthPrecision,
             String nationality,
             Integer heightCm,
             PreferredFoot preferredFoot,
@@ -101,6 +118,8 @@ public class Player extends IdentityEntity {
         this.fullName = fullName == null ? null : fullName.trim();
         this.fullNameNormalized = this.fullName == null ? null : this.fullName.toLowerCase(Locale.ROOT);
         this.dateOfBirth = dateOfBirth;
+        this.dateOfBirthPrecision =
+                dateOfBirthPrecision == null ? DateOfBirthPrecision.DAY : dateOfBirthPrecision;
         this.nationality = nationality == null ? null : nationality.trim().toUpperCase(Locale.ROOT);
         this.heightCm = heightCm;
         this.preferredFoot = preferredFoot;

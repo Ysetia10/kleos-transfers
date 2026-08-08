@@ -1,6 +1,7 @@
 package com.kleos.transfers.player.dto;
 
 import com.kleos.transfers.common.validation.FootballNationalityCode;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import jakarta.validation.constraints.Max;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 public record UpdatePlayerRequest(
         @NotBlank @Size(min = 2, max = 100) String fullName,
         @NotNull @PastOrPresent LocalDate dateOfBirth,
+        DateOfBirthPrecision dateOfBirthPrecision,
         @NotBlank @Size(min = 3, max = 3) @FootballNationalityCode String nationality,
         @Min(140) @Max(230) Integer heightCm,
         PreferredFoot preferredFoot,

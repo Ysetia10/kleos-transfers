@@ -14,6 +14,7 @@ import com.kleos.transfers.contract.dto.CreateContractRequest;
 import com.kleos.transfers.contract.entity.Contract;
 import com.kleos.transfers.contract.mapper.ContractMapper;
 import com.kleos.transfers.contract.repository.ContractRepository;
+import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
 import com.kleos.transfers.player.entity.Player;
@@ -118,6 +119,7 @@ class ContractServiceImplTest {
         Player player = new Player(
                 "Jude Bellingham",
                 LocalDate.of(2003, 6, 29),
+                DateOfBirthPrecision.DAY,
                 "ENG",
                 186,
                 PreferredFoot.RIGHT,

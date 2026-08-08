@@ -22,15 +22,6 @@ public interface PlayerSeasonRepository extends JpaRepository<PlayerSeason, UUID
     @Query("select ps from PlayerSeason ps where ps.uniquenessKey in :keys")
     List<PlayerSeason> findAllByUniquenessKeyIn(@Param("keys") Collection<String> keys);
 
-    @Query("""
-            select ps from PlayerSeason ps
-            join fetch ps.season s
-            join fetch ps.club
-            where ps.player.id = :playerId
-            order by s.startDate desc
-            """)
-    List<PlayerSeason> findHistoryByPlayerId(@Param("playerId") UUID playerId);
-
     /**
      * Player history strictly before {@code asOf} (typically the target season start date).
      * Used so predictions / backtests never see same-season outcomes.

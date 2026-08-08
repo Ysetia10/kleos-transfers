@@ -22,7 +22,5 @@ public interface SeasonRepository extends JpaRepository<Season, UUID> {
     @Query("select s from Season s where s.labelNormalized in :normalizedLabels")
     List<Season> findAllByNormalizedLabel(@Param("normalizedLabels") Collection<String> normalizedLabels);
 
-    Optional<Season> findByLabel(String label);
-
     Optional<Season> findFirstByStartDateLessThanOrderByStartDateDesc(LocalDate before);
 }

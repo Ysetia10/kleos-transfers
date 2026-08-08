@@ -4,7 +4,6 @@ export type ApplicationThemeMode = 'light' | 'dark'
 
 /**
  * Analytics workspace tokens — blue CTAs, green brand/positive, readable light+dark.
- * Inspired by the product mockups (dark-first), with a proper light counterpart.
  */
 export const palettes: Record<ApplicationThemeMode, PaletteOptions> = {
   light: {
@@ -19,8 +18,6 @@ export const palettes: Record<ApplicationThemeMode, PaletteOptions> = {
     text: { primary: '#0F172A', secondary: '#475569' },
     divider: '#E2E8F0',
     pitch: {
-      line: 'rgba(15, 23, 42, 0.06)',
-      deep: '#0B1220',
       mist: 'rgba(37, 99, 235, 0.08)',
     },
   },
@@ -36,8 +33,6 @@ export const palettes: Record<ApplicationThemeMode, PaletteOptions> = {
     text: { primary: '#F8FAFC', secondary: '#94A3B8' },
     divider: 'rgba(148, 163, 184, 0.16)',
     pitch: {
-      line: 'rgba(148, 163, 184, 0.1)',
-      deep: '#07090D',
       mist: 'rgba(59, 130, 246, 0.12)',
     },
   },

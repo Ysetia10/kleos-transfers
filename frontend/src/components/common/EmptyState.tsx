@@ -1,15 +1,11 @@
-import { Box, Button, Typography } from '@mui/material'
-import type { ReactNode } from 'react'
+import { Box, Typography } from '@mui/material'
 
 interface EmptyStateProps {
   title: string
   description?: string
-  actionLabel?: string
-  onAction?: () => void
-  action?: ReactNode
 }
 
-export function EmptyState({ title, description, actionLabel, onAction, action }: EmptyStateProps) {
+export function EmptyState({ title, description }: EmptyStateProps) {
   return (
     <Box
       sx={{
@@ -28,15 +24,6 @@ export function EmptyState({ title, description, actionLabel, onAction, action }
           {description}
         </Typography>
       ) : null}
-      {action
-        ? action
-        : actionLabel && onAction
-          ? (
-              <Button onClick={onAction} sx={{ marginTop: 3 }} variant="contained">
-                {actionLabel}
-              </Button>
-            )
-          : null}
     </Box>
   )
 }

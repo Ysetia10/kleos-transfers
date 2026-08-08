@@ -4,11 +4,11 @@ Vite-powered React 19 and TypeScript app for Kleos Transfers, using Material UI 
 
 ## Included
 
-- Centralized light/dark Material UI themes
+- Light/dark Material UI themes with a persisted toggle
 - Shared route constants for routing and navigation
 - TanStack Query + Axios client with `ApiError` normalization
-- Typed API clients for players, clubs, seasons, and predictions
-- Real pages: Players, Clubs, Prediction form, Prediction results, Dashboard
+- Typed API clients for players, clubs, seasons, stats, and predictions
+- Product pages: Simulator, Players, Clubs, Trending, Methodology, prediction results
 - React Hook Form + Zod validation on the prediction form
 - Explanation list with optional Recharts factor chart
 

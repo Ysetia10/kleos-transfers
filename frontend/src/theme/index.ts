@@ -22,5 +22,4 @@ export function createKleosTheme(mode: ApplicationThemeMode) {
   })
 }
 
-export const lightTheme = createKleosTheme('light')
-export const darkTheme = createKleosTheme('dark')
+export type { ApplicationThemeMode }

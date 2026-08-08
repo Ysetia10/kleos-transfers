@@ -2,7 +2,7 @@ import { Box, type BoxProps } from '@mui/material'
 import type { PropsWithChildren } from 'react'
 
 type SurfaceCardProps = PropsWithChildren<BoxProps> & {
-  accent?: 'default' | 'positive' | 'negative' | 'info'
+  accent?: 'default' | 'positive' | 'info'
 }
 
 export function SurfaceCard({ children, accent = 'default', sx, ...rest }: SurfaceCardProps) {
@@ -16,11 +16,9 @@ export function SurfaceCard({ children, accent = 'default', sx, ...rest }: Surfa
           borderColor:
             accent === 'positive'
               ? 'success.main'
-              : accent === 'negative'
-                ? 'error.main'
-                : accent === 'info'
-                  ? 'primary.main'
-                  : 'divider',
+              : accent === 'info'
+                ? 'primary.main'
+                : 'divider',
           borderRadius: 3,
           p: { xs: 2, md: 2.5 },
         },

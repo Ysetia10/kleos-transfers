@@ -1,43 +1,35 @@
 import type { TypographyVariantsOptions } from '@mui/material/styles'
 
 export const fontFamilies = {
-  display: 'Inter, ui-sans-serif, system-ui, sans-serif',
   sans: 'Inter, ui-sans-serif, system-ui, sans-serif',
   mono: '"JetBrains Mono", ui-monospace, monospace',
 } as const
 
 export const typography: TypographyVariantsOptions = {
   fontFamily: fontFamilies.sans,
-  display: {
-    fontFamily: fontFamilies.display,
-    fontSize: '3.25rem',
-    fontWeight: 700,
-    lineHeight: 1.05,
-    letterSpacing: '-0.03em',
-  },
   h1: {
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.sans,
     fontSize: '2.25rem',
     fontWeight: 700,
     lineHeight: 1.15,
     letterSpacing: '-0.02em',
   },
   h2: {
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.sans,
     fontSize: '1.75rem',
     fontWeight: 700,
     lineHeight: 1.2,
     letterSpacing: '-0.02em',
   },
   h3: {
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.sans,
     fontSize: '1.25rem',
     fontWeight: 600,
     lineHeight: 1.25,
     letterSpacing: '-0.01em',
   },
   h4: {
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.sans,
     fontSize: '1.05rem',
     fontWeight: 600,
     lineHeight: 1.3,

@@ -55,16 +55,6 @@ export const components: Components<Theme> = {
               boxShadow: `0 10px 24px ${theme.palette.pitch.mist}`,
             }
           : {}),
-        ...(ownerState.variant === 'contained' && ownerState.color === 'accent'
-          ? {
-              backgroundColor: theme.palette.accent.main,
-              color: theme.palette.accent.contrastText,
-              '&:hover': {
-                backgroundColor: theme.palette.accent.dark,
-                transform: 'translateY(-1px)',
-              },
-            }
-          : {}),
       }),
     },
   },
@@ -73,16 +63,6 @@ export const components: Components<Theme> = {
       root: ({ theme }) => ({
         backgroundImage: 'none',
         border: `1px solid ${theme.palette.divider}`,
-      }),
-    },
-  },
-  MuiCard: {
-    styleOverrides: {
-      root: ({ theme }) => ({
-        backgroundImage: 'none',
-        border: `1px solid ${theme.palette.divider}`,
-        borderRadius: 16,
-        boxShadow: 'none',
       }),
     },
   },

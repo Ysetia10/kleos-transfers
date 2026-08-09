@@ -19,19 +19,28 @@ import com.kleos.transfers.common.search.SearchQueries;
 import com.kleos.transfers.domain.FootballCountryNames;
 import com.kleos.transfers.domain.TacticalSystem;
 import com.kleos.transfers.domain.TempoProfile;
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.managerseason.repository.ManagerSeasonRepository;
+import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
+import com.kleos.transfers.playerseason.entity.PlayerSeason;
 import com.kleos.transfers.playerseason.mapper.PlayerSeasonMapper;
 import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
+import com.kleos.transfers.season.entity.Season;
 import com.kleos.transfers.season.repository.SeasonRepository;
+import com.kleos.transfers.transfer.entity.Transfer;
+import com.kleos.transfers.transfer.repository.TransferRepository;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -58,6 +67,12 @@ public class ClubServiceImpl implements ClubService {
     private final PlayerSeasonMapper playerSeasonMapper;
     private final SeasonRepository seasonRepository;
     private final ManagerSeasonRepository managerSeasonRepository;
+    private final TransferRepository transferRepository;
+
+    private static final List<TransferStatus> SQUAD_PROJECTION_STATUSES = List.of(
+            TransferStatus.COMPLETED,
+            TransferStatus.ANNOUNCED
+    );
 
     @Override
     @Transactional
@@ -124,16 +139,83 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     public List<PlayerSeasonResponse> findSquad(UUID clubId, UUID seasonId) {
-        findClub(clubId);
-        seasonRepository.findById(seasonId)
+        Club club = findClub(clubId);
+        Season season = seasonRepository.findById(seasonId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Season", seasonId));
-        return playerSeasonRepository.findByClubIdAndSeasonId(clubId, seasonId).stream()
+
+        List<PlayerSeason> direct = playerSeasonRepository.findByClubIdAndSeasonId(clubId, seasonId);
+        if (!direct.isEmpty()) {
+            return sortMappedSquad(direct.stream().map(playerSeasonMapper::toResponse).toList());
+        }
+
+        return projectSquadFromPriorSeason(club, season);
+    }
+
+    /**
+     * When the requested season has no PlayerSeason rows (typical for an upcoming campaign),
+     * build a working squad from the previous season's roster minus outs plus ins for that season.
+     */
+    private List<PlayerSeasonResponse> projectSquadFromPriorSeason(Club club, Season season) {
+        Optional<Season> priorOpt = seasonRepository
+                .findFirstByStartDateLessThanOrderByStartDateDesc(season.getStartDate());
+        if (priorOpt.isEmpty()) {
+            return List.of();
+        }
+
+        Season prior = priorOpt.get();
+        List<PlayerSeason> base = playerSeasonRepository.findByClubIdAndSeasonId(club.getId(), prior.getId());
+        if (base.isEmpty()) {
+            return List.of();
+        }
+
+        List<Transfer> transfers = transferRepository.findBySeasonIdAndClubIdAndStatusIn(
+                season.getId(),
+                club.getId(),
+                SQUAD_PROJECTION_STATUSES
+        );
+
+        Set<UUID> departedPlayerIds = new HashSet<>();
+        Map<UUID, Transfer> arrivalsByPlayerId = new LinkedHashMap<>();
+        for (Transfer transfer : transfers) {
+            UUID playerId = transfer.getPlayer().getId();
+            if (transfer.getFromClub() != null && club.getId().equals(transfer.getFromClub().getId())) {
+                departedPlayerIds.add(playerId);
+            }
+            if (transfer.getToClub() != null && club.getId().equals(transfer.getToClub().getId())) {
+                arrivalsByPlayerId.put(playerId, transfer);
+            }
+        }
+
+        List<PlayerSeasonResponse> projected = new ArrayList<>();
+        for (PlayerSeason row : base) {
+            UUID playerId = row.getPlayer().getId();
+            if (departedPlayerIds.contains(playerId) && !arrivalsByPlayerId.containsKey(playerId)) {
+                continue;
+            }
+            arrivalsByPlayerId.remove(playerId);
+            projected.add(playerSeasonMapper.toProjectedResponse(row, club, season));
+        }
+
+        for (Transfer arrival : arrivalsByPlayerId.values()) {
+            Player player = arrival.getPlayer();
+            List<PlayerSeason> history = playerSeasonRepository.findHistoryByPlayerIdBefore(
+                    player.getId(),
+                    season.getStartDate()
+            );
+            PlayerSeason priorStats = history.isEmpty() ? null : history.getFirst();
+            projected.add(playerSeasonMapper.toProjectedArrival(player, club, season, priorStats));
+        }
+
+        return sortMappedSquad(projected);
+    }
+
+    private static List<PlayerSeasonResponse> sortMappedSquad(List<PlayerSeasonResponse> squad) {
+        return squad.stream()
                 .sorted(Comparator
-                        .comparing((com.kleos.transfers.playerseason.entity.PlayerSeason ps) ->
-                                ps.getMinutesPlayed() == null ? 0 : ps.getMinutesPlayed())
+                        .comparing((PlayerSeasonResponse row) ->
+                                row.minutesPlayed() == null ? 0 : row.minutesPlayed())
                         .reversed()
-                        .thenComparing(ps -> ps.getPlayer().getFullName()))
-                .map(playerSeasonMapper::toResponse)
+                        .thenComparing(PlayerSeasonResponse::playerName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .toList();
     }
 

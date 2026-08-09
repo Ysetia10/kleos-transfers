@@ -149,27 +149,8 @@ export function PredictionForm({
   const upcomingSelected = selectedSeason ? isUpcomingSeason(selectedSeason) : false
 
   const squadQuery = useQuery({
-    queryKey: queryKeys.clubs.squad(
-      watchedClubId || '',
-      watchedSeasonId || '',
-      priorSeason?.id ?? '',
-    ),
-    queryFn: async () => {
-      const targetSquad = await getClubSquad(watchedClubId, watchedSeasonId)
-      if (targetSquad.length > 0 || !priorSeason) {
-        return {
-          squad: targetSquad,
-          rosterSeasonLabel: selectedSeason?.label ?? watchedSeasonId,
-          usedPriorSeason: false,
-        }
-      }
-      const priorSquad = await getClubSquad(watchedClubId, priorSeason.id)
-      return {
-        squad: priorSquad,
-        rosterSeasonLabel: priorSeason.label,
-        usedPriorSeason: priorSquad.length > 0,
-      }
-    },
+    queryKey: queryKeys.clubs.squad(watchedClubId || '', watchedSeasonId || ''),
+    queryFn: () => getClubSquad(watchedClubId, watchedSeasonId),
     enabled: squadEnabled,
   })
 
@@ -178,7 +159,6 @@ export function PredictionForm({
     : watchedSeasonId
   const selectedClubName =
     clubOptions.find((club) => club.id === watchedClubId)?.name ?? 'Selected club'
-  const squadMeta = squadQuery.data
 
   const mutation = useMutation({
     mutationFn: createPrediction,
@@ -336,7 +316,7 @@ export function PredictionForm({
                   helperText={
                     errors.seasonId?.message ??
                     (upcomingSelected
-                      ? 'Upcoming season — projected from prior-season context (no actuals yet)'
+                      ? 'Upcoming season — squad projected from prior roster ± transfers'
                       : 'Completed seasons can be checked against actual outcomes')
                   }
                   label="Target season"
@@ -360,9 +340,10 @@ export function PredictionForm({
 
       {upcomingSelected ? (
         <Alert severity="info" variant="outlined">
-          Predicting <strong>{selectedSeason?.label}</strong> before outcomes exist. The engine uses
-          prior-season squad depth and player history only — the same as-of rules used when we
-          backtest completed seasons against actual minutes and output.
+          Predicting <strong>{selectedSeason?.label}</strong> before kick-off. Destination squad starts
+          from the club’s <strong>latest completed roster</strong>
+          {priorSeason ? <> ({priorSeason.label})</> : null}, then removes confirmed outs and adds
+          confirmed/announced ins for {selectedSeason?.label}.
         </Alert>
       ) : null}
 
@@ -390,14 +371,14 @@ export function PredictionForm({
       {showSquad ? (
         <Stack spacing={1.5}>
           <Typography component="h3" variant="h3">
-            Target club squad
+            Destination club roster
           </Typography>
           <Typography color="text.secondary" variant="body2">
             {!squadEnabled
-              ? 'Select a target club and season to load squad competition context.'
-              : squadMeta?.usedPriorSeason
-                ? `${selectedClubName} · prior roster from ${squadMeta.rosterSeasonLabel} (no ${selectedSeason?.label} PlayerSeason rows yet — matches engine as-of context).`
-                : `${selectedClubName} · ${selectedSeasonLabel} — roster from PlayerSeason rows.`}
+              ? 'Select a target club and season to load destination competition context.'
+              : upcomingSelected && priorSeason
+                ? `${selectedClubName} · ${selectedSeason?.label} working squad from ${priorSeason.label} ± transfers (minutes from prior season until actuals exist).`
+                : `${selectedClubName} · ${selectedSeasonLabel} roster.`}
           </Typography>
           {squadEnabled ? (
             <SquadTable
@@ -405,7 +386,7 @@ export function PredictionForm({
               isError={squadQuery.isError}
               isLoading={squadQuery.isLoading}
               onRetry={() => void squadQuery.refetch()}
-              squad={squadMeta?.squad}
+              squad={squadQuery.data}
             />
           ) : null}
         </Stack>

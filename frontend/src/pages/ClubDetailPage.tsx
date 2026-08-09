@@ -1,5 +1,6 @@
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
 import { IdentityMedia } from '@/components/common/IdentityMedia'
@@ -13,7 +14,12 @@ import { queryKeys } from '@/services/api/queryKeys'
 import { getClub } from '@/services/club/clubApi'
 import { getClubSquad } from '@/services/club/squadApi'
 import { listSeasons } from '@/services/season/seasonApi'
+import type { Season } from '@/types/domain'
 import { formatFootballCountry } from '@/utils/footballCountry'
+
+function isUpcomingSeason(season: Season, today = new Date()): boolean {
+  return new Date(`${season.endDate}T23:59:59`) >= today
+}
 
 export function ClubDetailPage() {
   const { id = '' } = useParams()
@@ -30,9 +36,30 @@ export function ClubDetailPage() {
 
   const club = clubQuery.data
   const seasons = seasonsQuery.data?.content ?? []
-  const seasonId =
-    seasons.find((season) => season.label === club?.currentManagerSeasonLabel)?.id ??
-    seasons[0]?.id
+  // Prefer the upcoming campaign so squad depth applies prior roster ± window transfers.
+  const squadSeason = useMemo(() => {
+    if (!seasons.length) {
+      return null
+    }
+    const upcoming = seasons.find((season) => isUpcomingSeason(season))
+    if (upcoming) {
+      return upcoming
+    }
+    return (
+      seasons.find((season) => season.label === club?.currentManagerSeasonLabel) ?? seasons[0]
+    )
+  }, [seasons, club?.currentManagerSeasonLabel])
+  const seasonId = squadSeason?.id
+  const priorSeason = useMemo(() => {
+    if (!squadSeason) {
+      return null
+    }
+    return (
+      seasons
+        .filter((season) => season.startDate < squadSeason.startDate)
+        .sort((a, b) => b.startDate.localeCompare(a.startDate))[0] ?? null
+    )
+  }, [seasons, squadSeason])
 
   const squadQuery = useQuery({
     queryKey: queryKeys.clubs.squad(id, seasonId ?? ''),
@@ -47,8 +74,9 @@ export function ClubDetailPage() {
     return <ErrorState error={clubQuery.error} onRetry={() => void clubQuery.refetch()} />
   }
 
-  const seasonLabel =
-    seasons.find((season) => season.id === seasonId)?.label ?? club.currentManagerSeasonLabel
+  const seasonLabel = squadSeason?.label ?? club.currentManagerSeasonLabel
+  const projectedSquad =
+    !!squadSeason && isUpcomingSeason(squadSeason) && !!priorSeason && !!squadQuery.data?.length
 
   return (
     <Stack spacing={3}>
@@ -163,6 +191,12 @@ export function ClubDetailPage() {
           <Typography variant="h3">
             Squad depth{seasonLabel ? ` · ${seasonLabel}` : ''}
           </Typography>
+          {projectedSquad ? (
+            <Typography color="text.secondary" variant="body2">
+              Working squad from {priorSeason.label} ± confirmed/announced {seasonLabel} transfers.
+              Minutes still reflect the prior campaign.
+            </Typography>
+          ) : null}
           {!squadQuery.isLoading && !squadQuery.isError ? (
             <PitchLineup squad={squadQuery.data} />
           ) : null}

@@ -1,7 +1,6 @@
 import { Box, Stack, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { IdentityMedia } from '@/components/common/IdentityMedia'
-import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { routes } from '@/constants/routes'
 import type { PlayerSeason } from '@/types/domain'
 import {
@@ -21,19 +20,7 @@ export function PitchLineup({ squad, title = 'Starting XI by minutes' }: PitchLi
 
   const lineup = buildPitchLineup(squad)
   if (!lineup) {
-    return (
-      <SurfaceCard accent="info">
-        <Typography variant="h4">{title}</Typography>
-        <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
-          Role precision unavailable for this squad — FBref season tables only stored coarse
-          GK/CB/CM/ST buckets. Run{' '}
-          <Box component="span" sx={{ fontFamily: 'ui-monospace, monospace' }}>
-            scripts/enrich_positions_from_fbref_lineups.py
-          </Box>{' '}
-          to place players left/right on the pitch. Minutes table remains below.
-        </Typography>
-      </SurfaceCard>
-    )
+    return null
   }
 
   return (

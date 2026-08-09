@@ -156,7 +156,8 @@ export function PredictionResultPage() {
           {prediction.targetClubName} squad · {prediction.seasonLabel}
         </Typography>
         <Typography color="text.secondary" variant="body2">
-          Starting XI by minutes (when role precision is available), then full roster.
+          For upcoming seasons this is the prior roster updated with confirmed/announced transfers.
+          Minutes reflect the prior campaign until {prediction.seasonLabel} actuals exist.
         </Typography>
         {!squadQuery.isLoading && !squadQuery.isError ? (
           <PitchLineup squad={squadQuery.data} />

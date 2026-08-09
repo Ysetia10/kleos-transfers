@@ -82,6 +82,20 @@ Policy and attribution: [`docs/data-sourcing.md`](../docs/data-sourcing.md).
 
 Do not commit downloaded caches or bulk CSVs (`data/` is gitignored).
 
+## `ingest_transfers_from_wikipedia.py`
+
+Loads **dated** summer/winter window transfers from Wikipedia list pages (MediaWiki API) into `Transfer` rows for a predict-to season (default `2026/27`). Prefer this over PlayerSeason-inferred July-1 rows for the live Transfers tab.
+
+```bash
+# backend running; 2026/27 season shell present
+./scripts/ingest_transfers_from_wikipedia.py --dry-run --pages en-summer-2026
+./scripts/ingest_transfers_from_wikipedia.py --season 2026/27 --pages en-summer-2026 --sleep 1.2
+# when rate limits allow:
+./scripts/ingest_transfers_from_wikipedia.py --pages top5-summer-2026 --sleep 1.5
+```
+
+Policy: Wikipedia is allowed; Transfermarkt scrapes are not. See [`docs/data-sourcing.md`](../docs/data-sourcing.md).
+
 ## `ensure_predict_seasons.py`
 
 Creates **forward Season identity shells** (default `2026/27`) so the simulator can project upcoming campaigns. Does **not** scrape FBref outcomes for incomplete seasons.

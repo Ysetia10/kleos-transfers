@@ -62,7 +62,7 @@ Season-stat ingest intentionally leaves these null; run this enricher after iden
 
 ## `ingest_fbref_pl_laliga.py`
 
-**Primary historical load** for Premier League + La Liga, seasons **2016/17–2025/26**.
+**Primary historical load** for the top five European leagues (PL, La Liga, Bundesliga, Serie A, Ligue 1), seasons **2016/17–2025/26**.
 
 Reads FBref via `soccerdata`, then upserts tournaments, seasons, clubs, players, club-seasons, and player-seasons through the Kleos bulk APIs. Player/club matching uses `fbrefId` so re-runs are idempotent.
 
@@ -71,7 +71,11 @@ pip install -r scripts/requirements-ingest.txt
 # backend must be running
 ./scripts/ingest_fbref_pl_laliga.py --dry-run --seasons 2024/25
 ./scripts/ingest_fbref_pl_laliga.py --seasons 2024/25
-./scripts/ingest_fbref_pl_laliga.py   # full 2016/17 … 2025/26 window
+# new leagues only (skip already-loaded PL + La Liga)
+./scripts/ingest_fbref_pl_laliga.py --leagues "GER-Bundesliga,ITA-Serie A,FRA-Ligue 1"
+./scripts/ingest_fbref_pl_laliga.py   # full 2016/17 … 2025/26 window, all five
+# after ingest: crests + bio + DOB + photos
+./scripts/run_top5_post_ingest_enrich.sh
 ```
 
 Policy and attribution: [`docs/data-sourcing.md`](../docs/data-sourcing.md).

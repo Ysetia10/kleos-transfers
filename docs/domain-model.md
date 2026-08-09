@@ -519,7 +519,7 @@ _To be finalized._
 - **Player uniqueness** — active players are unique on `(fullNameNormalized, dateOfBirth, nationality)`; optional `fbrefId` is also unique when set and is the preferred ingest key. Soft delete frees both slots.
 - **Prediction is scenario-first** — one API creates a run + prediction + explanations; metrics share one row; explanations are child factor rows. Separate per-metric HTTP endpoints were rejected as unproductized.
 - **v0 model is heuristic and replaceable** — `PredictionEngine` + `modelVersion` on the run allow swapping algorithms without changing persistence or API contracts.
-- **Historical data window** — product ingest targets Premier League + La Liga for seasons **2016/17–2025/26** (see `docs/data-sourcing.md`). No fake demo seed.
+- **Historical data window** — product ingest targets the top five European leagues (PL, La Liga, Bundesliga, Serie A, Ligue 1) for seasons **2016/17–2025/26** (see `docs/data-sourcing.md`). No fake demo seed.
 
 ## Open Questions
 

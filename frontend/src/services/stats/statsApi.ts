@@ -1,6 +1,11 @@
 import { httpClient } from '@/services/api/httpClient'
 
-export type LeagueCode = 'PREMIER_LEAGUE' | 'LA_LIGA'
+export type LeagueCode =
+  | 'PREMIER_LEAGUE'
+  | 'LA_LIGA'
+  | 'BUNDESLIGA'
+  | 'SERIE_A'
+  | 'LIGUE_1'
 
 export interface LeaderboardEntry {
   playerId: string

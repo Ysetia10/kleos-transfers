@@ -131,10 +131,12 @@ export function TrendingPage() {
             Coverage
           </Typography>
           <Typography sx={{ mt: 1 }} variant="h2">
-            2
+            {trendingQuery.data?.length ?? '—'}
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
-            Premier League · La Liga
+            {trendingQuery.data?.length
+              ? trendingQuery.data.map((board) => board.tournamentName).join(' · ')
+              : 'Top-five European leagues'}
           </Typography>
         </SurfaceCard>
         <SurfaceCard>

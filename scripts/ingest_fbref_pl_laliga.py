@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Ingest Premier League + La Liga history (2016/17–2025/26) from FBref into Kleos.
+"""Ingest top-five European league history (2016/17–2025/26) from FBref into Kleos.
+
+Leagues: Premier League, La Liga, Bundesliga, Serie A, Ligue 1.
 
 This is the real data path (not a demo seed). It:
   1. Ensures Tournament + Season identity rows
@@ -16,10 +18,11 @@ Examples:
   # Parse + print counts only
   ./scripts/ingest_fbref_pl_laliga.py --dry-run --seasons 2024/25
 
-  # One season each league
-  ./scripts/ingest_fbref_pl_laliga.py --seasons 2024/25 --api-url http://localhost:8080
+  # One season, new leagues only
+  ./scripts/ingest_fbref_pl_laliga.py --seasons 2024/25 \\
+      --leagues "GER-Bundesliga,ITA-Serie A,FRA-Ligue 1"
 
-  # Full window 2016/17 … 2025/26
+  # Full window 2016/17 … 2025/26 (all five leagues)
   ./scripts/ingest_fbref_pl_laliga.py
 """
 
@@ -49,6 +52,24 @@ LEAGUES = {
         "tournament_short": "LAL",
         "country_code": "ESP",
         "club_country": "ESP",
+    },
+    "GER-Bundesliga": {
+        "tournament_name": "Bundesliga",
+        "tournament_short": "BUN",
+        "country_code": "GER",
+        "club_country": "GER",
+    },
+    "ITA-Serie A": {
+        "tournament_name": "Serie A",
+        "tournament_short": "SEA",
+        "country_code": "ITA",
+        "club_country": "ITA",
+    },
+    "FRA-Ligue 1": {
+        "tournament_name": "Ligue 1",
+        "tournament_short": "FL1",
+        "country_code": "FRA",
+        "club_country": "FRA",
     },
 }
 

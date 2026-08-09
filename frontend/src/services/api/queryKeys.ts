@@ -36,7 +36,7 @@ export const queryKeys = {
     fitRoutes: (limit = 8) => ['stats', 'fit-routes', limit] as const,
   },
   transfers: {
-    list: (page: number, size: number, status = '') =>
-      ['transfers', 'list', page, size, status] as const,
+    list: (page: number, size: number, status = '', seasonId = '') =>
+      ['transfers', 'list', page, size, status, seasonId] as const,
   },
 } as const

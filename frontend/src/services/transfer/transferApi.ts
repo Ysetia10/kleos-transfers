@@ -28,6 +28,7 @@ export async function listTransfers(
   page = 0,
   size = 10,
   status?: TransferStatus,
+  seasonId?: string,
 ): Promise<SpringPage<Transfer>> {
   const { data } = await httpClient.get<SpringPage<Transfer>>('/api/v1/transfers', {
     params: {
@@ -35,6 +36,7 @@ export async function listTransfers(
       size,
       sort: 'transferDate,desc',
       ...(status ? { status } : {}),
+      ...(seasonId ? { seasonId } : {}),
     },
   })
   return data

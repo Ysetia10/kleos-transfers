@@ -19,7 +19,7 @@ public interface TransferService {
 
     BulkImportResponse<TransferResponse> createAll(List<CreateTransferRequest> requests);
 
-    Page<TransferResponse> findAll(TransferStatus status, Pageable pageable);
+    Page<TransferResponse> findAll(TransferStatus status, UUID seasonId, Pageable pageable);
 
     TransferResponse findById(UUID id);
 

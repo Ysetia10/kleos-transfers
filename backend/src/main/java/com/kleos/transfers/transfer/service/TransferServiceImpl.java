@@ -64,7 +64,14 @@ public class TransferServiceImpl implements TransferService {
     }
 
     @Override
-    public Page<TransferResponse> findAll(TransferStatus status, Pageable pageable) {
+    public Page<TransferResponse> findAll(TransferStatus status, UUID seasonId, Pageable pageable) {
+        if (status != null && seasonId != null) {
+            return transferRepository.findByStatusAndSeason_Id(status, seasonId, pageable)
+                    .map(transferMapper::toResponse);
+        }
+        if (seasonId != null) {
+            return transferRepository.findBySeason_Id(seasonId, pageable).map(transferMapper::toResponse);
+        }
         if (status == null) {
             return transferRepository.findAll(pageable).map(transferMapper::toResponse);
         }

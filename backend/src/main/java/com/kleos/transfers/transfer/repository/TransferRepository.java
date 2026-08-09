@@ -23,4 +23,27 @@ public interface TransferRepository extends JpaRepository<Transfer, UUID> {
     List<Transfer> findAllByUniquenessKeyIn(@Param("keys") Collection<String> keys);
 
     Page<Transfer> findByStatus(TransferStatus status, Pageable pageable);
+
+    Page<Transfer> findBySeason_Id(UUID seasonId, Pageable pageable);
+
+    Page<Transfer> findByStatusAndSeason_Id(TransferStatus status, UUID seasonId, Pageable pageable);
+
+    /**
+     * Confirmed or announced moves involving a club in a season (outs and ins).
+     * Used to project an empty upcoming roster from the prior season.
+     */
+    @Query("""
+            select t from Transfer t
+            join fetch t.player
+            left join fetch t.fromClub
+            left join fetch t.toClub
+            where t.season.id = :seasonId
+              and (t.fromClub.id = :clubId or t.toClub.id = :clubId)
+              and t.status in :statuses
+            """)
+    List<Transfer> findBySeasonIdAndClubIdAndStatusIn(
+            @Param("seasonId") UUID seasonId,
+            @Param("clubId") UUID clubId,
+            @Param("statuses") Collection<TransferStatus> statuses
+    );
 }

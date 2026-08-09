@@ -51,9 +51,10 @@ public class TransferController {
     @GetMapping
     public ResponseEntity<Page<TransferResponse>> findAll(
             @RequestParam(required = false) TransferStatus status,
+            @RequestParam(required = false) UUID seasonId,
             @PageableDefault(size = 20, sort = "transferDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(transferService.findAll(status, pageable));
+        return ResponseEntity.ok(transferService.findAll(status, seasonId, pageable));
     }
 
     @GetMapping("/{id}")

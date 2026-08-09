@@ -19,6 +19,8 @@ public record PredictionResponse(
         UUID seasonId,
         String seasonLabel,
         Integer predictedMinutes,
+        Integer predictedMinutesLow,
+        Integer predictedMinutesHigh,
         BigDecimal predictedGoals,
         BigDecimal predictedAssists,
         BigDecimal predictedXg,

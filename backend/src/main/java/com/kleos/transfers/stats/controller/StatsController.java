@@ -1,5 +1,6 @@
 package com.kleos.transfers.stats.controller;
 
+import com.kleos.transfers.stats.dto.FitRouteResponse;
 import com.kleos.transfers.stats.dto.LeagueBoardsResponse;
 import com.kleos.transfers.stats.service.StatsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,5 +37,13 @@ public class StatsController {
             @RequestParam(defaultValue = "10") int limit
     ) {
         return ResponseEntity.ok(statsService.allTime(limit));
+    }
+
+    @GetMapping("/fit-routes")
+    @Operation(summary = "Highest-fit transfer routes (player → club) for Trending")
+    public ResponseEntity<List<FitRouteResponse>> highestFitRoutes(
+            @RequestParam(defaultValue = "8") int limit
+    ) {
+        return ResponseEntity.ok(statsService.highestFitRoutes(limit));
     }
 }

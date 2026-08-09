@@ -132,6 +132,8 @@ export function PredictionResultPage() {
                 : Number(prediction.predictedMarketValueEur)
             }
             minutes={prediction.predictedMinutes}
+            minutesHigh={prediction.predictedMinutesHigh}
+            minutesLow={prediction.predictedMinutesLow}
             xa={Number(prediction.predictedXa)}
             xg={Number(prediction.predictedXg)}
           />

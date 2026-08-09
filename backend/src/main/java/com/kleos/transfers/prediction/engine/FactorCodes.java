@@ -6,6 +6,7 @@ package com.kleos.transfers.prediction.engine;
 public final class FactorCodes {
 
     public static final String RECENT_MINUTES = "RECENT_MINUTES";
+    public static final String MINUTES_INTERVAL = "MINUTES_INTERVAL";
     public static final String AGE_PROFILE = "AGE_PROFILE";
     public static final String INJURY_BURDEN = "INJURY_BURDEN";
     public static final String SQUAD_COMPETITION = "SQUAD_COMPETITION";

@@ -40,4 +40,13 @@ public interface PredictionRepository extends JpaRepository<Prediction, UUID> {
     List<Prediction> findDetailedByRunId(@Param("runId") UUID runId);
 
     Page<Prediction> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    @Query("""
+            select p from Prediction p
+            join fetch p.player
+            join fetch p.targetClub
+            join fetch p.season
+            order by p.compatibilityScore desc, p.createdAt desc
+            """)
+    List<Prediction> findTopByCompatibility(Pageable pageable);
 }

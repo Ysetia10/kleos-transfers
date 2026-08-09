@@ -6,6 +6,7 @@ import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
 import com.kleos.transfers.season.entity.Season;
 import com.kleos.transfers.season.repository.SeasonRepository;
 import com.kleos.transfers.stats.domain.LeagueCode;
+import com.kleos.transfers.stats.dto.FitRouteResponse;
 import com.kleos.transfers.stats.dto.LeaderboardEntryResponse;
 import com.kleos.transfers.stats.dto.LeagueBoardsResponse;
 import com.kleos.transfers.stats.entity.LeagueCareerTotal;
@@ -29,6 +30,7 @@ public class StatsServiceImpl implements StatsService {
     private final PlayerSeasonRepository playerSeasonRepository;
     private final SeasonRepository seasonRepository;
     private final LeagueCareerTotalRepository leagueCareerTotalRepository;
+    private final FitRoutesService fitRoutesService;
 
     @Override
     public List<LeagueBoardsResponse> trending(UUID seasonId, int limit) {
@@ -55,6 +57,11 @@ public class StatsServiceImpl implements StatsService {
         return Arrays.stream(LeagueCode.values())
                 .map(league -> boardsForAllTime(league, capped))
                 .toList();
+    }
+
+    @Override
+    public List<FitRouteResponse> highestFitRoutes(int limit) {
+        return fitRoutesService.highestFitRoutes(limit);
     }
 
     private LeagueBoardsResponse boardsForAllTime(LeagueCode league, int limit) {

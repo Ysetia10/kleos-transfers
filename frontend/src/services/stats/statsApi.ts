@@ -45,3 +45,26 @@ export async function fetchAllTimeStats(limit = 10): Promise<LeagueBoards[]> {
   })
   return data
 }
+
+export interface FitRoute {
+  playerId: string
+  playerName: string
+  playerPhotoUrl: string | null
+  fromClubId: string | null
+  fromClubName: string | null
+  toClubId: string
+  toClubName: string
+  seasonId: string
+  seasonLabel: string
+  compatibilityScore: number
+  predictedMinutes: number
+  predictionId: string | null
+  source: 'STORED_PREDICTION' | 'HYPOTHETICAL' | string
+}
+
+export async function fetchHighestFitRoutes(limit = 8): Promise<FitRoute[]> {
+  const { data } = await httpClient.get<FitRoute[]>('/api/v1/stats/fit-routes', {
+    params: { limit },
+  })
+  return data
+}

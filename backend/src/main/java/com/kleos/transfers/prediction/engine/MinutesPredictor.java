@@ -29,15 +29,69 @@ public class MinutesPredictor {
     static final int GK_DEFAULT_STARTER_MINUTES = 3_200;
     static final int GK_DEFAULT_BACKUP_MINUTES = 450;
 
-    public record Result(int minutes, List<ExplanationFactor> factors) {
+    public record Result(int minutes, int minutesLow, int minutesHigh, List<ExplanationFactor> factors) {
     }
 
     public Result predict(PredictionContext context) {
         Position position = resolvePosition(context);
         if (position == Position.GK) {
-            return predictGoalkeeper(context);
+            return withInterval(predictGoalkeeper(context), context);
         }
-        return predictOutfield(context);
+        return withInterval(predictOutfield(context), context);
+    }
+
+    private Result withInterval(Result point, PredictionContext context) {
+        double band = uncertaintyBand(context);
+        int low = PredictionMath.clamp(
+                (int) Math.round(point.minutes() * (1.0 - band)),
+                MIN_MINUTES,
+                point.minutes()
+        );
+        int high = PredictionMath.clamp(
+                (int) Math.round(point.minutes() * (1.0 + band)),
+                point.minutes(),
+                MAX_MINUTES
+        );
+        List<ExplanationFactor> factors = new ArrayList<>(point.factors());
+        factors.add(new ExplanationFactor(
+                FactorCodes.MINUTES_INTERVAL,
+                "Minutes interval",
+                ExplanationDirection.NEUTRAL,
+                PredictionMath.bd(band * 100),
+                "Expected minutes band "
+                        + low
+                        + "–"
+                        + high
+                        + " (±"
+                        + Math.round(band * 100)
+                        + "% around the point estimate from history depth and risk signals)."
+        ));
+        return new Result(point.minutes(), low, high, factors);
+    }
+
+    /**
+     * Relative half-width for the minutes confidence interval (0.12–0.35).
+     */
+    private double uncertaintyBand(PredictionContext context) {
+        double band = 0.18;
+        int historySeasons = Math.min(3, context.playerHistory().size());
+        if (historySeasons == 0) {
+            band += 0.12;
+        } else if (historySeasons == 1) {
+            band += 0.06;
+        } else if (historySeasons >= 3) {
+            band -= 0.04;
+        }
+        if (!context.recentInjuries().isEmpty()) {
+            band += 0.06;
+        }
+        if (context.targetClubSeason().isEmpty()) {
+            band += 0.04;
+        }
+        if (context.targetClubSquad().isEmpty()) {
+            band += 0.03;
+        }
+        return Math.min(0.35, Math.max(0.12, band));
     }
 
     private Result predictOutfield(PredictionContext context) {
@@ -52,7 +106,7 @@ public class MinutesPredictor {
                 MIN_MINUTES,
                 MAX_MINUTES
         );
-        return new Result(minutes, factors);
+        return new Result(minutes, minutes, minutes, factors);
     }
 
     private Result predictGoalkeeper(PredictionContext context) {
@@ -130,7 +184,7 @@ public class MinutesPredictor {
                 MIN_MINUTES,
                 MAX_MINUTES
         );
-        return new Result(minutes, factors);
+        return new Result(minutes, minutes, minutes, factors);
     }
 
     private int baselineMinutes(PredictionContext context, List<ExplanationFactor> factors) {

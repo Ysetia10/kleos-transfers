@@ -54,6 +54,12 @@ public class Prediction extends IdentityEntity {
     @Column(name = "predicted_minutes", nullable = false)
     private Integer predictedMinutes;
 
+    @Column(name = "predicted_minutes_low", nullable = false)
+    private Integer predictedMinutesLow;
+
+    @Column(name = "predicted_minutes_high", nullable = false)
+    private Integer predictedMinutesHigh;
+
     @Column(name = "predicted_goals", nullable = false, precision = 6, scale = 2)
     private BigDecimal predictedGoals;
 
@@ -103,6 +109,8 @@ public class Prediction extends IdentityEntity {
             Club targetClub,
             Season season,
             Integer predictedMinutes,
+            Integer predictedMinutesLow,
+            Integer predictedMinutesHigh,
             BigDecimal predictedGoals,
             BigDecimal predictedAssists,
             BigDecimal predictedXg,
@@ -121,6 +129,8 @@ public class Prediction extends IdentityEntity {
         this.targetClub = targetClub;
         this.season = season;
         this.predictedMinutes = predictedMinutes;
+        this.predictedMinutesLow = predictedMinutesLow;
+        this.predictedMinutesHigh = predictedMinutesHigh;
         this.predictedGoals = predictedGoals;
         this.predictedAssists = predictedAssists;
         this.predictedXg = predictedXg;

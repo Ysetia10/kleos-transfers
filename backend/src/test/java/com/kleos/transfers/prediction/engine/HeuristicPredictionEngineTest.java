@@ -70,6 +70,10 @@ class HeuristicPredictionEngineTest {
 
         assertThat(engine.modelVersion()).isEqualTo(PredictionRun.MODEL_VERSION_V0_3);
         assertThat(result.predictedMinutes()).isBetween(0, MinutesPredictor.MAX_MINUTES);
+        assertThat(result.predictedMinutesLow()).isBetween(0, result.predictedMinutes());
+        assertThat(result.predictedMinutesHigh()).isBetween(result.predictedMinutes(), MinutesPredictor.MAX_MINUTES);
+        assertThat(result.factors()).extracting(ExplanationFactor::code)
+                .contains(FactorCodes.MINUTES_INTERVAL);
         assertThat(result.predictedGoals()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
         assertThat(result.predictedAssists()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
         assertThat(result.predictedXg()).isGreaterThanOrEqualTo(BigDecimal.ZERO);

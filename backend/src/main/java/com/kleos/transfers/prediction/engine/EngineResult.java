@@ -8,6 +8,8 @@ import java.util.List;
  */
 public record EngineResult(
         int predictedMinutes,
+        int predictedMinutesLow,
+        int predictedMinutesHigh,
         BigDecimal predictedGoals,
         BigDecimal predictedAssists,
         BigDecimal predictedXg,

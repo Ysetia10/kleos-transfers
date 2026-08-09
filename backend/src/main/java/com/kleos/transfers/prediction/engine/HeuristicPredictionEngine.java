@@ -61,6 +61,8 @@ public class HeuristicPredictionEngine implements PredictionEngine {
 
         return new EngineResult(
                 minutes.minutes(),
+                minutes.minutesLow(),
+                minutes.minutesHigh(),
                 goals.value(),
                 assists.value(),
                 xg.value(),

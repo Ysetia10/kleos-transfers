@@ -131,6 +131,8 @@ export interface Prediction {
   seasonId: string
   seasonLabel: string
   predictedMinutes: number
+  predictedMinutesLow: number
+  predictedMinutesHigh: number
   predictedGoals: number
   predictedAssists: number
   predictedXg: number

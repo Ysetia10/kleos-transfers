@@ -76,11 +76,29 @@ LEAGUES = {
 # Inclusive European labels. soccerdata uses the starting calendar year ("2016" → 2016/17).
 DEFAULT_SEASON_LABELS = [f"{year}/{str(year + 1)[2:]}" for year in range(2016, 2026)]
 
+# FBref squad tables usually expose only GK/DF/MF/FW. Pass through precise codes when present
+# (playing-time or other tables); coarse buckets remain the fallback for DF/MF/FW.
 POSITION_MAP = {
     "GK": "GK",
     "DF": "CB",
     "MF": "CM",
     "FW": "ST",
+    "CB": "CB",
+    "RB": "RB",
+    "LB": "LB",
+    "RWB": "RWB",
+    "LWB": "LWB",
+    "DM": "CDM",
+    "CDM": "CDM",
+    "CM": "CM",
+    "AM": "CAM",
+    "CAM": "CAM",
+    "RM": "RM",
+    "LM": "LM",
+    "RW": "RW",
+    "LW": "LW",
+    "CF": "CF",
+    "ST": "ST",
 }
 
 # FBref / ISO-ish codes → Kleos FIFA association codes (FootballNationalityCodes).

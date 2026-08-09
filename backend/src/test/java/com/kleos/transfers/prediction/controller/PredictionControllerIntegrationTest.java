@@ -82,6 +82,8 @@ class PredictionControllerIntegrationTest extends AbstractPostgresIntegrationTes
                 .andExpect(jsonPath("$.compatibilityBreakdown.tempo").exists())
                 .andExpect(jsonPath("$.compatibilityBreakdown.league").exists())
                 .andExpect(jsonPath("$.compatibilityBreakdown.manager").exists())
+                .andExpect(jsonPath("$.predictedMinutesLow").exists())
+                .andExpect(jsonPath("$.predictedMinutesHigh").exists())
                 .andExpect(jsonPath("$.confidenceScore").value(greaterThanOrEqualTo(0.0)))
                 .andExpect(jsonPath("$.confidenceScore").value(lessThanOrEqualTo(100.0)))
                 .andExpect(jsonPath("$.explanations", hasSize(greaterThan(3))))

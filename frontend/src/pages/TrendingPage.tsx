@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Link as MuiLink,
   Stack,
   Table,
@@ -11,13 +12,15 @@ import {
 } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink } from 'react-router-dom'
+import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { PageHeader } from '@/components/common/PageHeader'
 import { QueryState } from '@/components/common/QueryState'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
-import { routes } from '@/constants/routes'
+import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import {
   fetchAllTimeStats,
+  fetchHighestFitRoutes,
   fetchTrendingStats,
   type LeaderboardEntry,
   type LeagueBoards,
@@ -117,6 +120,10 @@ export function TrendingPage() {
     queryKey: queryKeys.transfers.list(0, 8, 'COMPLETED'),
     queryFn: () => listTransfers(0, 8, 'COMPLETED'),
   })
+  const fitRoutesQuery = useQuery({
+    queryKey: queryKeys.stats.fitRoutes(8),
+    queryFn: () => fetchHighestFitRoutes(8),
+  })
 
   const highlight = trendingQuery.data?.[0]?.topScorers[0]
 
@@ -171,6 +178,93 @@ export function TrendingPage() {
           </Typography>
         </SurfaceCard>
       </Box>
+
+      <Stack spacing={2}>
+        <Typography variant="h3">Highest-fit transfer routes</Typography>
+        <Typography color="text.secondary" variant="body2">
+          Player → club routes ranked by compatibility. Uses recent simulator runs when available,
+          otherwise a bounded batch of hypothetical top-scorer destinations.
+        </Typography>
+        <QueryState
+          emptyDescription="Run a few predictions or wait for hypothetical route generation."
+          emptyTitle="No fit routes yet"
+          error={fitRoutesQuery.error}
+          isEmpty={!fitRoutesQuery.data?.length}
+          isError={fitRoutesQuery.isError}
+          isLoading={fitRoutesQuery.isLoading}
+          onRetry={() => void fitRoutesQuery.refetch()}
+        >
+          <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Route</TableCell>
+                  <TableCell align="right">Fit</TableCell>
+                  <TableCell align="right">xM</TableCell>
+                  <TableCell align="right">Open</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {fitRoutesQuery.data?.map((route) => (
+                  <TableRow hover key={`${route.playerId}-${route.toClubId}-${route.source}`}>
+                    <TableCell>
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                        <IdentityMedia
+                          imageUrl={route.playerPhotoUrl}
+                          label={route.playerName}
+                          size={36}
+                        />
+                        <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                          <MuiLink
+                            component={RouterLink}
+                            to={routes.playerDetail(route.playerId)}
+                            underline="hover"
+                          >
+                            {route.playerName}
+                          </MuiLink>
+                          <Typography color="text.secondary" variant="caption">
+                            {(route.fromClubName ?? 'Free / unknown') + ' → '}
+                            <MuiLink
+                              component={RouterLink}
+                              to={routes.clubDetail(route.toClubId)}
+                              underline="hover"
+                            >
+                              {route.toClubName}
+                            </MuiLink>
+                            {' · '}
+                            {route.seasonLabel}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                    </TableCell>
+                    <TableCell align="right">
+                      {formatNumber(Number(route.compatibilityScore), 0)}
+                    </TableCell>
+                    <TableCell align="right">{formatNumber(route.predictedMinutes)}</TableCell>
+                    <TableCell align="right">
+                      <Button
+                        component={RouterLink}
+                        size="small"
+                        to={
+                          route.predictionId
+                            ? routes.predictionDetail(route.predictionId)
+                            : homePredictPath({
+                                playerId: route.playerId,
+                                clubId: route.toClubId,
+                              })
+                        }
+                        variant="outlined"
+                      >
+                        {route.predictionId ? 'View' : 'Simulate'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </SurfaceCard>
+        </QueryState>
+      </Stack>
 
       <Stack spacing={2}>
         <Typography variant="h3">Recent completed transfers</Typography>

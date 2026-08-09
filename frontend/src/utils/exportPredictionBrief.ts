@@ -15,7 +15,7 @@ export function buildPredictionBriefMarkdown(prediction: Prediction): string {
     ``,
     `| Metric | Value |`,
     `| --- | --- |`,
-    `| Minutes | ${formatNumber(prediction.predictedMinutes)} |`,
+    `| Minutes | ${formatNumber(prediction.predictedMinutes)} (${formatNumber(prediction.predictedMinutesLow)}–${formatNumber(prediction.predictedMinutesHigh)}) |`,
     `| Goals | ${formatNumber(Number(prediction.predictedGoals), 1)} |`,
     `| Assists | ${formatNumber(Number(prediction.predictedAssists), 1)} |`,
     `| xG | ${formatNumber(Number(prediction.predictedXg), 1)} |`,

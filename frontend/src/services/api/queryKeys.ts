@@ -19,7 +19,8 @@ export const queryKeys = {
     list: (page: number, size: number, query = '') =>
       ['clubs', 'list', page, size, query] as const,
     detail: (id: string) => ['clubs', 'detail', id] as const,
-    squad: (clubId: string, seasonId: string) => ['clubs', 'squad', clubId, seasonId] as const,
+    squad: (clubId: string, seasonId: string, priorSeasonId = '') =>
+      ['clubs', 'squad', clubId, seasonId, priorSeasonId] as const,
   },
   seasons: {
     list: (page: number, size: number) => ['seasons', 'list', page, size] as const,

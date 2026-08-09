@@ -46,9 +46,9 @@ export function MethodologyPage() {
             Open simulator
           </Button>
         }
-        description="Kleos is a heuristic decision layer for transfer hypotheses — readable factors, not a black box."
+        description="Backtest completed seasons against actual minutes and output, then project the same engine into the upcoming campaign (e.g. 2026/27) before outcomes exist."
         eyebrow="Model documentation"
-        title="Make every transfer hypothesis defensible."
+        title="Validate on the past. Predict the next season."
       />
 
       <Box

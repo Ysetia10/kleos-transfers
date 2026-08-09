@@ -4,7 +4,8 @@ Kleos Transfers is an open-source research/product project. Historical football 
 
 ## Goals
 
-- Load the **top five European leagues** (Premier League, La Liga, Bundesliga, Serie A, Ligue 1) identity + player-season history for seasons **2016/17 through 2025/26** (inclusive). Season **2026/27** is out of scope until it completes.
+- Load the **top five European leagues** (Premier League, La Liga, Bundesliga, Serie A, Ligue 1) identity + player-season history for seasons **2016/17 through 2025/26** (inclusive).
+- **Predict-to seasons** (e.g. **2026/27**) are allowed as Season identity shells so the simulator can project before outcomes exist. Do **not** scrape incomplete FBref PlayerSeason tables for those labels — create the shell with `scripts/ensure_predict_seasons.py` and keep validation on completed seasons only.
 - Prefer **stable external IDs** (`fbrefId`) so a player/club is one Kleos row across seasons.
 - Never commit scraped bulk datasets into git.
 

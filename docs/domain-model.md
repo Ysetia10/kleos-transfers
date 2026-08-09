@@ -523,6 +523,7 @@ _To be finalized._
 - **Prediction is scenario-first** — one API creates a run + prediction + explanations; metrics share one row; explanations are child factor rows. Separate per-metric HTTP endpoints were rejected as unproductized.
 - **v0 model is heuristic and replaceable** — `PredictionEngine` + `modelVersion` on the run allow swapping algorithms without changing persistence or API contracts.
 - **Historical data window** — product ingest targets the top five European leagues (PL, La Liga, Bundesliga, Serie A, Ligue 1) for seasons **2016/17–2025/26** (see `docs/data-sourcing.md`). No fake demo seed.
+- **Predict-to seasons** — upcoming labels (e.g. **2026/27**) may exist as Season shells without PlayerSeason outcomes so the simulator can project before the campaign completes; validation stays on completed seasons.
 
 ## Open Questions
 

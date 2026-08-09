@@ -127,6 +127,11 @@ def parse_args() -> argparse.Namespace:
         help="Only players whose most recent prior club differs from the target club",
     )
     parser.add_argument("--limit", type=int, default=200, help="Max candidates to predict/evaluate")
+    parser.add_argument(
+        "--countries",
+        default="",
+        help="Optional comma-separated club country codes to restrict cohort (e.g. ENG,ESP)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="List candidates only; no API writes")
     parser.add_argument(
         "--db",
@@ -163,6 +168,7 @@ def discover_candidates(
     min_minutes: int,
     require_club_change: bool,
     limit: int,
+    countries: list[str] | None = None,
 ) -> list[Candidate]:
     # Most recent prior club differs from the target-season club (arrived / returned).
     club_change_sql = """
@@ -177,6 +183,11 @@ def discover_candidates(
         LIMIT 1
       ) IS DISTINCT FROM ps.club_id
     """ if require_club_change else ""
+
+    country_sql = ""
+    if countries:
+        safe = ",".join("'" + code.replace("'", "") + "'" for code in countries)
+        country_sql = f" AND c.country_code IN ({safe})"
 
     sql = f"""
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
@@ -206,6 +217,7 @@ def discover_candidates(
             AND hist.deleted_at IS NULL
         )
         {club_change_sql}
+        {country_sql}
       ORDER BY ps.minutes_played DESC
       LIMIT {int(limit)}
     ) t
@@ -299,6 +311,9 @@ def main() -> int:
     print(f"  min minutes: {args.min_minutes}")
     print(f"  club change: {args.require_club_change}")
     print(f"  limit:  {args.limit}")
+    countries = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
+    if countries:
+        print(f"  countries: {','.join(countries)}")
 
     candidates = discover_candidates(
         args.db,
@@ -306,6 +321,7 @@ def main() -> int:
         args.min_minutes,
         args.require_club_change,
         args.limit,
+        countries or None,
     )
     print(f"  candidates: {len(candidates)}")
     if args.dry_run:
@@ -366,6 +382,7 @@ def main() -> int:
             "minMinutes": args.min_minutes,
             "requireClubChange": args.require_club_change,
             "limit": args.limit,
+            "countries": countries,
             "candidatesFound": len(candidates),
             "evaluated": metrics.n,
             "failed": len(failures),

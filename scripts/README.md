@@ -82,9 +82,19 @@ Policy and attribution: [`docs/data-sourcing.md`](../docs/data-sourcing.md).
 
 Do not commit downloaded caches or bulk CSVs (`data/` is gitignored).
 
+## `ensure_predict_seasons.py`
+
+Creates **forward Season identity shells** (default `2026/27`) so the simulator can project upcoming campaigns. Does **not** scrape FBref outcomes for incomplete seasons.
+
+```bash
+# backend must be running
+./scripts/ensure_predict_seasons.py
+./scripts/ensure_predict_seasons.py --dry-run
+```
+
 ## `validate_predictions_season.py`
 
-Backtests `v0-heuristic` against a completed season: creates predictions via the API, evaluates them into `PredictionEvaluation`, and writes MAE/RMSE summaries under `research/validation/`.
+Backtests the active heuristic engine against a **completed** season: creates predictions via the API, evaluates them into `PredictionEvaluation`, and writes MAE/RMSE summaries under `research/validation/`.
 
 ```bash
 # backend running; historical seasons loaded

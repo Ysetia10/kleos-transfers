@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Alert, Autocomplete, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
@@ -37,6 +37,15 @@ interface PredictionFormProps {
 }
 
 const SEARCH_PAGE_SIZE = 25
+
+function isUpcomingSeason(season: Season, today = new Date()): boolean {
+  const end = new Date(`${season.endDate}T23:59:59`)
+  return end >= today
+}
+
+function seasonOptionLabel(season: Season): string {
+  return isUpcomingSeason(season) ? `${season.label} · upcoming` : season.label
+}
 
 export function PredictionForm({
   initialPlayerId,
@@ -102,6 +111,7 @@ export function PredictionForm({
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -115,18 +125,60 @@ export function PredictionForm({
 
   const watchedClubId = useWatch({ control, name: 'targetClubId' })
   const watchedSeasonId = useWatch({ control, name: 'seasonId' })
+
+  // Prefer the newest season (upcoming predict-to campaigns like 2026/27 once present).
+  useEffect(() => {
+    if (!watchedSeasonId && seasons[0]?.id) {
+      setValue('seasonId', seasons[0].id)
+    }
+  }, [seasons, setValue, watchedSeasonId])
+
+  const selectedSeason = seasons.find((season) => season.id === watchedSeasonId) ?? null
+  const priorSeason = useMemo(() => {
+    if (!selectedSeason) {
+      return null
+    }
+    return (
+      seasons
+        .filter((season) => season.startDate < selectedSeason.startDate)
+        .sort((a, b) => b.startDate.localeCompare(a.startDate))[0] ?? null
+    )
+  }, [seasons, selectedSeason])
+
   const squadEnabled = showSquad && !!watchedClubId && !!watchedSeasonId
+  const upcomingSelected = selectedSeason ? isUpcomingSeason(selectedSeason) : false
 
   const squadQuery = useQuery({
-    queryKey: queryKeys.clubs.squad(watchedClubId || '', watchedSeasonId || ''),
-    queryFn: () => getClubSquad(watchedClubId, watchedSeasonId),
+    queryKey: queryKeys.clubs.squad(
+      watchedClubId || '',
+      watchedSeasonId || '',
+      priorSeason?.id ?? '',
+    ),
+    queryFn: async () => {
+      const targetSquad = await getClubSquad(watchedClubId, watchedSeasonId)
+      if (targetSquad.length > 0 || !priorSeason) {
+        return {
+          squad: targetSquad,
+          rosterSeasonLabel: selectedSeason?.label ?? watchedSeasonId,
+          usedPriorSeason: false,
+        }
+      }
+      const priorSquad = await getClubSquad(watchedClubId, priorSeason.id)
+      return {
+        squad: priorSquad,
+        rosterSeasonLabel: priorSeason.label,
+        usedPriorSeason: priorSquad.length > 0,
+      }
+    },
     enabled: squadEnabled,
   })
 
-  const selectedSeasonLabel =
-    seasons.find((season) => season.id === watchedSeasonId)?.label ?? watchedSeasonId
+  const selectedSeasonLabel = selectedSeason
+    ? seasonOptionLabel(selectedSeason)
+    : watchedSeasonId
   const selectedClubName =
     clubOptions.find((club) => club.id === watchedClubId)?.name ?? 'Selected club'
+  const squadMeta = squadQuery.data
 
   const mutation = useMutation({
     mutationFn: createPrediction,
@@ -273,7 +325,7 @@ export function PredictionForm({
           name="seasonId"
           render={({ field }) => (
             <Autocomplete<Season>
-              getOptionLabel={(option) => option.label}
+              getOptionLabel={(option) => seasonOptionLabel(option)}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               onChange={(_, value) => field.onChange(value?.id ?? '')}
               options={seasons}
@@ -281,7 +333,12 @@ export function PredictionForm({
                 <TextField
                   {...params}
                   error={!!errors.seasonId}
-                  helperText={errors.seasonId?.message}
+                  helperText={
+                    errors.seasonId?.message ??
+                    (upcomingSelected
+                      ? 'Upcoming season — projected from prior-season context (no actuals yet)'
+                      : 'Completed seasons can be checked against actual outcomes')
+                  }
                   label="Target season"
                   required
                 />
@@ -300,6 +357,14 @@ export function PredictionForm({
           {mutation.isPending ? 'Running…' : 'Run prediction'}
         </Button>
       </Box>
+
+      {upcomingSelected ? (
+        <Alert severity="info" variant="outlined">
+          Predicting <strong>{selectedSeason?.label}</strong> before outcomes exist. The engine uses
+          prior-season squad depth and player history only — the same as-of rules used when we
+          backtest completed seasons against actual minutes and output.
+        </Alert>
+      ) : null}
 
       <Controller
         control={control}
@@ -328,9 +393,11 @@ export function PredictionForm({
             Target club squad
           </Typography>
           <Typography color="text.secondary" variant="body2">
-            {squadEnabled
-              ? `${selectedClubName} · ${selectedSeasonLabel} — full season roster from PlayerSeason rows.`
-              : 'Select a target club and season to load the squad for that campaign.'}
+            {!squadEnabled
+              ? 'Select a target club and season to load squad competition context.'
+              : squadMeta?.usedPriorSeason
+                ? `${selectedClubName} · prior roster from ${squadMeta.rosterSeasonLabel} (no ${selectedSeason?.label} PlayerSeason rows yet — matches engine as-of context).`
+                : `${selectedClubName} · ${selectedSeasonLabel} — roster from PlayerSeason rows.`}
           </Typography>
           {squadEnabled ? (
             <SquadTable
@@ -338,7 +405,7 @@ export function PredictionForm({
               isError={squadQuery.isError}
               isLoading={squadQuery.isLoading}
               onRetry={() => void squadQuery.refetch()}
-              squad={squadQuery.data}
+              squad={squadMeta?.squad}
             />
           ) : null}
         </Stack>

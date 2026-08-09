@@ -94,7 +94,7 @@ API base path: `http://localhost:8080/api/v1`
 
 ### Loading historical data (Premier League + La Liga)
 
-Real seasons **2016/17–2025/26** are loaded from FBref (not a fake demo seed). See [`docs/data-sourcing.md`](docs/data-sourcing.md) and:
+Real seasons **2016/17–2025/26** are loaded from FBref (not a fake demo seed). Upcoming **predict-to** seasons (e.g. **2026/27**) are Season identity shells — no incomplete FBref scrape — so the simulator can project before outcomes exist (`scripts/ensure_predict_seasons.py`). See [`docs/data-sourcing.md`](docs/data-sourcing.md) and:
 
 ```bash
 pip install -r scripts/requirements-ingest.txt

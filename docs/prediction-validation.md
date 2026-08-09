@@ -1,6 +1,8 @@
 # Prediction validation methodology
 
-This document describes how Kleos compares transfer predictions (currently **`v0.2-heuristic`**) to observed end-of-season outcomes. It is the research/product checklist behind issue #32.
+This document describes how Kleos compares transfer predictions (currently **`v0.3-heuristic`**) to observed end-of-season outcomes. It is the research/product checklist behind issue #32 and the calibration loop for issue #38.
+
+**Product loop:** backtest on completed seasons (primary cohort: 2024/25 club-changers; optional `--countries ENG,ESP`) → publish MAE/bias under `research/validation/` → use the same as-of engine to project **upcoming** seasons such as 2026/27 (Season shell via `scripts/ensure_predict_seasons.py`; no evaluate until actuals exist).
 
 ## Goal
 

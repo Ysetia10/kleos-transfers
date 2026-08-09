@@ -24,6 +24,7 @@ function toApiError(error: unknown): ApiError {
   const body = axiosError.response?.data
   const status = axiosError.response?.status ?? 0
 
+  // Keep server message internally for logging/debug; UI maps via userFacingErrorMessage.
   if (body && typeof body === 'object' && typeof body.message === 'string') {
     return new ApiError(body.message, body.status ?? status, body.path, body.violations ?? [])
   }
@@ -33,7 +34,7 @@ function toApiError(error: unknown): ApiError {
   }
 
   if (!axiosError.response) {
-    return new ApiError('Unable to reach the API', status)
+    return new ApiError('Network unavailable', status)
   }
 
   return new ApiError(axiosError.message || 'Request failed', status)

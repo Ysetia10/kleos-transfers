@@ -23,11 +23,13 @@ import argparse
 import json
 import re
 import sys
+import threading
 import time
 import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 API_DEFAULT = "http://localhost:8080"
 WIKI_API = "https://en.wikipedia.org/w/api.php"
@@ -36,6 +38,10 @@ WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 SPORTSDB_SEARCH = "https://www.thesportsdb.com/api/v1/json/3/searchteams.php"
 USER_AGENT = "KleosTransfersBot/0.1 (https://github.com/Ysetia10/kleos-transfers; research media enricher)"
 REQUEST_GAP_SEC = 0.25
+
+_request_lock = threading.Lock()
+_next_request_ok = 0.0
+_print_lock = threading.Lock()
 # association football club / sports club-ish instance ids (Wikidata)
 FOOTBALL_CLUB_INSTANCE_IDS = {
     "Q476028",  # association football club
@@ -192,6 +198,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="for clubs, try Wikidata/Wikipedia if TheSportsDB misses (slow)",
     )
+    parser.add_argument("--workers", type=int, default=6, help="concurrent resolvers (shared throttle)")
     return parser.parse_args()
 
 
@@ -234,10 +241,25 @@ def list_all(api_url: str, path: str) -> list[dict]:
     return items
 
 
+def log(message: str) -> None:
+    with _print_lock:
+        print(message, flush=True)
+
+
+def throttle_request() -> None:
+    global _next_request_ok
+    with _request_lock:
+        now = time.monotonic()
+        wait = _next_request_ok - now
+        if wait > 0:
+            time.sleep(wait)
+        _next_request_ok = time.monotonic() + REQUEST_GAP_SEC
+
+
 def wiki_get(params: dict, api: str = WIKI_API) -> dict:
     params = {**params, "format": "json", "formatversion": "2"}
     url = f"{api}?{urllib.parse.urlencode(params)}"
-    time.sleep(REQUEST_GAP_SEC)
+    throttle_request()
     return http_json(url)
 
 
@@ -795,7 +817,7 @@ def resolve_thesportsdb_badge(club: dict) -> dict | None:
     """Resolve club crest from TheSportsDB search API (badge URL hotlink)."""
     query = sportsdb_search_name(club)
     url = f"{SPORTSDB_SEARCH}?{urllib.parse.urlencode({'t': query})}"
-    time.sleep(REQUEST_GAP_SEC)
+    throttle_request()
     payload = http_json(url)
     teams = payload.get("teams") or []
     if not teams:
@@ -885,49 +907,74 @@ def put_media(api_url: str, resource: str, item_id: str, media: dict, dry_run: b
     http_json(f"{api_url.rstrip('/')}{path}", method="PUT", payload=payload)
 
 
+def enrich_one(
+    args: argparse.Namespace,
+    item: dict,
+    *,
+    index: int,
+    total: int,
+    only_missing: bool,
+) -> str:
+    label = item.get("name") or item.get("fullName") or item["id"]
+    if only_missing and already_has_media(args.resource, item):
+        log(f"[{index}/{total}] skip existing {label}")
+        return "skipped"
+
+    query = club_search_query(item) if args.resource == "clubs" else player_search_query(item)
+    log(f"[{index}/{total}] resolve {label!r} via {query!r}")
+    try:
+        media = (
+            resolve_club_media(item, wikimedia_fallback=args.wikimedia_fallback)
+            if args.resource == "clubs"
+            else resolve_player_media(item)
+        )
+        if media is None:
+            log("  no usable image")
+            return "failed"
+        put_media(args.api_url, args.resource, item["id"], media, args.dry_run)
+        log(f"  ok ({media['license']}) {media['pageTitle']}")
+        return "resolved"
+    except Exception as error:  # noqa: BLE001 - batch job should continue
+        log(f"  error: {error}")
+        return "failed"
+
+
 def main() -> None:
     args = parse_args()
     only_missing = not args.include_existing
+    workers = max(1, args.workers)
     items = list_all(args.api_url, f"/api/v1/{args.resource}")
     selected = items[args.offset :]
     if args.limit > 0:
         selected = selected[: args.limit]
 
+    log(f"Enriching {len(selected)} {args.resource} (workers={workers}, dry_run={args.dry_run})")
     resolved = 0
     skipped = 0
     failed = 0
 
-    for index, item in enumerate(selected, start=1):
-        label = item.get("name") or item.get("fullName") or item["id"]
-        if only_missing and already_has_media(args.resource, item):
-            skipped += 1
-            print(f"[{index}/{len(selected)}] skip existing {label}", flush=True)
-            continue
-
-        query = club_search_query(item) if args.resource == "clubs" else player_search_query(item)
-        print(f"[{index}/{len(selected)}] resolve {label!r} via {query!r}", flush=True)
-        try:
-            media = (
-                resolve_club_media(item, wikimedia_fallback=args.wikimedia_fallback)
-                if args.resource == "clubs"
-                else resolve_player_media(item)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [
+            pool.submit(
+                enrich_one,
+                args,
+                item,
+                index=index,
+                total=len(selected),
+                only_missing=only_missing,
             )
-            if media is None:
+            for index, item in enumerate(selected, start=1)
+        ]
+        for future in as_completed(futures):
+            status = future.result()
+            if status == "resolved":
+                resolved += 1
+            elif status == "skipped":
+                skipped += 1
+            else:
                 failed += 1
-                print("  no usable image", flush=True)
-                continue
-            put_media(args.api_url, args.resource, item["id"], media, args.dry_run)
-            resolved += 1
-            print(f"  ok ({media['license']}) {media['pageTitle']}", flush=True)
-        except Exception as error:  # noqa: BLE001 - batch job should continue
-            failed += 1
-            print(f"  error: {error}", flush=True)
 
-    print(
-        f"Done. resolved={resolved} skipped={skipped} failed={failed} "
-        f"dry_run={args.dry_run}",
-        flush=True,
-    )
+    log(f"Done. resolved={resolved} skipped={skipped} failed={failed} dry_run={args.dry_run}")
 
 
 if __name__ == "__main__":

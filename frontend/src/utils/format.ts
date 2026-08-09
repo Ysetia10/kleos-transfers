@@ -24,12 +24,27 @@ export function formatDate(value: string): string {
   }).format(new Date(value))
 }
 
-/** Full date when known; year only when ingest stored a mid-year (1 July) anchor. */
+/** True when the stored date is the FBref mid-year age anchor (1 July). */
+export function isYearOnlyBirthDate(
+  value: string,
+  precision: 'DAY' | 'YEAR' | null | undefined,
+): boolean {
+  if (precision === 'YEAR') {
+    return true
+  }
+  // Defensive: older clients / missing precision must not show fake 1 July.
+  if (precision == null && /^\d{4}-07-01$/.test(value)) {
+    return true
+  }
+  return false
+}
+
+/** Full date when known; year only when we lack a verified day-level DOB. */
 export function formatDateOfBirth(
   value: string,
   precision: 'DAY' | 'YEAR' | null | undefined,
 ): string {
-  if (precision === 'YEAR') {
+  if (isYearOnlyBirthDate(value, precision)) {
     const year = Number.parseInt(value.slice(0, 4), 10)
     return Number.isFinite(year) ? String(year) : value.slice(0, 4)
   }

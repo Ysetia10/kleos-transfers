@@ -34,6 +34,7 @@ Resolves club crest URLs (TheSportsDB badges, Wikimedia fallback) and free-licen
 # backend must be running (migration V18+)
 python3 scripts/enrich_identity_media.py clubs --dry-run --limit 10
 python3 scripts/enrich_identity_media.py clubs --include-existing
+python3 scripts/enrich_identity_media.py players --workers 8
 python3 scripts/enrich_identity_media.py players --limit 100
 ```
 

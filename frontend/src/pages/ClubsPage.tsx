@@ -51,7 +51,7 @@ export function ClubsPage() {
       />
 
       <QueryState
-        emptyDescription="Import clubs through the API, then refresh."
+        emptyDescription="No clubs to show yet. Refresh after identities are loaded."
         emptyTitle="No clubs yet"
         error={clubsQuery.error}
         isEmpty={!!clubsQuery.data?.empty}

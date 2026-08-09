@@ -1,5 +1,6 @@
 import { Alert, AlertTitle, Button, Stack } from '@mui/material'
 import { ApiError } from '@/types/api'
+import { userFacingErrorMessage } from '@/utils/userFacingError'
 
 interface ErrorStateProps {
   error: unknown
@@ -7,26 +8,21 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ error, onRetry }: ErrorStateProps) {
-  const message =
-    error instanceof ApiError
-      ? error.message
-      : error instanceof Error
-        ? error.message
-        : 'Something went wrong'
+  const message = userFacingErrorMessage(error)
 
   return (
     <Alert
       action={
         onRetry ? (
           <Button color="inherit" onClick={onRetry} size="small">
-            Retry
+            Try again
           </Button>
         ) : undefined
       }
       severity="error"
       variant="outlined"
     >
-      <AlertTitle>Unable to load</AlertTitle>
+      <AlertTitle>Something went wrong</AlertTitle>
       <Stack spacing={0.5}>
         <span>{message}</span>
         {error instanceof ApiError && error.violations.length > 0

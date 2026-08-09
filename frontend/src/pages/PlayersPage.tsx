@@ -58,7 +58,7 @@ export function PlayersPage() {
 
       <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
         <QueryState
-          emptyDescription="Import players through the API, then refresh."
+          emptyDescription="No players to show yet. Refresh after identities are loaded."
           emptyTitle="No players yet"
           error={playersQuery.error}
           isEmpty={!!playersQuery.data?.empty}

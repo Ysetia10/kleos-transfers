@@ -16,7 +16,7 @@ import { getClubSquad } from '@/services/club/squadApi'
 import { createPrediction } from '@/services/prediction/predictionApi'
 import { getPlayer, listPlayers } from '@/services/player/playerApi'
 import { listSeasons } from '@/services/season/seasonApi'
-import { ApiError } from '@/types/api'
+import { userFacingErrorMessage } from '@/utils/userFacingError'
 import type { Club, Player, Season } from '@/types/domain'
 import { formatFootballCountry } from '@/utils/footballCountry'
 import { useDebouncedValue } from '@/utils/useDebouncedValue'
@@ -318,9 +318,7 @@ export function PredictionForm({
 
       {mutation.isError ? (
         <Alert severity="error" variant="outlined">
-          {mutation.error instanceof ApiError
-            ? mutation.error.message
-            : 'Prediction request failed'}
+          {userFacingErrorMessage(mutation.error)}
         </Alert>
       ) : null}
 

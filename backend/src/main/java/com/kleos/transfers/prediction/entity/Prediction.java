@@ -66,12 +66,6 @@ public class Prediction extends IdentityEntity {
     @Column(name = "predicted_assists", nullable = false, precision = 6, scale = 2)
     private BigDecimal predictedAssists;
 
-    @Column(name = "predicted_xg", nullable = false, precision = 6, scale = 2)
-    private BigDecimal predictedXg;
-
-    @Column(name = "predicted_xa", nullable = false, precision = 6, scale = 2)
-    private BigDecimal predictedXa;
-
     @Column(name = "predicted_market_value_eur", precision = 14, scale = 2)
     private BigDecimal predictedMarketValueEur;
 
@@ -113,8 +107,6 @@ public class Prediction extends IdentityEntity {
             Integer predictedMinutesHigh,
             BigDecimal predictedGoals,
             BigDecimal predictedAssists,
-            BigDecimal predictedXg,
-            BigDecimal predictedXa,
             BigDecimal predictedMarketValueEur,
             BigDecimal compatibilityScore,
             BigDecimal compatibilitySystem,
@@ -133,8 +125,6 @@ public class Prediction extends IdentityEntity {
         this.predictedMinutesHigh = predictedMinutesHigh;
         this.predictedGoals = predictedGoals;
         this.predictedAssists = predictedAssists;
-        this.predictedXg = predictedXg;
-        this.predictedXa = predictedXa;
         this.predictedMarketValueEur = predictedMarketValueEur;
         this.compatibilityScore = compatibilityScore;
         this.compatibilitySystem = compatibilitySystem;

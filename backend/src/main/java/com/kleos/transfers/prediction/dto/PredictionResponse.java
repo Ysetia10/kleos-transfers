@@ -23,8 +23,6 @@ public record PredictionResponse(
         Integer predictedMinutesHigh,
         BigDecimal predictedGoals,
         BigDecimal predictedAssists,
-        BigDecimal predictedXg,
-        BigDecimal predictedXa,
         BigDecimal predictedMarketValueEur,
         BigDecimal compatibilityScore,
         CompatibilityBreakdownResponse compatibilityBreakdown,

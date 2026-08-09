@@ -1,15 +1,13 @@
 import type { Prediction } from '@/types/domain'
-import { formatDateTime, formatEur, formatNumber } from '@/utils/format'
+import { formatEur, formatNumber } from '@/utils/format'
 
 /** Build a plain-text / Markdown brief from an existing prediction payload. */
 export function buildPredictionBriefMarkdown(prediction: Prediction): string {
-  const lines = [
+  const lines: string[] = [
     `# Kleos transfer brief`,
     ``,
     `**Scenario:** ${prediction.playerName} → ${prediction.targetClubName}`,
     `**Season:** ${prediction.seasonLabel}`,
-    `**Model:** ${prediction.modelVersion}`,
-    `**Run:** ${formatDateTime(prediction.createdAt)}`,
     ``,
     `## Projected output`,
     ``,
@@ -18,31 +16,60 @@ export function buildPredictionBriefMarkdown(prediction: Prediction): string {
     `| Minutes | ${formatNumber(prediction.predictedMinutes)} (${formatNumber(prediction.predictedMinutesLow)}–${formatNumber(prediction.predictedMinutesHigh)}) |`,
     `| Goals | ${formatNumber(Number(prediction.predictedGoals), 1)} |`,
     `| Assists | ${formatNumber(Number(prediction.predictedAssists), 1)} |`,
-    `| xG | ${formatNumber(Number(prediction.predictedXg), 1)} |`,
-    `| xA | ${formatNumber(Number(prediction.predictedXa), 1)} |`,
     `| Market value | ${formatEur(
       prediction.predictedMarketValueEur == null
         ? null
         : Number(prediction.predictedMarketValueEur),
     )} |`,
     ``,
+  ]
+
+  if (prediction.evaluation) {
+    const evaluation = prediction.evaluation
+    lines.push(
+      `## Actual ${prediction.seasonLabel} outcome`,
+      ``,
+      `| Metric | Predicted | Actual | Error (actual − predicted) |`,
+      `| --- | --- | --- | --- |`,
+      `| Minutes | ${formatNumber(prediction.predictedMinutes)} | ${
+        evaluation.actualMinutes == null ? '—' : formatNumber(evaluation.actualMinutes)
+      } | ${
+        evaluation.minutesError == null ? '—' : formatNumber(evaluation.minutesError, 0)
+      } |`,
+      `| Goals | ${formatNumber(Number(prediction.predictedGoals), 1)} | ${
+        evaluation.actualGoals == null ? '—' : formatNumber(evaluation.actualGoals, 0)
+      } | ${
+        evaluation.goalsError == null ? '—' : formatNumber(Number(evaluation.goalsError), 1)
+      } |`,
+      `| Assists | ${formatNumber(Number(prediction.predictedAssists), 1)} | ${
+        evaluation.actualAssists == null ? '—' : formatNumber(evaluation.actualAssists, 0)
+      } | ${
+        evaluation.assistsError == null ? '—' : formatNumber(Number(evaluation.assistsError), 1)
+      } |`,
+      ``,
+    )
+  }
+
+  lines.push(
     `## Fit`,
     ``,
     `- Compatibility: ${formatNumber(Number(prediction.compatibilityScore), 0)}`,
-    ...(prediction.compatibilityBreakdown
-      ? [
-          `- System: ${formatNumber(Number(prediction.compatibilityBreakdown.system), 0)}`,
-          `- Role: ${formatNumber(Number(prediction.compatibilityBreakdown.role), 0)}`,
-          `- Tempo: ${formatNumber(Number(prediction.compatibilityBreakdown.tempo), 0)}`,
-          `- League: ${formatNumber(Number(prediction.compatibilityBreakdown.league), 0)}`,
-          `- Manager: ${formatNumber(Number(prediction.compatibilityBreakdown.manager), 0)}`,
-        ]
-      : []),
+  )
+  if (prediction.compatibilityBreakdown) {
+    lines.push(
+      `- System: ${formatNumber(Number(prediction.compatibilityBreakdown.system), 0)}`,
+      `- Role: ${formatNumber(Number(prediction.compatibilityBreakdown.role), 0)}`,
+      `- Tempo: ${formatNumber(Number(prediction.compatibilityBreakdown.tempo), 0)}`,
+      `- League: ${formatNumber(Number(prediction.compatibilityBreakdown.league), 0)}`,
+      `- Manager: ${formatNumber(Number(prediction.compatibilityBreakdown.manager), 0)}`,
+    )
+  }
+  lines.push(
     `- Confidence: ${formatNumber(Number(prediction.confidenceScore), 0)}`,
     ``,
     `## Contextual signals`,
     ``,
-  ]
+  )
 
   if (prediction.explanations.length === 0) {
     lines.push(`_No explanation factors available._`)

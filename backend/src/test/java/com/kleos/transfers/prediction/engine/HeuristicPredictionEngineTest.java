@@ -76,8 +76,6 @@ class HeuristicPredictionEngineTest {
                 .contains(FactorCodes.MINUTES_INTERVAL);
         assertThat(result.predictedGoals()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
         assertThat(result.predictedAssists()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
-        assertThat(result.predictedXg()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
-        assertThat(result.predictedXa()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
         assertThat(result.predictedMarketValueEur()).isGreaterThan(BigDecimal.ZERO);
         assertThat(result.compatibilityScore()).isBetween(BigDecimal.ZERO, PredictionMath.bd(100));
         assertThat(result.compatibilityBreakdown()).isNotNull();
@@ -93,8 +91,6 @@ class HeuristicPredictionEngineTest {
                         FactorCodes.RECENT_MINUTES,
                         FactorCodes.SCORING_RATE,
                         FactorCodes.CREATION_RATE,
-                        FactorCodes.XG_RATE,
-                        FactorCodes.XA_RATE,
                         FactorCodes.PERFORMANCE_VALUE,
                         FactorCodes.DATA_COVERAGE,
                         FactorCodes.MANAGER_CONTEXT

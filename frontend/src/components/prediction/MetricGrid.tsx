@@ -7,8 +7,6 @@ interface MetricGridProps {
   minutesHigh?: number | null
   goals: number
   assists: number
-  xg: number
-  xa: number
   marketValueEur: number | null
 }
 
@@ -18,8 +16,6 @@ export function MetricGrid({
   minutesHigh,
   goals,
   assists,
-  xg,
-  xa,
   marketValueEur,
 }: MetricGridProps) {
   const minutesLabel =
@@ -31,8 +27,6 @@ export function MetricGrid({
     { label: 'xM', value: minutesLabel },
     { label: 'Goals', value: formatNumber(goals, 1) },
     { label: 'Assists', value: formatNumber(assists, 1) },
-    { label: 'xG', value: formatNumber(xg, 1) },
-    { label: 'xA', value: formatNumber(xa, 1) },
     { label: 'Market value', value: formatEur(marketValueEur) },
   ]
 
@@ -43,7 +37,7 @@ export function MetricGrid({
         gap: 1.5,
         gridTemplateColumns: {
           xs: 'repeat(2, minmax(0, 1fr))',
-          md: 'repeat(3, minmax(0, 1fr))',
+          md: 'repeat(2, minmax(0, 1fr))',
         },
       }}
     >

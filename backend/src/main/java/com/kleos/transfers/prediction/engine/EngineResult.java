@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Full output of one prediction engine pass — metrics plus ordered explanation factors.
+ * Deterministic engine output for one player → club → season scenario.
  */
 public record EngineResult(
         int predictedMinutes,
@@ -12,8 +12,6 @@ public record EngineResult(
         int predictedMinutesHigh,
         BigDecimal predictedGoals,
         BigDecimal predictedAssists,
-        BigDecimal predictedXg,
-        BigDecimal predictedXa,
         BigDecimal predictedMarketValueEur,
         BigDecimal compatibilityScore,
         CompatibilityBreakdown compatibilityBreakdown,

@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Deterministic v0 engine: minutes → counting/expected stats → value → scores.
+ * Deterministic v0 engine: minutes → goals/assists → value → scores.
  *
  * <p>Each step contributes explanation factors; nothing is a black-box-only number.
  */
@@ -39,12 +39,6 @@ public class HeuristicPredictionEngine implements PredictionEngine {
         OutputPredictors.CountingResult assists = outputPredictors.predictAssists(context, minutes.minutes());
         factors.addAll(assists.factors());
 
-        OutputPredictors.CountingResult xg = outputPredictors.predictXg(context, minutes.minutes());
-        factors.addAll(xg.factors());
-
-        OutputPredictors.CountingResult xa = outputPredictors.predictXa(context, minutes.minutes());
-        factors.addAll(xa.factors());
-
         MarketValuePredictor.Result value = marketValuePredictor.predict(
                 context,
                 minutes.minutes(),
@@ -65,8 +59,6 @@ public class HeuristicPredictionEngine implements PredictionEngine {
                 minutes.minutesHigh(),
                 goals.value(),
                 assists.value(),
-                xg.value(),
-                xa.value(),
                 value.valueEur(),
                 compatibility.score(),
                 compatibility.breakdown(),

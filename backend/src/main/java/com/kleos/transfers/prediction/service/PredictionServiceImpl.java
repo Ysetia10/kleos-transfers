@@ -69,7 +69,10 @@ public class PredictionServiceImpl implements PredictionService {
         );
         predictionMapper.attachExplanations(prediction, result.factors());
         Prediction saved = predictionRepository.save(prediction);
-        return predictionMapper.toResponse(saved);
+        // When the target season already has an outcome row, attach actuals immediately
+        // so previous-season predictions can show predicted vs actual without a second call.
+        attachOutcomeIfPresent(saved);
+        return predictionMapper.toResponse(findDetailed(saved.getId()));
     }
 
     @Override
@@ -116,23 +119,33 @@ public class PredictionServiceImpl implements PredictionService {
                         "No PlayerSeason outcome for player/club/season of prediction " + predictionId
                 ));
 
+        attachOutcome(prediction, outcome);
+        return predictionMapper.toResponse(prediction);
+    }
+
+    private void attachOutcomeIfPresent(Prediction prediction) {
+        playerSeasonRepository
+                .findByPlayerIdAndClubIdAndSeasonId(
+                        prediction.getPlayer().getId(),
+                        prediction.getTargetClub().getId(),
+                        prediction.getSeason().getId()
+                )
+                .ifPresent(outcome -> attachOutcome(prediction, outcome));
+    }
+
+    private void attachOutcome(Prediction prediction, PlayerSeason outcome) {
         PredictionEvaluation evaluation = new PredictionEvaluation(
                 prediction,
                 outcome.getMinutesPlayed(),
                 outcome.getGoals(),
                 outcome.getAssists(),
-                outcome.getXg(),
-                outcome.getXa(),
                 outcome.getMinutesPlayed() - prediction.getPredictedMinutes(),
                 diff(outcome.getGoals(), prediction.getPredictedGoals()),
                 diff(outcome.getAssists(), prediction.getPredictedAssists()),
-                outcome.getXg().subtract(prediction.getPredictedXg()).setScale(2, RoundingMode.HALF_UP),
-                outcome.getXa().subtract(prediction.getPredictedXa()).setScale(2, RoundingMode.HALF_UP),
                 Instant.now()
         );
         prediction.attachEvaluation(evaluation);
         predictionEvaluationRepository.save(evaluation);
-        return predictionMapper.toResponse(prediction);
     }
 
     @Override

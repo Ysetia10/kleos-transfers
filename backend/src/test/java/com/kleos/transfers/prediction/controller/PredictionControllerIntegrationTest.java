@@ -74,8 +74,6 @@ class PredictionControllerIntegrationTest extends AbstractPostgresIntegrationTes
                 .andExpect(jsonPath("$.predictedMinutes").value(greaterThan(0)))
                 .andExpect(jsonPath("$.predictedGoals").value(greaterThanOrEqualTo(0.0)))
                 .andExpect(jsonPath("$.predictedAssists").value(greaterThanOrEqualTo(0.0)))
-                .andExpect(jsonPath("$.predictedXg").value(greaterThanOrEqualTo(0.0)))
-                .andExpect(jsonPath("$.predictedXa").value(greaterThanOrEqualTo(0.0)))
                 .andExpect(jsonPath("$.predictedMarketValueEur").value(notNullValue()))
                 .andExpect(jsonPath("$.compatibilityScore").value(greaterThanOrEqualTo(0.0)))
                 .andExpect(jsonPath("$.compatibilityScore").value(lessThanOrEqualTo(100.0)))

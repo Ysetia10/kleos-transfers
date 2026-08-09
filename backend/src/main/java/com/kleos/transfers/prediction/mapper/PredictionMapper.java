@@ -33,8 +33,6 @@ public class PredictionMapper {
                 result.predictedMinutesHigh(),
                 result.predictedGoals(),
                 result.predictedAssists(),
-                result.predictedXg(),
-                result.predictedXa(),
                 result.predictedMarketValueEur(),
                 result.compatibilityScore(),
                 breakdown == null ? null : breakdown.system(),
@@ -78,8 +76,6 @@ public class PredictionMapper {
                 prediction.getPredictedMinutesHigh(),
                 prediction.getPredictedGoals(),
                 prediction.getPredictedAssists(),
-                prediction.getPredictedXg(),
-                prediction.getPredictedXa(),
                 prediction.getPredictedMarketValueEur(),
                 prediction.getCompatibilityScore(),
                 toBreakdown(prediction),
@@ -136,13 +132,9 @@ public class PredictionMapper {
                 evaluation.getActualMinutes(),
                 evaluation.getActualGoals(),
                 evaluation.getActualAssists(),
-                evaluation.getActualXg(),
-                evaluation.getActualXa(),
                 evaluation.getMinutesError(),
                 evaluation.getGoalsError(),
                 evaluation.getAssistsError(),
-                evaluation.getXgError(),
-                evaluation.getXaError(),
                 evaluation.getEvaluatedAt()
         );
     }

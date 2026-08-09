@@ -57,18 +57,12 @@ class Metrics:
     assists_abs: float = 0.0
     assists_sq: float = 0.0
     assists_bias: float = 0.0
-    xg_abs: float = 0.0
-    xg_sq: float = 0.0
-    xa_abs: float = 0.0
-    xa_sq: float = 0.0
 
     def add(self, evaluation: dict[str, Any]) -> None:
         self.n += 1
         me = float(evaluation["minutesError"])
         ge = float(evaluation["goalsError"])
         ae = float(evaluation["assistsError"])
-        xge = float(evaluation["xgError"])
-        xae = float(evaluation["xaError"])
         self.minutes_abs += abs(me)
         self.minutes_sq += me * me
         self.minutes_bias += me
@@ -78,10 +72,6 @@ class Metrics:
         self.assists_abs += abs(ae)
         self.assists_sq += ae * ae
         self.assists_bias += ae
-        self.xg_abs += abs(xge)
-        self.xg_sq += xge * xge
-        self.xa_abs += abs(xae)
-        self.xa_sq += xae * xae
 
     def summary(self) -> dict[str, Any]:
         if self.n == 0:
@@ -103,14 +93,6 @@ class Metrics:
                 "mae": round(self.assists_abs / n, 3),
                 "rmse": round(math.sqrt(self.assists_sq / n), 3),
                 "bias_actual_minus_predicted": round(self.assists_bias / n, 3),
-            },
-            "xg": {
-                "mae": round(self.xg_abs / n, 3),
-                "rmse": round(math.sqrt(self.xg_sq / n), 3),
-            },
-            "xa": {
-                "mae": round(self.xa_abs / n, 3),
-                "rmse": round(math.sqrt(self.xa_sq / n), 3),
             },
         }
 

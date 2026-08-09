@@ -12,13 +12,9 @@ public record EvaluationResponse(
         Integer actualMinutes,
         Integer actualGoals,
         Integer actualAssists,
-        BigDecimal actualXg,
-        BigDecimal actualXa,
         Integer minutesError,
         BigDecimal goalsError,
         BigDecimal assistsError,
-        BigDecimal xgError,
-        BigDecimal xaError,
         Instant evaluatedAt
 ) {
 }

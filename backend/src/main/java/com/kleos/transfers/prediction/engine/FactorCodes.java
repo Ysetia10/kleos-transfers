@@ -13,8 +13,6 @@ public final class FactorCodes {
     public static final String GK_ROLE = "GK_ROLE";
     public static final String SCORING_RATE = "SCORING_RATE";
     public static final String CREATION_RATE = "CREATION_RATE";
-    public static final String XG_RATE = "XG_RATE";
-    public static final String XA_RATE = "XA_RATE";
     public static final String PERFORMANCE_VALUE = "PERFORMANCE_VALUE";
     public static final String CONTRACT_PRESSURE = "CONTRACT_PRESSURE";
     public static final String LEAGUE_TRANSITION = "LEAGUE_TRANSITION";

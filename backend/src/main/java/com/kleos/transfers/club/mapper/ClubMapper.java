@@ -70,6 +70,7 @@ public class ClubMapper {
                 currentManager == null ? null : currentManager.getManagerId(),
                 currentManager == null ? null : currentManager.getManagerName(),
                 currentManager == null ? null : currentManager.getSeasonLabel(),
+                currentManager == null ? null : currentManager.getFirstSeasonAtClub(),
                 tacticalSystem,
                 tempo,
                 youthMinutesPct,

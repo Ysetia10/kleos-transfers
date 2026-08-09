@@ -5,6 +5,7 @@ import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
 import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { LoadingState } from '@/components/common/LoadingState'
+import { NewBadge } from '@/components/common/NewBadge'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { SquadTable } from '@/components/home/SquadTable'
@@ -164,11 +165,18 @@ export function ClubDetailPage() {
               Manager context
             </Typography>
             <Typography sx={{ mt: 1 }} variant="h3">
-              {club.currentManagerName ?? 'Manager unavailable'}
+              {club.currentManagerName ? (
+                <>
+                  {club.currentManagerName}
+                  {club.currentManagerFirstSeasonAtClub ? <NewBadge /> : null}
+                </>
+              ) : (
+                'Manager unavailable'
+              )}
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
               {club.currentManagerSeasonLabel
-                ? `Appointment linked for ${club.currentManagerSeasonLabel}. Stored tactics when curated; otherwise BALANCED + league-default tempo.`
+                ? `Latest appointment · ${club.currentManagerSeasonLabel}. Stored tactics when curated; otherwise BALANCED + league-default tempo.`
                 : 'No ManagerSeason row for this club yet — import appointments to enrich fit signals.'}
             </Typography>
           </SurfaceCard>

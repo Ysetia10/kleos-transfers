@@ -33,7 +33,16 @@ public interface ManagerSeasonRepository extends JpaRepository<ManagerSeason, UU
                            s.id AS "seasonId",
                            ms.tactical_system AS "tacticalSystem",
                            ms.tempo AS "tempo",
-                           ms.youth_minutes_pct AS "youthMinutesPct"
+                           ms.youth_minutes_pct AS "youthMinutesPct",
+                           NOT EXISTS (
+                               SELECT 1
+                               FROM manager_seasons prior
+                               JOIN seasons ps ON ps.id = prior.season_id
+                               WHERE prior.deleted_at IS NULL
+                                 AND prior.club_id = ms.club_id
+                                 AND prior.manager_id = ms.manager_id
+                                 AND ps.start_date < s.start_date
+                           ) AS "firstSeasonAtClub"
                     FROM manager_seasons ms
                     JOIN managers m ON m.id = ms.manager_id
                     JOIN seasons s ON s.id = ms.season_id

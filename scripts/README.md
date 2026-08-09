@@ -96,6 +96,17 @@ Loads **dated** summer/winter window transfers from Wikipedia list pages (MediaW
 
 Policy: Wikipedia is allowed; Transfermarkt scrapes are not. See [`docs/data-sourcing.md`](../docs/data-sourcing.md).
 
+## Manager appointments (latest window)
+
+Sample CSVs under `scripts/sample-data/`. Re-import after creating forward seasons:
+
+```bash
+./scripts/import-manager-appointments.py scripts/sample-data/manager-appointments-2025-26.csv
+./scripts/import-manager-appointments.py scripts/sample-data/manager-appointments-2026-27.csv
+```
+
+Latest `ManagerSeason` by season start becomes the club’s current manager (e.g. Mourinho for Real Madrid in 2026/27).
+
 ## `ensure_predict_seasons.py`
 
 Creates **forward Season identity shells** (default `2026/27`) so the simulator can project upcoming campaigns. Does **not** scrape FBref outcomes for incomplete seasons.

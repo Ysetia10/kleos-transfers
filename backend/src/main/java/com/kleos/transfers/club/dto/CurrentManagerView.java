@@ -23,4 +23,7 @@ public interface CurrentManagerView {
     String getTempo();
 
     BigDecimal getYouthMinutesPct();
+
+    /** True when this manager has no earlier appointment at the same club. */
+    Boolean getFirstSeasonAtClub();
 }

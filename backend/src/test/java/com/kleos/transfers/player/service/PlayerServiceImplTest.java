@@ -21,6 +21,8 @@ import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.player.mapper.PlayerMapper;
 import com.kleos.transfers.player.repository.PlayerRepository;
 import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
+import com.kleos.transfers.transfer.mapper.TransferMapper;
+import com.kleos.transfers.transfer.repository.TransferRepository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -50,6 +52,12 @@ class PlayerServiceImplTest {
     @Mock
     private BulkImporter bulkImporter;
 
+    @Mock
+    private TransferRepository transferRepository;
+
+    @Mock
+    private TransferMapper transferMapper;
+
     @InjectMocks
     private PlayerServiceImpl playerService;
 
@@ -64,7 +72,8 @@ class PlayerServiceImplTest {
         when(playerMapper.toEntity(request)).thenReturn(player);
         when(playerRepository.save(player)).thenReturn(player);
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
-        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
+        when(transferRepository.findInboundByPlayerIdInAndStatusIn(any(), any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull(), isNull())).thenReturn(expected);
 
         PlayerResponse actual = playerService.create(request);
 
@@ -79,7 +88,8 @@ class PlayerServiceImplTest {
         PlayerResponse expected = response();
         when(playerRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(player)));
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
-        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
+        when(transferRepository.findInboundByPlayerIdInAndStatusIn(any(), any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull(), isNull())).thenReturn(expected);
 
         Page<PlayerResponse> actual = playerService.findAll(null, null, null, null, null, pageable);
 
@@ -107,7 +117,8 @@ class PlayerServiceImplTest {
                         eq(PageRequest.of(0, 20))))
                 .thenReturn(new PageImpl<>(List.of(player)));
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
-        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
+        when(transferRepository.findInboundByPlayerIdInAndStatusIn(any(), any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull(), isNull())).thenReturn(expected);
 
         Page<PlayerResponse> actual = playerService.findAll("rice", null, null, null, null, pageable);
 
@@ -135,7 +146,8 @@ class PlayerServiceImplTest {
                         eq(PageRequest.of(0, 20))))
                 .thenReturn(new PageImpl<>(List.of(player)));
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
-        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
+        when(transferRepository.findInboundByPlayerIdInAndStatusIn(any(), any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull(), isNull())).thenReturn(expected);
 
         Page<PlayerResponse> actual = playerService.findAll(null, "MID", null, null, null, pageable);
 
@@ -150,7 +162,8 @@ class PlayerServiceImplTest {
 
         when(playerRepository.findById(id)).thenReturn(Optional.of(player));
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
-        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
+        when(transferRepository.findInboundByPlayerIdInAndStatusIn(any(), any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull(), isNull())).thenReturn(expected);
 
         assertThat(playerService.findById(id)).isSameAs(expected);
     }
@@ -166,7 +179,8 @@ class PlayerServiceImplTest {
         when(playerRepository.existsByFullNameNormalizedAndDateOfBirthAndNationalityAndIdNot(
                 "updated player", request.dateOfBirth(), "NED", id)).thenReturn(false);
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
-        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
+        when(transferRepository.findInboundByPlayerIdInAndStatusIn(any(), any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull(), isNull())).thenReturn(expected);
 
         PlayerResponse actual = playerService.update(id, request);
 
@@ -268,6 +282,7 @@ class PlayerServiceImplTest {
                 180,
                 PreferredFoot.RIGHT,
                 Position.CM,
+                null,
                 null,
                 null,
                 null,

@@ -19,6 +19,18 @@ export type Position =
 
 export type ExplanationDirection = 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL'
 
+export interface TransferMoveSummary {
+  transferId: string
+  fromClubId: string | null
+  fromClubName: string | null
+  toClubId: string | null
+  toClubName: string | null
+  feeEur: number | null
+  transferDate: string | null
+  seasonLabel: string | null
+  seasonStartDate: string | null
+}
+
 export interface Player {
   id: string
   fullName: string
@@ -37,6 +49,7 @@ export interface Player {
   latestClubId: string | null
   latestClubName: string | null
   latestSeasonLabel: string | null
+  latestTransfer: TransferMoveSummary | null
   createdAt: string
   updatedAt: string
 }
@@ -59,6 +72,7 @@ export interface PlayerSeason {
   primaryPosition: Position
   createdAt: string
   updatedAt: string
+  inboundTransfer: TransferMoveSummary | null
 }
 
 export type TacticalSystem = 'POSSESSION' | 'TRANSITION' | 'DIRECT' | 'BALANCED'
@@ -79,6 +93,7 @@ export interface Club {
   currentManagerId: string | null
   currentManagerName: string | null
   currentManagerSeasonLabel: string | null
+  currentManagerFirstSeasonAtClub: boolean | null
   tacticalSystem: TacticalSystem | null
   tempo: TempoProfile | null
   youthMinutesPct: number | null
@@ -113,13 +128,9 @@ export interface Evaluation {
   actualMinutes: number | null
   actualGoals: number | null
   actualAssists: number | null
-  actualXg: number | null
-  actualXa: number | null
   minutesError: number | null
   goalsError: number | null
   assistsError: number | null
-  xgError: number | null
-  xaError: number | null
   evaluatedAt: string
 }
 
@@ -146,8 +157,6 @@ export interface Prediction {
   predictedMinutesHigh: number
   predictedGoals: number
   predictedAssists: number
-  predictedXg: number
-  predictedXa: number
   predictedMarketValueEur: number | null
   compatibilityScore: number
   compatibilityBreakdown: CompatibilityBreakdown | null

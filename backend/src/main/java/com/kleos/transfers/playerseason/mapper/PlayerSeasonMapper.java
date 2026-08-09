@@ -7,6 +7,7 @@ import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
 import com.kleos.transfers.playerseason.dto.UpdatePlayerSeasonRequest;
 import com.kleos.transfers.playerseason.entity.PlayerSeason;
 import com.kleos.transfers.season.entity.Season;
+import com.kleos.transfers.transfer.dto.TransferMoveSummary;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -61,6 +62,10 @@ public class PlayerSeasonMapper {
     }
 
     public PlayerSeasonResponse toResponse(PlayerSeason playerSeason) {
+        return toResponse(playerSeason, null);
+    }
+
+    public PlayerSeasonResponse toResponse(PlayerSeason playerSeason, TransferMoveSummary inboundTransfer) {
         Player player = playerSeason.getPlayer();
         Club club = playerSeason.getClub();
         Season season = playerSeason.getSeason();
@@ -81,14 +86,20 @@ public class PlayerSeasonMapper {
                 playerSeason.getXa(),
                 playerSeason.getPrimaryPosition(),
                 playerSeason.getCreatedAt(),
-                playerSeason.getUpdatedAt()
+                playerSeason.getUpdatedAt(),
+                inboundTransfer
         );
     }
 
     /**
      * Retains prior-season stats but labels the row for the projected destination season/club.
      */
-    public PlayerSeasonResponse toProjectedResponse(PlayerSeason playerSeason, Club club, Season season) {
+    public PlayerSeasonResponse toProjectedResponse(
+            PlayerSeason playerSeason,
+            Club club,
+            Season season,
+            TransferMoveSummary inboundTransfer
+    ) {
         PlayerSeasonResponse base = toResponse(playerSeason);
         return new PlayerSeasonResponse(
                 base.id(),
@@ -107,7 +118,8 @@ public class PlayerSeasonMapper {
                 base.xa(),
                 base.primaryPosition(),
                 base.createdAt(),
-                base.updatedAt()
+                base.updatedAt(),
+                inboundTransfer
         );
     }
 
@@ -118,10 +130,11 @@ public class PlayerSeasonMapper {
             Player player,
             Club club,
             Season season,
-            PlayerSeason priorStats
+            PlayerSeason priorStats,
+            TransferMoveSummary inboundTransfer
     ) {
         if (priorStats != null) {
-            return toProjectedResponse(priorStats, club, season);
+            return toProjectedResponse(priorStats, club, season, inboundTransfer);
         }
         Instant stamp = player.getCreatedAt() != null ? player.getCreatedAt() : Instant.EPOCH;
         Instant updated = player.getUpdatedAt() != null ? player.getUpdatedAt() : stamp;
@@ -145,7 +158,37 @@ public class PlayerSeasonMapper {
                 BigDecimal.ZERO,
                 player.getPrimaryPosition(),
                 stamp,
-                updated
+                updated,
+                inboundTransfer
+        );
+    }
+
+    public PlayerSeasonResponse withInboundTransfer(
+            PlayerSeasonResponse row,
+            TransferMoveSummary inboundTransfer
+    ) {
+        if (inboundTransfer == null) {
+            return row;
+        }
+        return new PlayerSeasonResponse(
+                row.id(),
+                row.playerId(),
+                row.playerName(),
+                row.photoUrl(),
+                row.clubId(),
+                row.clubName(),
+                row.seasonId(),
+                row.seasonLabel(),
+                row.appearances(),
+                row.minutesPlayed(),
+                row.goals(),
+                row.assists(),
+                row.xg(),
+                row.xa(),
+                row.primaryPosition(),
+                row.createdAt(),
+                row.updatedAt(),
+                inboundTransfer
         );
     }
 }

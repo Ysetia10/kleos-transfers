@@ -71,7 +71,8 @@ public interface PlayerSeasonRepository extends JpaRepository<PlayerSeason, UUID
                            ps.player_id AS "playerId",
                            c.id AS "clubId",
                            c.name AS "clubName",
-                           s.label AS "seasonLabel"
+                           s.label AS "seasonLabel",
+                           s.start_date AS "seasonStartDate"
                     FROM player_seasons ps
                     JOIN clubs c ON c.id = ps.club_id
                     JOIN seasons s ON s.id = ps.season_id

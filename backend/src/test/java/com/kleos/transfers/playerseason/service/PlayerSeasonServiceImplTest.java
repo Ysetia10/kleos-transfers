@@ -179,6 +179,7 @@ class PlayerSeasonServiceImplTest {
                 new BigDecimal("4.10"),
                 Position.RW,
                 null,
+                null,
                 null
         );
     }

@@ -46,4 +46,22 @@ public interface TransferRepository extends JpaRepository<Transfer, UUID> {
             @Param("clubId") UUID clubId,
             @Param("statuses") Collection<TransferStatus> statuses
     );
+
+    /**
+     * Inbound (to-club) moves for players — used to refresh "latest club" after window signings.
+     */
+    @Query("""
+            select t from Transfer t
+            join fetch t.player
+            join fetch t.toClub
+            left join fetch t.fromClub
+            join fetch t.season
+            where t.player.id in :playerIds
+              and t.toClub is not null
+              and t.status in :statuses
+            """)
+    List<Transfer> findInboundByPlayerIdInAndStatusIn(
+            @Param("playerIds") Collection<UUID> playerIds,
+            @Param("statuses") Collection<TransferStatus> statuses
+    );
 }

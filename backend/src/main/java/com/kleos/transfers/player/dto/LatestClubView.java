@@ -1,5 +1,6 @@
 package com.kleos.transfers.player.dto;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -14,4 +15,6 @@ public interface LatestClubView {
     String getClubName();
 
     String getSeasonLabel();
+
+    LocalDate getSeasonStartDate();
 }

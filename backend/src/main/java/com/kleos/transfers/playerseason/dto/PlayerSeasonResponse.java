@@ -1,6 +1,7 @@
 package com.kleos.transfers.playerseason.dto;
 
 import com.kleos.transfers.domain.Position;
+import com.kleos.transfers.transfer.dto.TransferMoveSummary;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -25,6 +26,7 @@ public record PlayerSeasonResponse(
         BigDecimal xa,
         Position primaryPosition,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        TransferMoveSummary inboundTransfer
 ) {
 }

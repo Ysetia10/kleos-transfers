@@ -3,6 +3,7 @@ package com.kleos.transfers.player.dto;
 import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
+import com.kleos.transfers.transfer.dto.TransferMoveSummary;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -28,6 +29,7 @@ public record PlayerResponse(
         UUID latestClubId,
         String latestClubName,
         String latestSeasonLabel,
+        TransferMoveSummary latestTransfer,
         Instant createdAt,
         Instant updatedAt
 ) {

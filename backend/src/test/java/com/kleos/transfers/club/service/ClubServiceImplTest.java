@@ -33,6 +33,7 @@ import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
 import com.kleos.transfers.season.entity.Season;
 import com.kleos.transfers.season.repository.SeasonRepository;
 import com.kleos.transfers.transfer.entity.Transfer;
+import com.kleos.transfers.transfer.mapper.TransferMapper;
 import com.kleos.transfers.transfer.repository.TransferRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -76,6 +77,9 @@ class ClubServiceImplTest {
 
     @Mock
     private TransferRepository transferRepository;
+
+    @Mock
+    private TransferMapper transferMapper;
 
     @InjectMocks
     private ClubServiceImpl clubService;
@@ -248,8 +252,9 @@ class ClubServiceImplTest {
         )).thenReturn(List.of(out, in));
         when(playerSeasonRepository.findHistoryByPlayerIdBefore(arrivalId, target.getStartDate()))
                 .thenReturn(List.of(arrivalPrior));
-        when(playerSeasonMapper.toProjectedResponse(stayerRow, club, target)).thenReturn(stayerProjected);
-        when(playerSeasonMapper.toProjectedArrival(arrival, club, target, arrivalPrior))
+        when(transferMapper.toMoveSummary(in)).thenReturn(null);
+        when(playerSeasonMapper.toProjectedResponse(stayerRow, club, target, null)).thenReturn(stayerProjected);
+        when(playerSeasonMapper.toProjectedArrival(arrival, club, target, arrivalPrior, null))
                 .thenReturn(arrivalProjected);
 
         List<PlayerSeasonResponse> squad = clubService.findSquad(clubId, targetSeasonId);
@@ -337,7 +342,8 @@ class ClubServiceImplTest {
                 BigDecimal.ONE,
                 Position.CM,
                 now,
-                now
+                now,
+                null
         );
     }
 
@@ -358,6 +364,7 @@ class ClubServiceImplTest {
                 "Barcelona",
                 "ESP",
                 1899,
+                null,
                 null,
                 null,
                 null,

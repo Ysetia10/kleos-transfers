@@ -14,11 +14,18 @@ import com.kleos.transfers.player.dto.LatestClubView;
 import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
 import com.kleos.transfers.player.entity.Player;
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.player.mapper.PlayerMapper;
 import com.kleos.transfers.player.repository.PlayerRepository;
 import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
+import com.kleos.transfers.transfer.dto.TransferMoveSummary;
+import com.kleos.transfers.transfer.entity.Transfer;
+import com.kleos.transfers.transfer.mapper.TransferMapper;
+import com.kleos.transfers.transfer.repository.TransferRepository;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,6 +52,13 @@ public class PlayerServiceImpl implements PlayerService {
     private final PlayerSeasonRepository playerSeasonRepository;
     private final PlayerMapper playerMapper;
     private final BulkImporter bulkImporter;
+    private final TransferRepository transferRepository;
+    private final TransferMapper transferMapper;
+
+    private static final List<TransferStatus> LATEST_CLUB_TRANSFER_STATUSES = List.of(
+            TransferStatus.COMPLETED,
+            TransferStatus.ANNOUNCED
+    );
 
     @Override
     @Transactional
@@ -108,8 +122,7 @@ public class PlayerServiceImpl implements PlayerService {
                     unsorted
             );
         }
-        Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(page.getContent());
-        return page.map(player -> playerMapper.toResponse(player, latestClubs.get(player.getId())));
+        return enrichAll(page);
     }
 
     private static Collection<String> resolvePositionFilter(String position) {
@@ -154,8 +167,32 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     private PlayerResponse enrich(Player player) {
-        Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(List.of(player));
-        return playerMapper.toResponse(player, latestClubs.get(player.getId()));
+        return enrichAll(List.of(player)).getFirst();
+    }
+
+    private Page<PlayerResponse> enrichAll(Page<Player> page) {
+        Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(page.getContent());
+        Map<UUID, TransferMoveSummary> latestTransfers = latestInboundTransfersByPlayerId(page.getContent());
+        return page.map(player -> toEnrichedResponse(player, latestClubs, latestTransfers));
+    }
+
+    private List<PlayerResponse> enrichAll(List<Player> players) {
+        Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(players);
+        Map<UUID, TransferMoveSummary> latestTransfers = latestInboundTransfersByPlayerId(players);
+        return players.stream()
+                .map(player -> toEnrichedResponse(player, latestClubs, latestTransfers))
+                .toList();
+    }
+
+    private PlayerResponse toEnrichedResponse(
+            Player player,
+            Map<UUID, LatestClubView> latestClubs,
+            Map<UUID, TransferMoveSummary> latestTransfers
+    ) {
+        LatestClubView seasonClub = latestClubs.get(player.getId());
+        TransferMoveSummary transfer = latestTransfers.get(player.getId());
+        TransferMoveSummary winningTransfer = preferTransferOverSeason(transfer, seasonClub) ? transfer : null;
+        return playerMapper.toResponse(player, seasonClub, winningTransfer);
     }
 
     private Map<UUID, LatestClubView> latestClubsByPlayerId(Collection<Player> players) {
@@ -165,6 +202,53 @@ public class PlayerServiceImpl implements PlayerService {
         List<UUID> ids = players.stream().map(Player::getId).toList();
         return playerSeasonRepository.findLatestClubsByPlayerIds(ids).stream()
                 .collect(Collectors.toMap(LatestClubView::getPlayerId, Function.identity(), (a, b) -> a));
+    }
+
+    private Map<UUID, TransferMoveSummary> latestInboundTransfersByPlayerId(Collection<Player> players) {
+        if (players.isEmpty()) {
+            return Map.of();
+        }
+        List<UUID> ids = players.stream().map(Player::getId).toList();
+        List<Transfer> transfers = transferRepository.findInboundByPlayerIdInAndStatusIn(
+                ids,
+                LATEST_CLUB_TRANSFER_STATUSES
+        );
+        Map<UUID, Transfer> bestByPlayer = new HashMap<>();
+        for (Transfer transfer : transfers) {
+            UUID playerId = transfer.getPlayer().getId();
+            Transfer existing = bestByPlayer.get(playerId);
+            if (existing == null || transferRecencyComparator().compare(transfer, existing) > 0) {
+                bestByPlayer.put(playerId, transfer);
+            }
+        }
+        Map<UUID, TransferMoveSummary> summaries = new HashMap<>();
+        bestByPlayer.forEach((playerId, transfer) ->
+                summaries.put(playerId, transferMapper.toMoveSummary(transfer)));
+        return summaries;
+    }
+
+    private static boolean preferTransferOverSeason(
+            TransferMoveSummary transfer,
+            LatestClubView seasonClub
+    ) {
+        if (transfer == null || transfer.toClubId() == null) {
+            return false;
+        }
+        if (seasonClub == null || seasonClub.getSeasonStartDate() == null) {
+            return true;
+        }
+        // Prefer window move when it is for the same or a newer campaign than the latest PlayerSeason.
+        LocalDate transferSeasonStart = transfer.seasonStartDate();
+        if (transferSeasonStart == null) {
+            return true;
+        }
+        return !transferSeasonStart.isBefore(seasonClub.getSeasonStartDate());
+    }
+
+    private static Comparator<Transfer> transferRecencyComparator() {
+        return Comparator
+                .comparing((Transfer t) -> t.getSeason() == null ? LocalDate.MIN : t.getSeason().getStartDate())
+                .thenComparing(t -> t.getTransferDate() == null ? LocalDate.MIN : t.getTransferDate());
     }
 
     private Player findPlayer(UUID id) {
@@ -254,10 +338,7 @@ public class PlayerServiceImpl implements PlayerService {
         public List<PlayerResponse> persist(List<CreatePlayerRequest> accepted) {
             List<Player> players = accepted.stream().map(playerMapper::toEntity).toList();
             List<Player> saved = playerRepository.saveAll(players);
-            Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(saved);
-            return saved.stream()
-                    .map(player -> playerMapper.toResponse(player, latestClubs.get(player.getId())))
-                    .toList();
+            return enrichAll(saved);
         }
     }
 }

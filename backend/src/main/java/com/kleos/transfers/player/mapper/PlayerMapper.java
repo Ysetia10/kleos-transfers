@@ -7,8 +7,10 @@ import com.kleos.transfers.player.dto.LatestClubView;
 import com.kleos.transfers.player.dto.PlayerResponse;
 import com.kleos.transfers.player.dto.UpdatePlayerRequest;
 import com.kleos.transfers.player.entity.Player;
+import com.kleos.transfers.transfer.dto.TransferMoveSummary;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
@@ -55,6 +57,26 @@ public class PlayerMapper {
     }
 
     public PlayerResponse toResponse(Player player, LatestClubView latestClub) {
+        return toResponse(player, latestClub, null);
+    }
+
+    public PlayerResponse toResponse(
+            Player player,
+            LatestClubView latestClub,
+            TransferMoveSummary latestTransfer
+    ) {
+        UUID clubId;
+        String clubName;
+        String seasonLabel;
+        if (latestTransfer != null && latestTransfer.toClubId() != null) {
+            clubId = latestTransfer.toClubId();
+            clubName = latestTransfer.toClubName();
+            seasonLabel = latestTransfer.seasonLabel();
+        } else {
+            clubId = latestClub == null ? null : latestClub.getClubId();
+            clubName = latestClub == null ? null : latestClub.getClubName();
+            seasonLabel = latestClub == null ? null : latestClub.getSeasonLabel();
+        }
         return new PlayerResponse(
                 player.getId(),
                 player.getFullName(),
@@ -70,9 +92,10 @@ public class PlayerMapper {
                 player.getPhotoAttribution(),
                 player.getPhotoLicense(),
                 player.getPhotoSource(),
-                latestClub == null ? null : latestClub.getClubId(),
-                latestClub == null ? null : latestClub.getClubName(),
-                latestClub == null ? null : latestClub.getSeasonLabel(),
+                clubId,
+                clubName,
+                seasonLabel,
+                latestTransfer,
                 player.getCreatedAt(),
                 player.getUpdatedAt()
         );

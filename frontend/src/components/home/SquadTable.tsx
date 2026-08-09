@@ -1,5 +1,6 @@
 import {
   Link as MuiLink,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -9,6 +10,7 @@ import {
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { QueryState } from '@/components/common/QueryState'
+import { TransferBadge } from '@/components/transfer/TransferBadge'
 import { routes } from '@/constants/routes'
 import type { PlayerSeason } from '@/types/domain'
 import { formatNumber } from '@/utils/format'
@@ -60,9 +62,16 @@ export function SquadTable({
           {squad?.map((row) => (
             <TableRow hover key={row.id}>
               <TableCell>
-                <MuiLink component={RouterLink} to={routes.playerDetail(row.playerId)} underline="hover">
-                  {row.playerName}
-                </MuiLink>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                  <MuiLink
+                    component={RouterLink}
+                    to={routes.playerDetail(row.playerId)}
+                    underline="hover"
+                  >
+                    {row.playerName}
+                  </MuiLink>
+                  {row.inboundTransfer ? <TransferBadge transfer={row.inboundTransfer} /> : null}
+                </Stack>
               </TableCell>
               <TableCell>{row.primaryPosition}</TableCell>
               <TableCell align="right">{formatNumber(row.appearances)}</TableCell>

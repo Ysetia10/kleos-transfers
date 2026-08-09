@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { ScenarioComparisonSection } from '@/components/player/ScenarioComparisonSection'
+import { TransferBadge } from '@/components/transfer/TransferBadge'
 import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getPlayer } from '@/services/player/playerApi'
@@ -48,12 +49,31 @@ export function PlayerDetailPage() {
             Simulate transfer
           </Button>
         }
-        description={`${player.primaryPosition} · ${formatFootballCountry(player.nationality)}${
-          player.latestClubName ? ` · ${player.latestClubName}` : ''
-        }`}
+        description={
+          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+            <span>
+              {player.primaryPosition} · {formatFootballCountry(player.nationality)}
+              {player.latestClubName ? ' · ' : ''}
+            </span>
+            {player.latestClubName && player.latestTransfer ? (
+              <TransferBadge transfer={player.latestTransfer}>{player.latestClubName}</TransferBadge>
+            ) : (
+              <span>{player.latestClubName}</span>
+            )}
+          </Box>
+        }
         eyebrow="Player workspace"
         leading={<IdentityMedia imageUrl={player.photoUrl} label={player.fullName} size={72} />}
-        title={player.fullName}
+        title={
+          player.latestTransfer ? (
+            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+              <span>{player.fullName}</span>
+              <TransferBadge transfer={player.latestTransfer} />
+            </Box>
+          ) : (
+            player.fullName
+          )
+        }
       />
 
       <Box
@@ -98,12 +118,20 @@ export function PlayerDetailPage() {
               Latest club
             </Typography>
             <Typography sx={{ mt: 1 }} variant="h3">
-              {player.latestClubName ?? 'Unattached / unknown'}
+              {player.latestClubName && player.latestTransfer ? (
+                <TransferBadge transfer={player.latestTransfer}>
+                  {player.latestClubName}
+                </TransferBadge>
+              ) : (
+                (player.latestClubName ?? 'Unattached / unknown')
+              )}
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
-              {player.latestSeasonLabel
-                ? `Most recent PlayerSeason · ${player.latestSeasonLabel}`
-                : 'No PlayerSeason history linked yet.'}
+              {player.latestTransfer
+                ? `Recent transfer · ${player.latestTransfer.seasonLabel ?? player.latestSeasonLabel ?? 'window'}`
+                : player.latestSeasonLabel
+                  ? `Most recent PlayerSeason · ${player.latestSeasonLabel}`
+                  : 'No PlayerSeason history linked yet.'}
             </Typography>
             {player.latestClubId ? (
               <Button

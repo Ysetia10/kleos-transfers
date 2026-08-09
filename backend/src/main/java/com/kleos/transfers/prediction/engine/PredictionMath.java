@@ -33,6 +33,10 @@ final class PredictionMath {
         return Math.max(min, Math.min(max, value));
     }
 
+    static double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
     static BigDecimal per90(Number countingStat, int minutes) {
         if (minutes <= 0) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);

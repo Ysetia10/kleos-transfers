@@ -40,6 +40,24 @@ public interface PlayerSeasonRepository extends JpaRepository<PlayerSeason, UUID
             @Param("asOf") LocalDate asOf
     );
 
+    /**
+     * History strictly before {@code asOf} for several players at once, newest season first.
+     * Used to size up incoming squad rivals without one query per arrival.
+     */
+    @Query("""
+            select ps from PlayerSeason ps
+            join fetch ps.season s
+            join fetch ps.club
+            join fetch ps.player
+            where ps.player.id in :playerIds
+              and s.startDate < :asOf
+            order by s.startDate desc
+            """)
+    List<PlayerSeason> findHistoryByPlayerIdsBefore(
+            @Param("playerIds") Collection<UUID> playerIds,
+            @Param("asOf") LocalDate asOf
+    );
+
     @Query("""
             select ps from PlayerSeason ps
             join fetch ps.player

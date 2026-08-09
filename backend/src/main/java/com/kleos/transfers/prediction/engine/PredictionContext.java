@@ -14,6 +14,10 @@ import java.util.Optional;
 
 /**
  * Immutable snapshot of historical inputs used by the v0 heuristic engine.
+ *
+ * @param targetClubSquad        prior-season roster of the target club, as recorded
+ * @param departingSquadMembers  prior-season rows of players leaving in the target window
+ * @param arrivingSquadMembers   previous-club rows of the other players arriving in the same window
  */
 public record PredictionContext(
         Player player,
@@ -25,8 +29,38 @@ public record PredictionContext(
         List<Contract> playerContracts,
         Optional<ClubSeason> targetClubSeason,
         Optional<PlayerSeason> mostRecentSeason,
-        Optional<String> targetManagerName
+        Optional<String> targetManagerName,
+        List<PlayerSeason> departingSquadMembers,
+        List<PlayerSeason> arrivingSquadMembers
 ) {
+
+    public PredictionContext(
+            Player player,
+            Club targetClub,
+            Season season,
+            List<PlayerSeason> playerHistory,
+            List<PlayerSeason> targetClubSquad,
+            List<Injury> recentInjuries,
+            List<Contract> playerContracts,
+            Optional<ClubSeason> targetClubSeason,
+            Optional<PlayerSeason> mostRecentSeason,
+            Optional<String> targetManagerName
+    ) {
+        this(
+                player,
+                targetClub,
+                season,
+                playerHistory,
+                targetClubSquad,
+                recentInjuries,
+                playerContracts,
+                targetClubSeason,
+                mostRecentSeason,
+                targetManagerName,
+                List.of(),
+                List.of()
+        );
+    }
 
     public int ageAtSeasonStart() {
         return Period.between(player.getDateOfBirth(), season.getStartDate()).getYears();

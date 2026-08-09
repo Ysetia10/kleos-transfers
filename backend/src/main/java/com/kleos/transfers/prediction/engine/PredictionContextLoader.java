@@ -16,9 +16,17 @@ import com.kleos.transfers.playerseason.entity.PlayerSeason;
 import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
 import com.kleos.transfers.season.entity.Season;
 import com.kleos.transfers.season.repository.SeasonRepository;
+import com.kleos.transfers.domain.TransferStatus;
+import com.kleos.transfers.transfer.entity.Transfer;
+import com.kleos.transfers.transfer.repository.TransferRepository;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -44,6 +52,13 @@ public class PredictionContextLoader {
     private final InjuryRepository injuryRepository;
     private final ContractRepository contractRepository;
     private final ManagerSeasonRepository managerSeasonRepository;
+    private final TransferRepository transferRepository;
+
+    /** Moves settled enough to reshape the depth chart the incoming player joins. */
+    private static final List<TransferStatus> SQUAD_WINDOW_STATUSES = List.of(
+            TransferStatus.COMPLETED,
+            TransferStatus.ANNOUNCED
+    );
 
     public PredictionContext load(UUID playerId, UUID targetClubId, UUID seasonId) {
         Player player = playerRepository.findById(playerId)
@@ -71,6 +86,12 @@ public class PredictionContextLoader {
                 .findFirst()
                 .map(view -> view.getManagerName());
 
+        List<Transfer> window = transferRepository.findBySeasonIdAndClubIdAndStatusIn(
+                seasonId,
+                targetClubId,
+                SQUAD_WINDOW_STATUSES
+        );
+
         return new PredictionContext(
                 player,
                 targetClub,
@@ -81,7 +102,65 @@ public class PredictionContextLoader {
                 contracts,
                 clubSeason,
                 mostRecent,
-                managerName
+                managerName,
+                departingSquadMembers(window, targetClubId, playerId, squad),
+                arrivingSquadMembers(window, targetClubId, playerId, asOf)
         );
+    }
+
+    /**
+     * Prior-season rows of players leaving the target club in this window; their minutes are the
+     * slot the club now has to fill.
+     */
+    private List<PlayerSeason> departingSquadMembers(
+            List<Transfer> window,
+            UUID targetClubId,
+            UUID subjectId,
+            List<PlayerSeason> squad
+    ) {
+        Set<UUID> leaving = new HashSet<>();
+        for (Transfer transfer : window) {
+            if (transfer.getFromClub() != null && targetClubId.equals(transfer.getFromClub().getId())) {
+                leaving.add(transfer.getPlayer().getId());
+            }
+        }
+        if (leaving.isEmpty()) {
+            return List.of();
+        }
+        return squad.stream()
+                .filter(row -> leaving.contains(row.getPlayer().getId()))
+                .filter(row -> !row.getPlayer().getId().equals(subjectId))
+                .toList();
+    }
+
+    /**
+     * Latest previous-club row for each other player arriving in this window, so incoming rivals
+     * carry the level they were playing at before the move.
+     */
+    private List<PlayerSeason> arrivingSquadMembers(
+            List<Transfer> window,
+            UUID targetClubId,
+            UUID subjectId,
+            LocalDate asOf
+    ) {
+        Set<UUID> arriving = new LinkedHashSet<>();
+        for (Transfer transfer : window) {
+            if (transfer.getToClub() == null || !targetClubId.equals(transfer.getToClub().getId())) {
+                continue;
+            }
+            UUID arrivalId = transfer.getPlayer().getId();
+            if (!arrivalId.equals(subjectId)) {
+                arriving.add(arrivalId);
+            }
+        }
+        if (arriving.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, PlayerSeason> latestByPlayer = new LinkedHashMap<>();
+        for (PlayerSeason row : playerSeasonRepository.findHistoryByPlayerIdsBefore(arriving, asOf)) {
+            latestByPlayer.putIfAbsent(row.getPlayer().getId(), row);
+        }
+        return List.copyOf(latestByPlayer.values());
     }
 }

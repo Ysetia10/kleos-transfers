@@ -81,7 +81,7 @@ class PlayerServiceImplTest {
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
         when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
 
-        Page<PlayerResponse> actual = playerService.findAll(null, pageable);
+        Page<PlayerResponse> actual = playerService.findAll(null, null, null, null, null, pageable);
 
         assertThat(actual.getContent()).containsExactly(expected);
     }
@@ -91,12 +91,53 @@ class PlayerServiceImplTest {
         Pageable pageable = PageRequest.of(0, 20);
         Player player = player();
         PlayerResponse expected = response();
-        when(playerRepository.search(eq("rice"), eq(false), any(), eq(PageRequest.of(0, 20))))
+        when(playerRepository.searchFiltered(
+                        eq(true),
+                        eq("rice"),
+                        eq(false),
+                        any(),
+                        eq(false),
+                        any(),
+                        eq(false),
+                        any(),
+                        eq(false),
+                        any(),
+                        eq(false),
+                        eq(""),
+                        eq(PageRequest.of(0, 20))))
                 .thenReturn(new PageImpl<>(List.of(player)));
         when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
         when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
 
-        Page<PlayerResponse> actual = playerService.findAll("rice", pageable);
+        Page<PlayerResponse> actual = playerService.findAll("rice", null, null, null, null, pageable);
+
+        assertThat(actual.getContent()).containsExactly(expected);
+    }
+
+    @Test
+    void filtersPlayersByPositionGroup() {
+        Pageable pageable = PageRequest.of(0, 20);
+        Player player = player();
+        PlayerResponse expected = response();
+        when(playerRepository.searchFiltered(
+                        eq(false),
+                        eq(""),
+                        eq(false),
+                        any(),
+                        eq(true),
+                        any(),
+                        eq(false),
+                        any(),
+                        eq(false),
+                        any(),
+                        eq(false),
+                        eq(""),
+                        eq(PageRequest.of(0, 20))))
+                .thenReturn(new PageImpl<>(List.of(player)));
+        when(playerSeasonRepository.findLatestClubsByPlayerIds(any())).thenReturn(List.of());
+        when(playerMapper.toResponse(eq(player), isNull())).thenReturn(expected);
+
+        Page<PlayerResponse> actual = playerService.findAll(null, "MID", null, null, null, pageable);
 
         assertThat(actual.getContent()).containsExactly(expected);
     }

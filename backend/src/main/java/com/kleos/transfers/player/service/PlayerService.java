@@ -19,7 +19,14 @@ public interface PlayerService {
 
     BulkImportResponse<PlayerResponse> createAll(List<CreatePlayerRequest> requests);
 
-    Page<PlayerResponse> findAll(String query, Pageable pageable);
+    Page<PlayerResponse> findAll(
+            String query,
+            String position,
+            String league,
+            Integer minAge,
+            Integer maxAge,
+            Pageable pageable
+    );
 
     PlayerResponse findById(UUID id);
 

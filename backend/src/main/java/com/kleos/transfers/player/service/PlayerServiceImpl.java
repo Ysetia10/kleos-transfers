@@ -17,6 +17,7 @@ import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.player.mapper.PlayerMapper;
 import com.kleos.transfers.player.repository.PlayerRepository;
 import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -60,25 +61,68 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
-    public Page<PlayerResponse> findAll(String query, Pageable pageable) {
+    public Page<PlayerResponse> findAll(
+            String query,
+            String position,
+            String league,
+            Integer minAge,
+            Integer maxAge,
+            Pageable pageable
+    ) {
+        boolean hasQuery = query != null && !query.isBlank();
+        boolean hasPosition = position != null && !position.isBlank();
+        boolean hasLeague = league != null && !league.isBlank();
+        boolean hasAge = minAge != null || maxAge != null;
+
         Page<Player> page;
-        if (query == null || query.isBlank()) {
+        if (!hasQuery && !hasPosition && !hasLeague && !hasAge) {
             page = playerRepository.findAll(pageable);
         } else {
             Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-            String normalized = SearchQueries.normalize(query);
-            Set<String> codes = FootballCountryNames.codesMatchingQuery(normalized);
+            String normalized = hasQuery ? SearchQueries.normalize(query) : "";
+            Set<String> codes = hasQuery ? FootballCountryNames.codesMatchingQuery(normalized) : Set.of();
             boolean hasCodes = !codes.isEmpty();
             Collection<String> codeParams = hasCodes ? codes : List.of("__none__");
-            page = playerRepository.search(
-                    SearchQueries.escapeLike(normalized),
+            Collection<String> positions = resolvePositionFilter(position);
+            boolean hasPositions = !positions.isEmpty();
+            Collection<String> positionParams = hasPositions ? positions : List.of("__none__");
+
+            LocalDate today = LocalDate.now();
+            LocalDate bornOnOrBefore = minAge == null ? today : today.minusYears(minAge);
+            LocalDate bornOnOrAfter = maxAge == null ? LocalDate.of(1900, 1, 1) : today.minusYears(maxAge + 1L).plusDays(1);
+            String leagueParam = hasLeague ? league.trim() : "";
+
+            page = playerRepository.searchFiltered(
+                    hasQuery,
+                    hasQuery ? SearchQueries.escapeLike(normalized) : "",
                     hasCodes,
                     codeParams,
+                    hasPositions,
+                    positionParams,
+                    minAge != null,
+                    bornOnOrBefore,
+                    maxAge != null,
+                    bornOnOrAfter,
+                    hasLeague,
+                    leagueParam,
                     unsorted
             );
         }
         Map<UUID, LatestClubView> latestClubs = latestClubsByPlayerId(page.getContent());
         return page.map(player -> playerMapper.toResponse(player, latestClubs.get(player.getId())));
+    }
+
+    private static Collection<String> resolvePositionFilter(String position) {
+        if (position == null || position.isBlank()) {
+            return List.of();
+        }
+        String key = position.trim().toUpperCase(Locale.ROOT);
+        return switch (key) {
+            case "DEF", "DEFENDER" -> List.of("RB", "CB", "LB", "RWB", "LWB");
+            case "MID", "MIDFIELDER" -> List.of("CDM", "CM", "CAM", "RM", "LM");
+            case "FWD", "FORWARD", "ATT", "ATTACKER" -> List.of("RW", "LW", "CF", "ST");
+            default -> List.of(key);
+        };
     }
 
     @Override

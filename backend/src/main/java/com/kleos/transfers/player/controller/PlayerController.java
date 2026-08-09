@@ -54,12 +54,16 @@ public class PlayerController {
     }
 
     @GetMapping
-    @Operation(summary = "List players (paginated); optional q filters by name")
+    @Operation(summary = "List players (paginated); optional q / position / league / age filters")
     public ResponseEntity<Page<PlayerResponse>> findAll(
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) String position,
+            @RequestParam(required = false) String league,
+            @RequestParam(required = false) Integer minAge,
+            @RequestParam(required = false) Integer maxAge,
             @PageableDefault(size = 20, sort = "fullName", direction = Sort.Direction.ASC) Pageable pageable
     ) {
-        return ResponseEntity.ok(playerService.findAll(q, pageable));
+        return ResponseEntity.ok(playerService.findAll(q, position, league, minAge, maxAge, pageable));
     }
 
     @GetMapping("/{id}")

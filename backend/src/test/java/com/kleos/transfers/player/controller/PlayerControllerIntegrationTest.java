@@ -101,6 +101,69 @@ class PlayerControllerIntegrationTest extends AbstractPostgresIntegrationTest {
     }
 
     @Test
+    void filtersPlayersByPositionAgeAndLeague() throws Exception {
+        mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Young Midfielder",
+                                  "dateOfBirth": "2005-01-01",
+                                  "nationality": "ENG",
+                                  "heightCm": 180,
+                                  "preferredFoot": "RIGHT",
+                                  "primaryPosition": "CM"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        MvcResult forwardResult = mockMvc.perform(post(PLAYERS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Veteran Forward",
+                                  "dateOfBirth": "1990-01-01",
+                                  "nationality": "ESP",
+                                  "heightCm": 185,
+                                  "preferredFoot": "RIGHT",
+                                  "primaryPosition": "ST"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+        UUID forwardId = UUID.fromString(readId(forwardResult));
+
+        UUID clubId = createClub("Barcelona", "BAR", "ESP");
+        UUID seasonId = createSeason("2024/25");
+        UUID tournamentId = createTournament("La Liga", "LL", "ESP");
+        createClubSeason(clubId, seasonId, tournamentId);
+        createPlayerSeason(forwardId, clubId, seasonId);
+
+        mockMvc.perform(get(PLAYERS_PATH).param("position", "MID"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].fullName").value("Young Midfielder"));
+
+        mockMvc.perform(get(PLAYERS_PATH).param("minAge", "30"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].fullName").value("Veteran Forward"));
+
+        mockMvc.perform(get(PLAYERS_PATH).param("league", "La Liga"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].fullName").value("Veteran Forward"));
+
+        mockMvc.perform(get(PLAYERS_PATH)
+                        .param("position", "FWD")
+                        .param("league", "LL")
+                        .param("minAge", "30")
+                        .param("maxAge", "40"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].fullName").value("Veteran Forward"));
+    }
+
+    @Test
     void searchesPlayersByNationalityCodeAndCountryName() throws Exception {
         mockMvc.perform(post(PLAYERS_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -309,6 +372,86 @@ class PlayerControllerIntegrationTest extends AbstractPostgresIntegrationTest {
     private String readId(MvcResult result) throws Exception {
         JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
         return response.get("id").asText();
+    }
+
+    private UUID createClub(String name, String shortName, String countryCode) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/clubs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "%s",
+                                  "shortName": "%s",
+                                  "countryCode": "%s"
+                                }
+                                """.formatted(name, shortName, countryCode)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return UUID.fromString(readId(result));
+    }
+
+    private UUID createSeason(String label) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/seasons")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "label": "%s",
+                                  "startDate": "2024-07-01",
+                                  "endDate": "2025-06-30"
+                                }
+                                """.formatted(label)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return UUID.fromString(readId(result));
+    }
+
+    private UUID createTournament(String name, String shortName, String countryCode) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/tournaments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "%s",
+                                  "shortName": "%s",
+                                  "confederation": "UEFA",
+                                  "type": "LEAGUE",
+                                  "countryCode": "%s"
+                                }
+                                """.formatted(name, shortName, countryCode)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return UUID.fromString(readId(result));
+    }
+
+    private void createClubSeason(UUID clubId, UUID seasonId, UUID tournamentId) throws Exception {
+        mockMvc.perform(post("/api/v1/club-seasons")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "clubId": "%s",
+                                  "seasonId": "%s",
+                                  "tournamentId": "%s"
+                                }
+                                """.formatted(clubId, seasonId, tournamentId)))
+                .andExpect(status().isCreated());
+    }
+
+    private void createPlayerSeason(UUID playerId, UUID clubId, UUID seasonId) throws Exception {
+        mockMvc.perform(post("/api/v1/player-seasons")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "playerId": "%s",
+                                  "clubId": "%s",
+                                  "seasonId": "%s",
+                                  "appearances": 20,
+                                  "minutesPlayed": 1600,
+                                  "goals": 5,
+                                  "assists": 2,
+                                  "xg": 4.5,
+                                  "xa": 1.8,
+                                  "primaryPosition": "ST"
+                                }
+                                """.formatted(playerId, clubId, seasonId)))
+                .andExpect(status().isCreated());
     }
 
     private String validPlayerRequest() {

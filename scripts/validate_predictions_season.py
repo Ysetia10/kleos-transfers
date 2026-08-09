@@ -374,11 +374,16 @@ def main() -> int:
         "samplePredictions": samples,
         "failures": failures[:20],
     }
-    json_path, md_path = write_report(args.out_dir, args.season, payload)
     print(json.dumps(payload["metrics"], indent=2))
+    if metrics.n == 0:
+        print("No evaluations succeeded — refusing to overwrite research/validation artifacts.", file=sys.stderr)
+        if failures:
+            print(f"First failure: {failures[0]}", file=sys.stderr)
+        return 1
+    json_path, md_path = write_report(args.out_dir, args.season, payload)
     print(f"Wrote {json_path}")
     print(f"Wrote {md_path}")
-    return 0 if metrics.n > 0 else 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -100,16 +100,30 @@ export function ClubsPage() {
               >
                 <Stack spacing={0.5}>
                   <Typography color="text.secondary" variant="caption">
+                    Fit index
+                  </Typography>
+                  <Typography variant="body2">
+                    {Number.isFinite(club.fitIndex) ? Math.round(club.fitIndex) : '—'}
+                  </Typography>
+                </Stack>
+                <Stack spacing={0.5}>
+                  <Typography color="text.secondary" variant="caption">
+                    Recruitment
+                  </Typography>
+                  <Typography variant="body2">{club.recruitmentSignal}</Typography>
+                </Stack>
+                <Stack spacing={0.5}>
+                  <Typography color="text.secondary" variant="caption">
                     Manager
                   </Typography>
                   <Typography variant="body2">{club.currentManagerName ?? '—'}</Typography>
                 </Stack>
                 <Stack spacing={0.5}>
                   <Typography color="text.secondary" variant="caption">
-                    Season
+                    System / tempo
                   </Typography>
                   <Typography variant="body2">
-                    {club.currentManagerSeasonLabel ?? '—'}
+                    {(club.tacticalSystem ?? '—') + ' · ' + (club.tempo ?? '—')}
                   </Typography>
                 </Stack>
               </Box>

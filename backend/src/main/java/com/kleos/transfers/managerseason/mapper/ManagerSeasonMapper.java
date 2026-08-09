@@ -1,10 +1,13 @@
 package com.kleos.transfers.managerseason.mapper;
 
 import com.kleos.transfers.club.entity.Club;
+import com.kleos.transfers.domain.TacticalSystem;
+import com.kleos.transfers.domain.TempoProfile;
 import com.kleos.transfers.manager.entity.Manager;
 import com.kleos.transfers.managerseason.dto.ManagerSeasonResponse;
 import com.kleos.transfers.managerseason.entity.ManagerSeason;
 import com.kleos.transfers.season.entity.Season;
+import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,8 +16,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class ManagerSeasonMapper {
 
-    public ManagerSeason toEntity(Manager manager, Club club, Season season) {
-        return new ManagerSeason(manager, club, season);
+    public ManagerSeason toEntity(
+            Manager manager,
+            Club club,
+            Season season,
+            TacticalSystem tacticalSystem,
+            TempoProfile tempo,
+            BigDecimal youthMinutesPct
+    ) {
+        return new ManagerSeason(manager, club, season, tacticalSystem, tempo, youthMinutesPct);
     }
 
     public ManagerSeasonResponse toResponse(ManagerSeason managerSeason) {
@@ -29,6 +39,9 @@ public class ManagerSeasonMapper {
                 club.getName(),
                 season.getId(),
                 season.getLabel(),
+                managerSeason.getTacticalSystem(),
+                managerSeason.getTempo(),
+                managerSeason.getYouthMinutesPct(),
                 managerSeason.getCreatedAt(),
                 managerSeason.getUpdatedAt()
         );

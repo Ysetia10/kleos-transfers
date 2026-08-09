@@ -51,6 +51,9 @@ class ClubControllerIntegrationTest extends AbstractPostgresIntegrationTest {
                 .andExpect(jsonPath("$.foundedYear").value(1899))
                 .andExpect(jsonPath("$.currentManagerId").value(nullValue()))
                 .andExpect(jsonPath("$.currentManagerName").value(nullValue()))
+                .andExpect(jsonPath("$.fitIndex").exists())
+                .andExpect(jsonPath("$.recruitmentSignal").value("UNKNOWN"))
+                .andExpect(jsonPath("$.fitIndexVersion").value("absolute-v0.1"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andReturn();
 

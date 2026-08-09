@@ -1,6 +1,7 @@
 package com.kleos.transfers.club.service;
 
 import com.kleos.transfers.club.dto.ClubResponse;
+import com.kleos.transfers.club.dto.ClubSquadSeasonStatsView;
 import com.kleos.transfers.club.dto.CreateClubRequest;
 import com.kleos.transfers.club.dto.CurrentManagerView;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
@@ -16,13 +17,17 @@ import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
 import com.kleos.transfers.common.search.SearchQueries;
 import com.kleos.transfers.domain.FootballCountryNames;
+import com.kleos.transfers.domain.TacticalSystem;
+import com.kleos.transfers.domain.TempoProfile;
 import com.kleos.transfers.managerseason.repository.ManagerSeasonRepository;
 import com.kleos.transfers.playerseason.dto.PlayerSeasonResponse;
 import com.kleos.transfers.playerseason.mapper.PlayerSeasonMapper;
 import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
 import com.kleos.transfers.season.repository.SeasonRepository;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -86,8 +91,7 @@ public class ClubServiceImpl implements ClubService {
                     page
             );
         }
-        Map<UUID, CurrentManagerView> managers = currentManagersByClubId(clubs.getContent());
-        return clubs.map(club -> clubMapper.toResponse(club, managers.get(club.getId())));
+        return mapClubs(clubs.getContent(), clubs);
     }
 
     @Override
@@ -139,8 +143,94 @@ public class ClubServiceImpl implements ClubService {
     }
 
     private ClubResponse enrich(Club club) {
-        Map<UUID, CurrentManagerView> managers = currentManagersByClubId(List.of(club));
-        return clubMapper.toResponse(club, managers.get(club.getId()));
+        return mapClubs(List.of(club), null).getContent().getFirst();
+    }
+
+    private Page<ClubResponse> mapClubs(List<Club> clubs, Page<Club> page) {
+        Map<UUID, CurrentManagerView> managers = currentManagersByClubId(clubs);
+        Map<UUID, ClubSquadSeasonStatsView> squadStats = squadStatsForManagers(managers.values());
+
+        if (page == null) {
+            return new org.springframework.data.domain.PageImpl<>(
+                    clubs.stream()
+                            .map(club -> toEnrichedResponse(club, managers.get(club.getId()), squadStats))
+                            .toList()
+            );
+        }
+        return page.map(club -> toEnrichedResponse(club, managers.get(club.getId()), squadStats));
+    }
+
+    private ClubResponse toEnrichedResponse(
+            Club club,
+            CurrentManagerView manager,
+            Map<UUID, ClubSquadSeasonStatsView> squadStats
+    ) {
+        ClubSquadSeasonStatsView stats = null;
+        if (manager != null && manager.getSeasonId() != null) {
+            ClubSquadSeasonStatsView candidate = squadStats.get(club.getId());
+            if (candidate != null && manager.getSeasonId().equals(candidate.getSeasonId())) {
+                stats = candidate;
+            }
+        }
+
+        TacticalSystem system = parseSystem(manager == null ? null : manager.getTacticalSystem());
+        TempoProfile tempo = parseTempo(manager == null ? null : manager.getTempo());
+        BigDecimal youth = manager == null ? null : manager.getYouthMinutesPct();
+        if (youth == null && stats != null) {
+            youth = stats.getYouthMinutesPct();
+        }
+        // Derive coarse defaults when appointment exists but tactics are not curated yet.
+        if (manager != null && system == null) {
+            system = TacticalSystem.BALANCED;
+        }
+        if (manager != null && tempo == null) {
+            tempo = defaultTempo(club.getCountryCode());
+        }
+
+        boolean hasSquad = stats != null && stats.getPlayerCount() > 0;
+        ClubFitIndexCalculator.Result fit = ClubFitIndexCalculator.compute(
+                new ClubFitIndexCalculator.Input(
+                        manager != null,
+                        system,
+                        tempo,
+                        youth,
+                        club.getCountryCode(),
+                        hasSquad
+                )
+        );
+        return clubMapper.toResponse(club, manager, system, tempo, youth, hasSquad, fit);
+    }
+
+    private Map<UUID, ClubSquadSeasonStatsView> squadStatsForManagers(
+            Collection<CurrentManagerView> managers
+    ) {
+        List<UUID> clubIds = managers.stream()
+                .map(CurrentManagerView::getClubId)
+                .distinct()
+                .toList();
+        List<UUID> seasonIds = managers.stream()
+                .map(CurrentManagerView::getSeasonId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        if (clubIds.isEmpty() || seasonIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, UUID> expectedSeasonByClub = managers.stream()
+                .filter(m -> m.getSeasonId() != null)
+                .collect(Collectors.toMap(
+                        CurrentManagerView::getClubId,
+                        CurrentManagerView::getSeasonId,
+                        (a, b) -> a
+                ));
+        Map<UUID, ClubSquadSeasonStatsView> byClub = new HashMap<>();
+        for (ClubSquadSeasonStatsView row : playerSeasonRepository.findSquadSeasonStats(clubIds, seasonIds)) {
+            UUID expected = expectedSeasonByClub.get(row.getClubId());
+            if (expected != null && expected.equals(row.getSeasonId())) {
+                byClub.put(row.getClubId(), row);
+            }
+        }
+        return byClub;
     }
 
     private Map<UUID, CurrentManagerView> currentManagersByClubId(Collection<Club> clubs) {
@@ -150,6 +240,31 @@ public class ClubServiceImpl implements ClubService {
         List<UUID> ids = clubs.stream().map(Club::getId).toList();
         return managerSeasonRepository.findCurrentManagersByClubIds(ids).stream()
                 .collect(Collectors.toMap(CurrentManagerView::getClubId, Function.identity(), (a, b) -> a));
+    }
+
+    private static TacticalSystem parseSystem(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return TacticalSystem.valueOf(value);
+    }
+
+    private static TempoProfile parseTempo(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return TempoProfile.valueOf(value);
+    }
+
+    private static TempoProfile defaultTempo(String countryCode) {
+        if (countryCode == null) {
+            return TempoProfile.MEDIUM;
+        }
+        return switch (countryCode.toUpperCase(Locale.ROOT)) {
+            case "ENG", "GER" -> TempoProfile.HIGH;
+            case "ITA" -> TempoProfile.LOW;
+            default -> TempoProfile.MEDIUM;
+        };
     }
 
     private void assertUnique(String name, String countryCode, String fbrefId, UUID excludingId) {
@@ -222,10 +337,7 @@ public class ClubServiceImpl implements ClubService {
         @Override
         public List<ClubResponse> persist(List<CreateClubRequest> accepted) {
             List<Club> clubs = clubRepository.saveAll(accepted.stream().map(clubMapper::toEntity).toList());
-            Map<UUID, CurrentManagerView> managers = currentManagersByClubId(clubs);
-            return clubs.stream()
-                    .map(club -> clubMapper.toResponse(club, managers.get(club.getId())))
-                    .toList();
+            return mapClubs(clubs, null).getContent();
         }
     }
 }

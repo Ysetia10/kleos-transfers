@@ -5,7 +5,11 @@ import com.kleos.transfers.club.dto.CreateClubRequest;
 import com.kleos.transfers.club.dto.CurrentManagerView;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.entity.Club;
+import com.kleos.transfers.club.service.ClubFitIndexCalculator;
 import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
+import com.kleos.transfers.domain.TacticalSystem;
+import com.kleos.transfers.domain.TempoProfile;
+import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
 
 /**
@@ -43,7 +47,15 @@ public class ClubMapper {
         );
     }
 
-    public ClubResponse toResponse(Club club, CurrentManagerView currentManager) {
+    public ClubResponse toResponse(
+            Club club,
+            CurrentManagerView currentManager,
+            TacticalSystem tacticalSystem,
+            TempoProfile tempo,
+            BigDecimal youthMinutesPct,
+            boolean hasSquadSeason,
+            ClubFitIndexCalculator.Result fit
+    ) {
         return new ClubResponse(
                 club.getId(),
                 club.getName(),
@@ -58,6 +70,12 @@ public class ClubMapper {
                 currentManager == null ? null : currentManager.getManagerId(),
                 currentManager == null ? null : currentManager.getManagerName(),
                 currentManager == null ? null : currentManager.getSeasonLabel(),
+                tacticalSystem,
+                tempo,
+                youthMinutesPct,
+                fit.fitIndex(),
+                fit.recruitmentSignal(),
+                fit.version(),
                 club.getCreatedAt(),
                 club.getUpdatedAt()
         );

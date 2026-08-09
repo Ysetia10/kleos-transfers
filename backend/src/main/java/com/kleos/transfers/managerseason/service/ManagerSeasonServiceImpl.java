@@ -50,7 +50,14 @@ public class ManagerSeasonServiceImpl implements ManagerSeasonService {
         Manager manager = requireManager(request.managerId());
         Club club = requireClub(request.clubId());
         Season season = requireSeason(request.seasonId());
-        ManagerSeason managerSeason = managerSeasonMapper.toEntity(manager, club, season);
+        ManagerSeason managerSeason = managerSeasonMapper.toEntity(
+                manager,
+                club,
+                season,
+                request.tacticalSystem(),
+                request.tempo(),
+                request.youthMinutesPct()
+        );
         return managerSeasonMapper.toResponse(managerSeasonRepository.save(managerSeason));
     }
 
@@ -78,6 +85,7 @@ public class ManagerSeasonServiceImpl implements ManagerSeasonService {
         Club club = requireClub(request.clubId());
         Season season = requireSeason(request.seasonId());
         managerSeason.reassign(manager, club, season);
+        managerSeason.updateTactics(request.tacticalSystem(), request.tempo(), request.youthMinutesPct());
         return managerSeasonMapper.toResponse(managerSeason);
     }
 
@@ -155,7 +163,10 @@ public class ManagerSeasonServiceImpl implements ManagerSeasonService {
                     .map(request -> managerSeasonMapper.toEntity(
                             requirePresent(managers, request.managerId(), "Manager"),
                             requirePresent(clubs, request.clubId(), "Club"),
-                            requirePresent(seasons, request.seasonId(), "Season")))
+                            requirePresent(seasons, request.seasonId(), "Season"),
+                            request.tacticalSystem(),
+                            request.tempo(),
+                            request.youthMinutesPct()))
                     .toList();
 
             return managerSeasonRepository.saveAll(entities).stream()

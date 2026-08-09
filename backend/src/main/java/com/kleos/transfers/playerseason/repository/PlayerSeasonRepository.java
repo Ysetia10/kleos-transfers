@@ -1,5 +1,6 @@
 package com.kleos.transfers.playerseason.repository;
 
+import com.kleos.transfers.club.dto.ClubSquadSeasonStatsView;
 import com.kleos.transfers.player.dto.LatestClubView;
 import com.kleos.transfers.playerseason.entity.PlayerSeason;
 import java.time.LocalDate;
@@ -208,5 +209,40 @@ public interface PlayerSeasonRepository extends JpaRepository<PlayerSeason, UUID
     List<Object[]> findAllTimeAssistLeaders(
             @Param("tournamentName") String tournamentName,
             @Param("limit") int limit
+    );
+
+    /**
+     * U23 minutes share (and squad size) for club-seasons in the given id sets.
+     * Callers should keep only rows whose (clubId, seasonId) pair is intended.
+     */
+    @Query(
+            value = """
+                    SELECT ps.club_id AS "clubId",
+                           ps.season_id AS "seasonId",
+                           COUNT(*) AS "playerCount",
+                           ROUND(
+                               100.0 * SUM(
+                                   CASE
+                                       WHEN date_part('year', age(s.start_date, p.date_of_birth)) < 23
+                                           THEN COALESCE(ps.minutes_played, 0)
+                                       ELSE 0
+                                   END
+                               ) / NULLIF(SUM(COALESCE(ps.minutes_played, 0)), 0),
+                               2
+                           ) AS "youthMinutesPct"
+                    FROM player_seasons ps
+                    JOIN players p ON p.id = ps.player_id
+                    JOIN seasons s ON s.id = ps.season_id
+                    WHERE ps.deleted_at IS NULL
+                      AND p.deleted_at IS NULL
+                      AND ps.club_id IN (:clubIds)
+                      AND ps.season_id IN (:seasonIds)
+                    GROUP BY ps.club_id, ps.season_id
+                    """,
+            nativeQuery = true
+    )
+    List<ClubSquadSeasonStatsView> findSquadSeasonStats(
+            @Param("clubIds") Collection<UUID> clubIds,
+            @Param("seasonIds") Collection<UUID> seasonIds
     );
 }

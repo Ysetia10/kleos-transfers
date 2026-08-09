@@ -81,6 +81,57 @@ export function ClubDetailPage() {
         <Stack spacing={2}>
           <SurfaceCard accent="info">
             <Typography color="primary.main" variant="caption">
+              Fit index · {club.fitIndexVersion}
+            </Typography>
+            <Typography sx={{ mt: 1 }} variant="h3">
+              {Number.isFinite(club.fitIndex) ? Math.round(club.fitIndex) : '—'}
+            </Typography>
+            <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
+              Absolute club environment score (not relative to a selected player). Recruitment
+              signal: {club.recruitmentSignal}.
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 1.5,
+                mt: 2,
+              }}
+            >
+              <Stack spacing={0.25}>
+                <Typography color="text.secondary" variant="caption">
+                  System
+                </Typography>
+                <Typography variant="body2">{club.tacticalSystem ?? '—'}</Typography>
+              </Stack>
+              <Stack spacing={0.25}>
+                <Typography color="text.secondary" variant="caption">
+                  Tempo
+                </Typography>
+                <Typography variant="body2">{club.tempo ?? '—'}</Typography>
+              </Stack>
+              <Stack spacing={0.25}>
+                <Typography color="text.secondary" variant="caption">
+                  Youth minutes
+                </Typography>
+                <Typography variant="body2">
+                  {club.youthMinutesPct == null
+                    ? '—'
+                    : `${Number(club.youthMinutesPct).toFixed(1)}%`}
+                </Typography>
+              </Stack>
+              <Stack spacing={0.25}>
+                <Typography color="text.secondary" variant="caption">
+                  Season
+                </Typography>
+                <Typography variant="body2">
+                  {club.currentManagerSeasonLabel ?? '—'}
+                </Typography>
+              </Stack>
+            </Box>
+          </SurfaceCard>
+          <SurfaceCard>
+            <Typography color="primary.main" variant="caption">
               Manager context
             </Typography>
             <Typography sx={{ mt: 1 }} variant="h3">
@@ -88,7 +139,7 @@ export function ClubDetailPage() {
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
               {club.currentManagerSeasonLabel
-                ? `Appointment linked for ${club.currentManagerSeasonLabel}.`
+                ? `Appointment linked for ${club.currentManagerSeasonLabel}. Stored tactics when curated; otherwise BALANCED + league-default tempo.`
                 : 'No ManagerSeason row for this club yet — import appointments to enrich fit signals.'}
             </Typography>
           </SurfaceCard>

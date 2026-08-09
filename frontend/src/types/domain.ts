@@ -60,6 +60,10 @@ export interface PlayerSeason {
   updatedAt: string
 }
 
+export type TacticalSystem = 'POSSESSION' | 'TRANSITION' | 'DIRECT' | 'BALANCED'
+export type TempoProfile = 'LOW' | 'MEDIUM' | 'HIGH'
+export type RecruitmentSignal = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN'
+
 export interface Club {
   id: string
   name: string
@@ -74,6 +78,12 @@ export interface Club {
   currentManagerId: string | null
   currentManagerName: string | null
   currentManagerSeasonLabel: string | null
+  tacticalSystem: TacticalSystem | null
+  tempo: TempoProfile | null
+  youthMinutesPct: number | null
+  fitIndex: number
+  recruitmentSignal: RecruitmentSignal
+  fitIndexVersion: string
   createdAt: string
   updatedAt: string
 }

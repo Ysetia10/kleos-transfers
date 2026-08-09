@@ -250,7 +250,7 @@ Internal: `uniquenessKey` is `{clubId}:{seasonId}` while active; soft delete app
 
 ### Purpose
 
-Represent a manager's appointment at a club for a season. This is historical context for managerial approach in transfer predictions. Tactical philosophy/style fields are deferred until a prediction feature needs them.
+Represent a manager's appointment at a club for a season, including optional tactical context used for absolute club fit / recruitment signals.
 
 ### Attributes
 
@@ -260,6 +260,9 @@ Represent a manager's appointment at a club for a season. This is historical con
 | `manager` | FK → Manager | Required |
 | `club` | FK → Club | Required |
 | `season` | FK → Season | Required |
+| `tacticalSystem` | enum (nullable) | `POSSESSION` / `TRANSITION` / `DIRECT` / `BALANCED` |
+| `tempo` | enum (nullable) | `LOW` / `MEDIUM` / `HIGH` |
+| `youthMinutesPct` | decimal 0–100 (nullable) | Share of squad minutes by U23 players; may be derived from `PlayerSeason` when unset |
 | `createdAt` / `updatedAt` | Instant | Audited timestamps |
 | `deletedAt` | Instant (nullable) | Soft-delete marker |
 
@@ -273,10 +276,10 @@ Internal: `uniquenessKey` is `{managerId}:{clubId}:{seasonId}` while active; sof
 
 ### Notes
 
-- Implemented in backend Version 0.2.
+- Implemented in backend Version 0.2; tactical fields added for club fit index (`absolute-v0.1`).
 - API: `/api/v1/manager-seasons` (+ `/bulk`).
 - **Uniqueness is per (manager, club, season).** Different managers at the same club in the same season are allowed (mid-season changes / caretakers). Appointment start/end dates can be added later if needed.
-- No philosophy, formation, or press-intensity fields yet.
+- **Club fit index is absolute** (club environment), not relative to a selected player. Player→club fit remains `Prediction.compatibilityScore`. When tactics are unset but a manager is present, the API derives `BALANCED` system and a league-default tempo for display/scoring.
 
 ## Transfer
 

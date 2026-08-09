@@ -29,7 +29,11 @@ public interface ManagerSeasonRepository extends JpaRepository<ManagerSeason, UU
                            ms.club_id AS "clubId",
                            m.id AS "managerId",
                            m.full_name AS "managerName",
-                           s.label AS "seasonLabel"
+                           s.label AS "seasonLabel",
+                           s.id AS "seasonId",
+                           ms.tactical_system AS "tacticalSystem",
+                           ms.tempo AS "tempo",
+                           ms.youth_minutes_pct AS "youthMinutesPct"
                     FROM manager_seasons ms
                     JOIN managers m ON m.id = ms.manager_id
                     JOIN seasons s ON s.id = ms.season_id

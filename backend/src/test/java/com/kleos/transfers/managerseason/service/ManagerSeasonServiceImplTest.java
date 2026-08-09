@@ -57,7 +57,8 @@ class ManagerSeasonServiceImplTest {
         UUID managerId = UUID.randomUUID();
         UUID clubId = UUID.randomUUID();
         UUID seasonId = UUID.randomUUID();
-        CreateManagerSeasonRequest request = new CreateManagerSeasonRequest(managerId, clubId, seasonId);
+        CreateManagerSeasonRequest request =
+                new CreateManagerSeasonRequest(managerId, clubId, seasonId, null, null, null);
 
         Manager manager = manager(managerId);
         Club club = club(clubId);
@@ -68,7 +69,7 @@ class ManagerSeasonServiceImplTest {
         when(managerRepository.findById(managerId)).thenReturn(Optional.of(manager));
         when(clubRepository.findById(clubId)).thenReturn(Optional.of(club));
         when(seasonRepository.findById(seasonId)).thenReturn(Optional.of(season));
-        when(managerSeasonMapper.toEntity(manager, club, season)).thenReturn(entity);
+        when(managerSeasonMapper.toEntity(manager, club, season, null, null, null)).thenReturn(entity);
         when(managerSeasonRepository.save(entity)).thenReturn(entity);
         when(managerSeasonMapper.toResponse(entity)).thenReturn(expected);
 
@@ -82,7 +83,8 @@ class ManagerSeasonServiceImplTest {
         when(managerRepository.findById(managerId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> managerSeasonService.create(
-                new CreateManagerSeasonRequest(managerId, UUID.randomUUID(), UUID.randomUUID())))
+                new CreateManagerSeasonRequest(
+                        managerId, UUID.randomUUID(), UUID.randomUUID(), null, null, null)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining(managerId.toString());
     }
@@ -108,7 +110,8 @@ class ManagerSeasonServiceImplTest {
         UUID managerId = UUID.randomUUID();
         UUID clubId = UUID.randomUUID();
         UUID seasonId = UUID.randomUUID();
-        UpdateManagerSeasonRequest request = new UpdateManagerSeasonRequest(managerId, clubId, seasonId);
+        UpdateManagerSeasonRequest request =
+                new UpdateManagerSeasonRequest(managerId, clubId, seasonId, null, null, null);
 
         Manager manager = manager(managerId);
         Club club = club(clubId);
@@ -156,6 +159,9 @@ class ManagerSeasonServiceImplTest {
                 "Arsenal",
                 seasonId,
                 "2024/25",
+                null,
+                null,
+                null,
                 null,
                 null
         );

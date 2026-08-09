@@ -125,7 +125,10 @@ export function MethodologyPage() {
           <Typography variant="h4">Important limitations</Typography>
           <Typography color="text.secondary" component="ul" sx={{ mt: 1, pl: 2 }} variant="body2">
             <li>xG/xA recovery still incomplete in history</li>
-            <li>Manager/tactical attributes are thin today</li>
+            <li>
+              Club fit index is absolute ({`absolute-v0.1`}); player→club fit stays on prediction
+              compatibility
+            </li>
             <li>Not a substitute for medical or contract diligence</li>
           </Typography>
         </SurfaceCard>

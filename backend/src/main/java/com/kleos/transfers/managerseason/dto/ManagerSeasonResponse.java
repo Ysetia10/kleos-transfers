@@ -1,5 +1,8 @@
 package com.kleos.transfers.managerseason.dto;
 
+import com.kleos.transfers.domain.TacticalSystem;
+import com.kleos.transfers.domain.TempoProfile;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,6 +17,9 @@ public record ManagerSeasonResponse(
         String clubName,
         UUID seasonId,
         String seasonLabel,
+        TacticalSystem tacticalSystem,
+        TempoProfile tempo,
+        BigDecimal youthMinutesPct,
         Instant createdAt,
         Instant updatedAt
 ) {

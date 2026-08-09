@@ -1,5 +1,6 @@
 package com.kleos.transfers.club.dto;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -14,4 +15,12 @@ public interface CurrentManagerView {
     String getManagerName();
 
     String getSeasonLabel();
+
+    UUID getSeasonId();
+
+    String getTacticalSystem();
+
+    String getTempo();
+
+    BigDecimal getYouthMinutesPct();
 }

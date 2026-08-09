@@ -2,10 +2,12 @@ package com.kleos.transfers.club.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import static org.mockito.ArgumentMatchers.anyCollection;
 
 import com.kleos.transfers.club.dto.ClubResponse;
 import com.kleos.transfers.club.dto.CreateClubRequest;
@@ -16,6 +18,7 @@ import com.kleos.transfers.club.repository.ClubRepository;
 import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.exception.ConflictException;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.domain.RecruitmentSignal;
 import com.kleos.transfers.managerseason.repository.ManagerSeasonRepository;
 import com.kleos.transfers.playerseason.mapper.PlayerSeasonMapper;
 import com.kleos.transfers.playerseason.repository.PlayerSeasonRepository;
@@ -70,7 +73,9 @@ class ClubServiceImplTest {
         when(clubMapper.toEntity(request)).thenReturn(club);
         when(clubRepository.save(club)).thenReturn(club);
         when(managerSeasonRepository.findCurrentManagersByClubIds(anyCollection())).thenReturn(List.of());
-        when(clubMapper.toResponse(club, null)).thenReturn(expected);
+        when(clubMapper.toResponse(
+                eq(club), isNull(), isNull(), isNull(), isNull(), eq(false), any()
+        )).thenReturn(expected);
 
         assertThat(clubService.create(request)).isSameAs(expected);
         verify(clubRepository).save(club);
@@ -93,7 +98,9 @@ class ClubServiceImplTest {
         ClubResponse expected = response();
         when(clubRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(club)));
         when(managerSeasonRepository.findCurrentManagersByClubIds(anyCollection())).thenReturn(List.of());
-        when(clubMapper.toResponse(club, null)).thenReturn(expected);
+        when(clubMapper.toResponse(
+                eq(club), isNull(), isNull(), isNull(), isNull(), eq(false), any()
+        )).thenReturn(expected);
 
         Page<ClubResponse> actual = clubService.findAll(null, pageable);
 
@@ -108,7 +115,9 @@ class ClubServiceImplTest {
 
         when(clubRepository.findById(id)).thenReturn(Optional.of(club));
         when(managerSeasonRepository.findCurrentManagersByClubIds(anyCollection())).thenReturn(List.of());
-        when(clubMapper.toResponse(club, null)).thenReturn(expected);
+        when(clubMapper.toResponse(
+                eq(club), isNull(), isNull(), isNull(), isNull(), eq(false), any()
+        )).thenReturn(expected);
 
         assertThat(clubService.findById(id)).isSameAs(expected);
     }
@@ -124,7 +133,9 @@ class ClubServiceImplTest {
         when(clubRepository.existsByNameNormalizedAndCountryCodeAndIdNot("fc barcelona", "ESP", id))
                 .thenReturn(false);
         when(managerSeasonRepository.findCurrentManagersByClubIds(anyCollection())).thenReturn(List.of());
-        when(clubMapper.toResponse(club, null)).thenReturn(expected);
+        when(clubMapper.toResponse(
+                eq(club), isNull(), isNull(), isNull(), isNull(), eq(false), any()
+        )).thenReturn(expected);
 
         assertThat(clubService.update(id, request)).isSameAs(expected);
         verify(clubMapper).updateEntity(club, request);
@@ -179,6 +190,12 @@ class ClubServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                java.math.BigDecimal.valueOf(38.0),
+                RecruitmentSignal.UNKNOWN,
+                ClubFitIndexCalculator.VERSION,
                 null,
                 null
         );

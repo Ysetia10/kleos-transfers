@@ -36,7 +36,7 @@ export function homePredictPath(options?: { playerId?: string; clubId?: string }
 }
 
 export const navigationItems: ReadonlyArray<{ label: string; to: AppRoute }> = [
-  { label: 'Simulator', to: routes.home },
+  { label: 'Prediction', to: routes.home },
   { label: 'Players', to: routes.players },
   { label: 'Clubs', to: routes.clubs },
   { label: 'Transfers', to: routes.transfers },

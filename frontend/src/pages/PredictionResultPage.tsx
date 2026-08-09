@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { SquadTable } from '@/components/home/SquadTable'
 import { PitchLineup } from '@/components/squad/PitchLineup'
+import { ActualOutcomeCard } from '@/components/prediction/ActualOutcomeCard'
 import { CompatibilityBreakdownChips } from '@/components/prediction/CompatibilityBreakdownChips'
 import { ExplanationList } from '@/components/prediction/ExplanationList'
 import { MetricGrid } from '@/components/prediction/MetricGrid'
@@ -16,7 +17,7 @@ import { queryKeys } from '@/services/api/queryKeys'
 import { getClubSquad } from '@/services/club/squadApi'
 import { getPrediction } from '@/services/prediction/predictionApi'
 import { downloadPredictionBrief } from '@/utils/exportPredictionBrief'
-import { formatDateTime, formatNumber } from '@/utils/format'
+import { formatNumber } from '@/utils/format'
 
 export function PredictionResultPage() {
   const { id = '' } = useParams()
@@ -62,12 +63,8 @@ export function PredictionResultPage() {
         }
         description={`${prediction.playerName} → ${prediction.targetClubName} · ${prediction.seasonLabel}`}
         eyebrow="Prediction workspace"
-        title="Transfer Simulator"
+        title="Prediction"
       />
-
-      <Typography color="text.secondary" variant="body2">
-        Model {prediction.modelVersion} · run {formatDateTime(prediction.createdAt)}
-      </Typography>
 
       <Box
         sx={{
@@ -117,28 +114,31 @@ export function PredictionResultPage() {
           </SurfaceCard>
         </Stack>
 
-        <SurfaceCard>
-          <Typography color="text.secondary" variant="caption">
-            First-season estimate
-          </Typography>
-          <Typography sx={{ mt: 1, mb: 2 }} variant="h3">
-            Projected output
-          </Typography>
-          <MetricGrid
-            assists={Number(prediction.predictedAssists)}
-            goals={Number(prediction.predictedGoals)}
-            marketValueEur={
-              prediction.predictedMarketValueEur == null
-                ? null
-                : Number(prediction.predictedMarketValueEur)
-            }
-            minutes={prediction.predictedMinutes}
-            minutesHigh={prediction.predictedMinutesHigh}
-            minutesLow={prediction.predictedMinutesLow}
-            xa={Number(prediction.predictedXa)}
-            xg={Number(prediction.predictedXg)}
-          />
-        </SurfaceCard>
+        <Stack spacing={2}>
+          <SurfaceCard>
+            <Typography color="text.secondary" variant="caption">
+              First-season estimate
+            </Typography>
+            <Typography sx={{ mt: 1, mb: 2 }} variant="h3">
+              Projected output
+            </Typography>
+            <MetricGrid
+              assists={Number(prediction.predictedAssists)}
+              goals={Number(prediction.predictedGoals)}
+              marketValueEur={
+                prediction.predictedMarketValueEur == null
+                  ? null
+                  : Number(prediction.predictedMarketValueEur)
+              }
+              minutes={prediction.predictedMinutes}
+              minutesHigh={prediction.predictedMinutesHigh}
+              minutesLow={prediction.predictedMinutesLow}
+            />
+          </SurfaceCard>
+          {prediction.evaluation ? (
+            <ActualOutcomeCard evaluation={prediction.evaluation} prediction={prediction} />
+          ) : null}
+        </Stack>
 
         <SurfaceCard>
           <Typography color="text.secondary" variant="caption">

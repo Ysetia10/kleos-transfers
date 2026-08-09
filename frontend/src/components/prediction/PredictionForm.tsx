@@ -34,6 +34,8 @@ interface PredictionFormProps {
   initialPlayerId?: string
   initialClubId?: string
   showSquad?: boolean
+  /** upcoming = current campaign only; historical = completed seasons (backtest path). */
+  seasonMode?: 'upcoming' | 'historical'
 }
 
 const SEARCH_PAGE_SIZE = 25
@@ -51,6 +53,7 @@ export function PredictionForm({
   initialPlayerId,
   initialClubId,
   showSquad = false,
+  seasonMode = 'upcoming',
 }: PredictionFormProps) {
   const navigate = useNavigate()
   const [playerInput, setPlayerInput] = useState('')
@@ -85,7 +88,15 @@ export function PredictionForm({
     enabled: !!initialClubId,
   })
 
-  const seasons = seasonsQuery.data?.content ?? []
+  const seasons = useMemo(() => {
+    const all = seasonsQuery.data?.content ?? []
+    if (seasonMode === 'historical') {
+      return all.filter((season) => !isUpcomingSeason(season))
+    }
+    const upcoming = all.filter((season) => isUpcomingSeason(season))
+    return upcoming.length > 0 ? upcoming : all.slice(0, 1)
+  }, [seasonsQuery.data?.content, seasonMode])
+
   const playerOptions = useMemo(() => {
     const byId = new Map<string, Player>()
     for (const player of playersQuery.data?.content ?? []) {
@@ -126,9 +137,13 @@ export function PredictionForm({
   const watchedClubId = useWatch({ control, name: 'targetClubId' })
   const watchedSeasonId = useWatch({ control, name: 'seasonId' })
 
-  // Prefer the newest season (upcoming predict-to campaigns like 2026/27 once present).
+  // Lock to the newest eligible season for the active mode when unset or out of scope.
   useEffect(() => {
-    if (!watchedSeasonId && seasons[0]?.id) {
+    if (!seasons.length) {
+      return
+    }
+    const stillValid = seasons.some((season) => season.id === watchedSeasonId)
+    if (!watchedSeasonId || !stillValid) {
       setValue('seasonId', seasons[0].id)
     }
   }, [seasons, setValue, watchedSeasonId])
@@ -300,33 +315,40 @@ export function PredictionForm({
           )}
         />
 
-        <Controller
-          control={control}
-          name="seasonId"
-          render={({ field }) => (
-            <Autocomplete<Season>
-              getOptionLabel={(option) => seasonOptionLabel(option)}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              onChange={(_, value) => field.onChange(value?.id ?? '')}
-              options={seasons}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  error={!!errors.seasonId}
-                  helperText={
-                    errors.seasonId?.message ??
-                    (upcomingSelected
-                      ? 'Upcoming season — squad projected from prior roster ± transfers'
-                      : 'Completed seasons can be checked against actual outcomes')
-                  }
-                  label="Target season"
-                  required
-                />
-              )}
-              value={seasons.find((season) => season.id === field.value) ?? null}
-            />
-          )}
-        />
+        {seasonMode === 'historical' ? (
+          <Controller
+            control={control}
+            name="seasonId"
+            render={({ field }) => (
+              <Autocomplete<Season>
+                getOptionLabel={(option) => seasonOptionLabel(option)}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                onChange={(_, value) => field.onChange(value?.id ?? '')}
+                options={seasons}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    error={!!errors.seasonId}
+                    helperText={
+                      errors.seasonId?.message ??
+                      'Completed seasons can be checked against actual outcomes'
+                    }
+                    label="Target season"
+                    required
+                  />
+                )}
+                value={seasons.find((season) => season.id === field.value) ?? null}
+              />
+            )}
+          />
+        ) : (
+          <TextField
+            helperText="Current campaign only — use previous-seasons mode for backtests"
+            label="Target season"
+            slotProps={{ input: { readOnly: true } }}
+            value={selectedSeason ? seasonOptionLabel(selectedSeason) : '—'}
+          />
+        )}
 
         <Button
           disabled={mutation.isPending}
@@ -338,12 +360,19 @@ export function PredictionForm({
         </Button>
       </Box>
 
-      {upcomingSelected ? (
+      {seasonMode === 'upcoming' && upcomingSelected ? (
         <Alert severity="info" variant="outlined">
           Predicting <strong>{selectedSeason?.label}</strong> before kick-off. Destination squad starts
           from the club’s <strong>latest completed roster</strong>
           {priorSeason ? <> ({priorSeason.label})</> : null}, then removes confirmed outs and adds
           confirmed/announced ins for {selectedSeason?.label}.
+        </Alert>
+      ) : null}
+
+      {seasonMode === 'historical' ? (
+        <Alert severity="info" variant="outlined">
+          Previous-season mode projects into a completed campaign so you can compare against actual
+          minutes and output when PlayerSeason rows exist.
         </Alert>
       ) : null}
 

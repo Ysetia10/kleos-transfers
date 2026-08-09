@@ -23,7 +23,7 @@ export function Footer() {
           </Typography>
           <Stack direction="row" spacing={2}>
             <MuiLink component={RouterLink} color="text.secondary" to={routes.home} underline="hover">
-              Simulator
+              Prediction
             </MuiLink>
             <MuiLink
               component={RouterLink}

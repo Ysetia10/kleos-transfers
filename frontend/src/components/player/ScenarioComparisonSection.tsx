@@ -136,9 +136,9 @@ export function ScenarioComparisonSection({ playerId }: ScenarioComparisonSectio
               </SurfaceCard>
             ))}
           </Box>
-        ) : (
+        ) : comparable[0] ? (
           <SurfaceCard accent="info">
-            <Typography variant="h4">{comparable[0]?.targetClubName}</Typography>
+            <Typography variant="h4">{comparable[0].targetClubName}</Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
               One destination so far. Build another club scenario to compare projections side by
               side.
@@ -160,7 +160,7 @@ export function ScenarioComparisonSection({ playerId }: ScenarioComparisonSectio
               Add club scenario
             </Button>
           </SurfaceCard>
-        )}
+        ) : null}
 
         {scenarios.length > 0 ? (
           <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>

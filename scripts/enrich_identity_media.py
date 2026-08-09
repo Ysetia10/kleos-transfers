@@ -199,6 +199,11 @@ def parse_args() -> argparse.Namespace:
         help="for clubs, try Wikidata/Wikipedia if TheSportsDB misses (slow)",
     )
     parser.add_argument("--workers", type=int, default=6, help="concurrent resolvers (shared throttle)")
+    parser.add_argument(
+        "--stats",
+        action="store_true",
+        help="print photo/crest coverage from the API and exit (no enrich)",
+    )
     return parser.parse_args()
 
 
@@ -621,15 +626,39 @@ def club_search_query(club: dict) -> str:
     return f"{name} football club"
 
 
-def player_search_query(player: dict) -> str:
+def player_search_queries(player: dict) -> list[str]:
+    """Ordered Wikipedia search queries — nationality + DOB year for disambiguation."""
     name = player["fullName"]
     code = (player.get("nationality") or "").upper()
     hints = COUNTRY_HINTS.get(code) or ()
-    # Prefer "Aaron Ramsey welsh footballer" so English/Welsh namesakes diverge.
-    nationality_word = hints[0] if hints else code.casefold()
+    nationality_word = hints[0] if hints else (code.casefold() if code else "")
+    year = None
+    dob = player.get("dateOfBirth")
+    if isinstance(dob, str) and len(dob) >= 4 and dob[:4].isdigit():
+        year = dob[:4]
+
+    queries: list[str] = []
+    if nationality_word and year:
+        queries.append(f"{name} {nationality_word} footballer {year}")
     if nationality_word:
-        return f"{name} {nationality_word} footballer"
-    return f"{name} footballer"
+        queries.append(f"{name} {nationality_word} footballer")
+    if year:
+        queries.append(f"{name} footballer {year}")
+    queries.append(f"{name} footballer")
+    # De-dupe while preserving order.
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for query in queries:
+        key = query.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(query)
+    return ordered
+
+
+def player_search_query(player: dict) -> str:
+    return player_search_queries(player)[0]
 
 
 def wikidata_get(params: dict) -> dict:
@@ -877,14 +906,18 @@ def resolve_club_media(club: dict, *, wikimedia_fallback: bool = False) -> dict 
 
 def resolve_player_media(player: dict) -> dict | None:
     name = player["fullName"]
-    query = player_search_query(player)
     # Wikipedia only — Commons filename search is too noisy for player identity.
-    return resolve_wikipedia_image(
-        query,
-        require_football=True,
-        identity_name=name,
-        nationality_code=player.get("nationality"),
-    )
+    # Try nationality-aware queries first, then broader fallbacks.
+    for query in player_search_queries(player):
+        media = resolve_wikipedia_image(
+            query,
+            require_football=True,
+            identity_name=name,
+            nationality_code=player.get("nationality"),
+        )
+        if media:
+            return media
+    return None
 
 
 def already_has_media(resource: str, item: dict) -> bool:
@@ -939,11 +972,32 @@ def enrich_one(
         return "failed"
 
 
+def print_coverage_stats(api_url: str, resource: str) -> None:
+    items = list_all(api_url, f"/api/v1/{resource}")
+    total = len(items)
+    if resource == "clubs":
+        with_media = sum(1 for item in items if item.get("crestUrl"))
+        label = "crestUrl"
+    else:
+        with_media = sum(1 for item in items if item.get("photoUrl"))
+        label = "photoUrl"
+    pct = (100.0 * with_media / total) if total else 0.0
+    log(f"{resource}: {with_media}/{total} have {label} ({pct:.1f}%)")
+    missing = total - with_media
+    log(f"{resource}: missing={missing} (initials fallback in UI)")
+
+
 def main() -> None:
     args = parse_args()
+    if args.stats:
+        print_coverage_stats(args.api_url, args.resource)
+        return
+
     only_missing = not args.include_existing
     workers = max(1, args.workers)
     items = list_all(args.api_url, f"/api/v1/{args.resource}")
+    if only_missing:
+        items = [item for item in items if not already_has_media(args.resource, item)]
     selected = items[args.offset :]
     if args.limit > 0:
         selected = selected[: args.limit]

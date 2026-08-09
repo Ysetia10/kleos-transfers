@@ -45,6 +45,7 @@ export interface PlayerSeason {
   id: string
   playerId: string
   playerName: string
+  photoUrl: string | null
   clubId: string
   clubName: string
   seasonId: string

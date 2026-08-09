@@ -35,9 +35,10 @@ Before enriching photos/crests against a shared database:
 
 - [ ] Backend migration applied (`photo_*` / `crest_*` columns).
 - [ ] Prefer **clubs first**, then players (`python3 scripts/enrich_identity_media.py clubs`).
+- [ ] Measure coverage: `python3 scripts/enrich_identity_media.py players --stats`.
 - [ ] Start with `--dry-run` and a small `--limit`.
-- [ ] Players: prefer free licenses; leave null when none exists (UI uses initials).
-- [ ] Clubs: prefer Wikidata/Wikipedia crest URLs; do not commit downloaded logo files.
+- [ ] Players: nationality + birth-year Wikipedia disambiguation; free licenses only; leave null when none exists (UI uses initials).
+- [ ] Clubs: prefer TheSportsDB badge URLs (Wikimedia fallback opt-in); do not commit downloaded logo files.
 - [ ] Keep Wikimedia User-Agent + delay etiquette in the enricher.
 
 ## Attribution requirements
@@ -82,6 +83,19 @@ FBref season tables often **omit** Expected columns in the HTML soccerdata scrap
 3. Re-run `scripts/validate_predictions_season.py` after a material backfill and refresh `research/validation/` summaries.
 
 Do not invent a shots→xG proxy without labelling it as non-xG.
+
+## Pitch roles (precise positions)
+
+FBref **season** squad tables usually only expose `GK` / `DF` / `MF` / `FW`, which ingest maps to coarse `GK` / `CB` / `CM` / `ST`. Pitch lineup placement needs lateral roles (`RB` / `LB` / `RW` / `LW` / …).
+
+**Source of truth for backfill:** FBref **match** player summary / lineup tables (via `soccerdata.FBref.read_player_match_stats`), which publish fine position codes. Aggregate minutes by player–club–position and keep the dominant role.
+
+```bash
+python3 scripts/enrich_positions_from_fbref_lineups.py --seasons 2024/25 --leagues ENG-Premier League --dry-run
+python3 scripts/enrich_positions_from_fbref_lineups.py --seasons 2024/25
+```
+
+Understat season `position` strings (`D M`, `F M S`) are too coarse for left/right placement — do not use them as the primary role source. Keep coarse fallbacks only when match minutes are unavailable; the UI shows a “role precision unavailable” state in that case.
 
 ## Transfers
 

@@ -166,6 +166,7 @@ class PlayerSeasonServiceImplTest {
                 UUID.randomUUID(),
                 playerId,
                 "Bukayo Saka",
+                null,
                 clubId,
                 "Arsenal",
                 seasonId,

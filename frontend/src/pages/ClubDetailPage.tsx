@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { SquadTable } from '@/components/home/SquadTable'
+import { PitchLineup } from '@/components/squad/PitchLineup'
 import { homePredictPath } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getClub } from '@/services/club/clubApi'
@@ -162,6 +163,9 @@ export function ClubDetailPage() {
           <Typography variant="h3">
             Squad depth{seasonLabel ? ` · ${seasonLabel}` : ''}
           </Typography>
+          {!squadQuery.isLoading && !squadQuery.isError ? (
+            <PitchLineup squad={squadQuery.data} />
+          ) : null}
           <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
             <SquadTable
               error={squadQuery.error}

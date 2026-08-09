@@ -64,6 +64,7 @@ public class PlayerSeasonMapper {
                 playerSeason.getId(),
                 player.getId(),
                 player.getFullName(),
+                player.getPhotoUrl(),
                 club.getId(),
                 club.getName(),
                 season.getId(),

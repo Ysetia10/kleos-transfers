@@ -12,6 +12,7 @@ public record PlayerSeasonResponse(
         UUID id,
         UUID playerId,
         String playerName,
+        String photoUrl,
         UUID clubId,
         String clubName,
         UUID seasonId,

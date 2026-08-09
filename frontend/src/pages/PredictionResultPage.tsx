@@ -6,6 +6,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { SquadTable } from '@/components/home/SquadTable'
+import { PitchLineup } from '@/components/squad/PitchLineup'
 import { CompatibilityBreakdownChips } from '@/components/prediction/CompatibilityBreakdownChips'
 import { ExplanationList } from '@/components/prediction/ExplanationList'
 import { MetricGrid } from '@/components/prediction/MetricGrid'
@@ -155,8 +156,11 @@ export function PredictionResultPage() {
           {prediction.targetClubName} squad · {prediction.seasonLabel}
         </Typography>
         <Typography color="text.secondary" variant="body2">
-          Full roster for the selected season at the destination club.
+          Starting XI by minutes (when role precision is available), then full roster.
         </Typography>
+        {!squadQuery.isLoading && !squadQuery.isError ? (
+          <PitchLineup squad={squadQuery.data} />
+        ) : null}
         <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
           <SquadTable
             error={squadQuery.error}

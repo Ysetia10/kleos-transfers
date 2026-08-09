@@ -8,7 +8,7 @@ export type LeagueCode =
   | 'LIGUE_1'
 
 export interface LeaderboardEntry {
-  playerId: string
+  playerId: string | null
   playerName: string
   clubId: string | null
   clubName: string | null
@@ -24,6 +24,7 @@ export interface LeagueBoards {
   tournamentName: string
   seasonId: string | null
   seasonLabel: string | null
+  coverageNote: string | null
   topScorers: LeaderboardEntry[]
   topAssisters: LeaderboardEntry[]
 }

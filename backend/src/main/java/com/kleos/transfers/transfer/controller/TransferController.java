@@ -2,6 +2,7 @@ package com.kleos.transfers.transfer.controller;
 
 import com.kleos.transfers.common.bulk.BulkImportRequest;
 import com.kleos.transfers.common.bulk.BulkImportResponse;
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.transfer.dto.CreateTransferRequest;
 import com.kleos.transfers.transfer.dto.TransferResponse;
 import com.kleos.transfers.transfer.dto.UpdateTransferRequest;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -48,9 +50,10 @@ public class TransferController {
 
     @GetMapping
     public ResponseEntity<Page<TransferResponse>> findAll(
+            @RequestParam(required = false) TransferStatus status,
             @PageableDefault(size = 20, sort = "transferDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(transferService.findAll(pageable));
+        return ResponseEntity.ok(transferService.findAll(status, pageable));
     }
 
     @GetMapping("/{id}")

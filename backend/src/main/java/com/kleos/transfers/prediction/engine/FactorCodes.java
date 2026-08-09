@@ -18,6 +18,7 @@ public final class FactorCodes {
     public static final String CONTRACT_PRESSURE = "CONTRACT_PRESSURE";
     public static final String LEAGUE_TRANSITION = "LEAGUE_TRANSITION";
     public static final String DATA_COVERAGE = "DATA_COVERAGE";
+    public static final String MANAGER_CONTEXT = "MANAGER_CONTEXT";
 
     private FactorCodes() {
     }

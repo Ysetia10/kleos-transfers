@@ -14,6 +14,7 @@ public record EngineResult(
         BigDecimal predictedXa,
         BigDecimal predictedMarketValueEur,
         BigDecimal compatibilityScore,
+        CompatibilityBreakdown compatibilityBreakdown,
         BigDecimal confidenceScore,
         List<ExplanationFactor> factors
 ) {

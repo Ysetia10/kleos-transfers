@@ -1,9 +1,12 @@
 package com.kleos.transfers.transfer.repository;
 
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.transfer.entity.Transfer;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,4 +21,6 @@ public interface TransferRepository extends JpaRepository<Transfer, UUID> {
      */
     @Query("select t from Transfer t where t.uniquenessKey in :keys")
     List<Transfer> findAllByUniquenessKeyIn(@Param("keys") Collection<String> keys);
+
+    Page<Transfer> findByStatus(TransferStatus status, Pageable pageable);
 }

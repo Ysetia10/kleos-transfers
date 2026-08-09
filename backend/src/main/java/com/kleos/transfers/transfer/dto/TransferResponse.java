@@ -1,5 +1,6 @@
 package com.kleos.transfers.transfer.dto;
 
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.domain.TransferType;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -22,6 +23,9 @@ public record TransferResponse(
         LocalDate transferDate,
         BigDecimal feeEur,
         TransferType type,
+        TransferStatus status,
+        String source,
+        String notes,
         Instant createdAt,
         Instant updatedAt
 ) {

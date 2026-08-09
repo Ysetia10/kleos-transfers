@@ -1,6 +1,7 @@
 package com.kleos.transfers.transfer.mapper;
 
 import com.kleos.transfers.club.entity.Club;
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.season.entity.Season;
 import com.kleos.transfers.transfer.dto.CreateTransferRequest;
@@ -29,7 +30,10 @@ public class TransferMapper {
                 season,
                 request.transferDate(),
                 request.feeEur(),
-                request.type()
+                request.type(),
+                request.status() == null ? TransferStatus.COMPLETED : request.status(),
+                request.source(),
+                request.notes()
         );
     }
 
@@ -48,7 +52,10 @@ public class TransferMapper {
                 season,
                 request.transferDate(),
                 request.feeEur(),
-                request.type()
+                request.type(),
+                request.status() == null ? TransferStatus.COMPLETED : request.status(),
+                request.source(),
+                request.notes()
         );
     }
 
@@ -70,6 +77,9 @@ public class TransferMapper {
                 transfer.getTransferDate(),
                 transfer.getFeeEur(),
                 transfer.getType(),
+                transfer.getStatus(),
+                transfer.getSource(),
+                transfer.getNotes(),
                 transfer.getCreatedAt(),
                 transfer.getUpdatedAt()
         );

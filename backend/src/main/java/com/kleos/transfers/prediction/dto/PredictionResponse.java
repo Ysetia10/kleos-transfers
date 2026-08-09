@@ -25,6 +25,7 @@ public record PredictionResponse(
         BigDecimal predictedXa,
         BigDecimal predictedMarketValueEur,
         BigDecimal compatibilityScore,
+        CompatibilityBreakdownResponse compatibilityBreakdown,
         BigDecimal confidenceScore,
         List<ExplanationResponse> explanations,
         EvaluationResponse evaluation,

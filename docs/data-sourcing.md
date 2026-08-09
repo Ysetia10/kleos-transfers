@@ -17,7 +17,9 @@ Kleos Transfers is an open-source research/product project. Historical football 
 | **Wikimedia** (Wikidata + English Wikipedia + Commons APIs) | Player photos; club crest fallback; player **height** (Wikidata P2048) | Hotlink image URLs only; **do not** mirror binaries into git | **Players photos:** free licenses only (CC0 / PD / CC-BY / CC-BY-SA / GFDL). Height via Wikidata quantity claims. Never scrape Google Images or Transfermarkt/FBref CDNs. |
 | **Wikipedia / Wikidata** | Player height (P2048); preferred foot when stated in article/infobox | Derived fields only | Bio enricher: `scripts/enrich_player_bio.py`. |
 | **FBref player profile pages** | Preferred foot (+ height fallback) | Do **not** republish raw HTML dumps | Season tables omit bio; profiles expose `Footed:` / `cm`. Optional path in `enrich_player_bio.py` (crawl delay; may 403 without a residential IP). |
-| **Manual / first-party curated CSVs** | Small identity patches | OK if you created them | Use `scripts/import-identities.py`. |
+| **Manual / first-party curated CSVs** | Small identity patches; career leaderboards | OK if you created them | Identities: `scripts/import-identities.py`. Career leaders: `research/career-leaders/` + `scripts/import_career_leaders.py` (Wikipedia-attributed top-N). |
+| **Understat** (via [`soccerdata`](https://soccerdata.readthedocs.io/)) | Player-season **xG / xA** backfill when FBref Expected cols are absent | Do **not** republish raw Understat dumps | Secondary enricher: `scripts/enrich_xg_from_understat.py`. Research/UI aggregates only; respect Understat / soccerdata terms. |
+| **Kleos PlayerSeason diffs** | Completed transfers inferred from consecutive club changes | First-party derived | `scripts/infer_transfers_from_seasons.py` → `Transfer` rows with `status=COMPLETED`. Rumours/announcements use `status=RUMOURED` / `ANNOUNCED` via API/CSV — never treat as fact in evaluation. |
 | **StatsBomb Open Data** | Event research, not full PL/La Liga season coverage | Allowed under StatsBomb open-data terms | Not the PL/La Liga completeness path. |
 
 ## Not allowed without explicit license
@@ -70,6 +72,22 @@ Before running a full load against a shared database:
 - Each league-season is upserted before the next fetch, so a long run can be resumed after interruption.
 - soccerdata season ids use `YYZZ` (e.g. `2122` for 2021/22). Do **not** pass a bare year like `2021` — soccerdata treats that as 2020/21.
 - Common non-FIFA FBref nationality aliases (e.g. `KVX` → `KOS`, `MTQ`/`GLP` → `FRA`) are mapped in the ingest script before API calls.
+
+## Expected goals (xG / xA)
+
+FBref season tables often **omit** Expected columns in the HTML soccerdata scrapes (see #37). When that happens:
+
+1. Keep counting stats from FBref ingest.
+2. Backfill `player_seasons.xg` / `xa` with `scripts/enrich_xg_from_understat.py`.
+3. Re-run `scripts/validate_predictions_season.py` after a material backfill and refresh `research/validation/` summaries.
+
+Do not invent a shots→xG proxy without labelling it as non-xG.
+
+## Transfers
+
+- **COMPLETED** — preferred path: `scripts/infer_transfers_from_seasons.py` (derived from consecutive PlayerSeason club changes already in Kleos). Fee usually null.
+- **ANNOUNCED** / **RUMOURED** — import via `POST /api/v1/transfers` (or bulk) with explicit `status`. Never use rumours as evaluation ground truth.
+- Transfermarkt scrapes remain **disallowed** for redistribution in this repo.
 
 ## Demo seed
 

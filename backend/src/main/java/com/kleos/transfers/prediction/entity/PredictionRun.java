@@ -29,6 +29,9 @@ public class PredictionRun extends IdentityEntity {
     /** Adds a goalkeeper starter/backup minutes pathway on top of {@link #MODEL_VERSION_V0_1}. */
     public static final String MODEL_VERSION_V0_2 = "v0.2-heuristic";
 
+    /** Adds dimensional compatibility (system/role/tempo/league/manager) on top of {@link #MODEL_VERSION_V0_2}. */
+    public static final String MODEL_VERSION_V0_3 = "v0.3-heuristic";
+
     @Column(name = "model_version", nullable = false, length = 40)
     private String modelVersion;
 

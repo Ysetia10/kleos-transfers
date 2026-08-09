@@ -23,7 +23,7 @@ public class HeuristicPredictionEngine implements PredictionEngine {
 
     @Override
     public String modelVersion() {
-        return PredictionRun.MODEL_VERSION_V0_2;
+        return PredictionRun.MODEL_VERSION_V0_3;
     }
 
     @Override
@@ -67,6 +67,7 @@ public class HeuristicPredictionEngine implements PredictionEngine {
                 xa.value(),
                 value.valueEur(),
                 compatibility.score(),
+                compatibility.breakdown(),
                 confidence.score(),
                 List.copyOf(factors)
         );

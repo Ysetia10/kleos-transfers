@@ -1,3 +1,4 @@
-# Optional dependencies for scripts/ingest_fbref_pl_laliga.py
+# Optional dependencies for scripts/ingest_fbref_pl_laliga.py and enrichers
 soccerdata>=1.8.0
 pandas>=2.0.0
+psycopg[binary]>=3.1.0

@@ -1,9 +1,11 @@
 package com.kleos.transfers.prediction.mapper;
 
+import com.kleos.transfers.prediction.dto.CompatibilityBreakdownResponse;
 import com.kleos.transfers.prediction.dto.EvaluationResponse;
 import com.kleos.transfers.prediction.dto.ExplanationResponse;
 import com.kleos.transfers.prediction.dto.PredictionResponse;
 import com.kleos.transfers.prediction.dto.PredictionRunResponse;
+import com.kleos.transfers.prediction.engine.CompatibilityBreakdown;
 import com.kleos.transfers.prediction.engine.EngineResult;
 import com.kleos.transfers.prediction.engine.ExplanationFactor;
 import com.kleos.transfers.prediction.entity.Prediction;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Component;
 public class PredictionMapper {
 
     public Prediction toEntity(PredictionRun run, EngineResult result, PredictionContextRefs refs) {
+        CompatibilityBreakdown breakdown = result.compatibilityBreakdown();
         return new Prediction(
                 run,
                 refs.player(),
@@ -32,6 +35,11 @@ public class PredictionMapper {
                 result.predictedXa(),
                 result.predictedMarketValueEur(),
                 result.compatibilityScore(),
+                breakdown == null ? null : breakdown.system(),
+                breakdown == null ? null : breakdown.role(),
+                breakdown == null ? null : breakdown.tempo(),
+                breakdown == null ? null : breakdown.league(),
+                breakdown == null ? null : breakdown.manager(),
                 result.confidenceScore()
         );
     }
@@ -70,11 +78,29 @@ public class PredictionMapper {
                 prediction.getPredictedXa(),
                 prediction.getPredictedMarketValueEur(),
                 prediction.getCompatibilityScore(),
+                toBreakdown(prediction),
                 prediction.getConfidenceScore(),
                 prediction.getExplanations().stream().map(this::toExplanation).toList(),
                 prediction.getEvaluation() == null ? null : toEvaluation(prediction.getEvaluation()),
                 prediction.getCreatedAt(),
                 prediction.getUpdatedAt()
+        );
+    }
+
+    private CompatibilityBreakdownResponse toBreakdown(Prediction prediction) {
+        if (prediction.getCompatibilitySystem() == null
+                || prediction.getCompatibilityRole() == null
+                || prediction.getCompatibilityTempo() == null
+                || prediction.getCompatibilityLeague() == null
+                || prediction.getCompatibilityManager() == null) {
+            return null;
+        }
+        return new CompatibilityBreakdownResponse(
+                prediction.getCompatibilitySystem(),
+                prediction.getCompatibilityRole(),
+                prediction.getCompatibilityTempo(),
+                prediction.getCompatibilityLeague(),
+                prediction.getCompatibilityManager()
         );
     }
 

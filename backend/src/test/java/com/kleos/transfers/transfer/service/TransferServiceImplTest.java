@@ -12,6 +12,7 @@ import com.kleos.transfers.common.exception.ResourceNotFoundException;
 import com.kleos.transfers.domain.DateOfBirthPrecision;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.domain.PreferredFoot;
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.domain.TransferType;
 import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.player.repository.PlayerRepository;
@@ -69,7 +70,10 @@ class TransferServiceImplTest {
                 seasonId,
                 LocalDate.of(2024, 8, 12),
                 new BigDecimal("50000000"),
-                TransferType.PERMANENT
+                TransferType.PERMANENT,
+                TransferStatus.COMPLETED,
+                null,
+                null
         );
 
         Player player = player(playerId);
@@ -77,7 +81,8 @@ class TransferServiceImplTest {
         Club toClub = club(toClubId, "Real Madrid");
         Season season = season(seasonId);
         Transfer entity = new Transfer(
-                player, fromClub, toClub, season, request.transferDate(), request.feeEur(), request.type());
+                player, fromClub, toClub, season, request.transferDate(), request.feeEur(), request.type(),
+                TransferStatus.COMPLETED, null, null);
         TransferResponse expected = response(playerId, fromClubId, toClubId, seasonId);
 
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
@@ -104,14 +109,18 @@ class TransferServiceImplTest {
                 seasonId,
                 LocalDate.of(2024, 7, 1),
                 null,
-                TransferType.FREE
+                TransferType.FREE,
+                TransferStatus.COMPLETED,
+                null,
+                null
         );
 
         Player player = player(playerId);
         Club toClub = club(toClubId, "Arsenal");
         Season season = season(seasonId);
         Transfer entity = new Transfer(
-                player, null, toClub, season, request.transferDate(), null, TransferType.FREE);
+                player, null, toClub, season, request.transferDate(), null, TransferType.FREE,
+                TransferStatus.COMPLETED, null, null);
         TransferResponse expected = response(playerId, null, toClubId, seasonId);
 
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
@@ -136,7 +145,10 @@ class TransferServiceImplTest {
                 UUID.randomUUID(),
                 LocalDate.of(2024, 7, 1),
                 null,
-                TransferType.FREE)))
+                TransferType.FREE,
+                TransferStatus.COMPLETED,
+                null,
+                null)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining(playerId.toString());
     }
@@ -151,7 +163,10 @@ class TransferServiceImplTest {
                 season(UUID.randomUUID()),
                 LocalDate.of(2024, 8, 12),
                 new BigDecimal("50000000"),
-                TransferType.PERMANENT
+                TransferType.PERMANENT,
+                TransferStatus.COMPLETED,
+                null,
+                null
         );
         setId(transfer, id);
 
@@ -203,6 +218,9 @@ class TransferServiceImplTest {
                 LocalDate.of(2024, 8, 12),
                 new BigDecimal("50000000"),
                 TransferType.PERMANENT,
+                TransferStatus.COMPLETED,
+                null,
+                null,
                 null,
                 null
         );

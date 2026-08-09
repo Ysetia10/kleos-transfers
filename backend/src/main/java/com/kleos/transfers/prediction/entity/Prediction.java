@@ -72,6 +72,21 @@ public class Prediction extends IdentityEntity {
     @Column(name = "compatibility_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal compatibilityScore;
 
+    @Column(name = "compatibility_system", precision = 5, scale = 2)
+    private BigDecimal compatibilitySystem;
+
+    @Column(name = "compatibility_role", precision = 5, scale = 2)
+    private BigDecimal compatibilityRole;
+
+    @Column(name = "compatibility_tempo", precision = 5, scale = 2)
+    private BigDecimal compatibilityTempo;
+
+    @Column(name = "compatibility_league", precision = 5, scale = 2)
+    private BigDecimal compatibilityLeague;
+
+    @Column(name = "compatibility_manager", precision = 5, scale = 2)
+    private BigDecimal compatibilityManager;
+
     @Column(name = "confidence_score", nullable = false, precision = 5, scale = 2)
     private BigDecimal confidenceScore;
 
@@ -94,6 +109,11 @@ public class Prediction extends IdentityEntity {
             BigDecimal predictedXa,
             BigDecimal predictedMarketValueEur,
             BigDecimal compatibilityScore,
+            BigDecimal compatibilitySystem,
+            BigDecimal compatibilityRole,
+            BigDecimal compatibilityTempo,
+            BigDecimal compatibilityLeague,
+            BigDecimal compatibilityManager,
             BigDecimal confidenceScore
     ) {
         this.run = run;
@@ -107,6 +127,11 @@ public class Prediction extends IdentityEntity {
         this.predictedXa = predictedXa;
         this.predictedMarketValueEur = predictedMarketValueEur;
         this.compatibilityScore = compatibilityScore;
+        this.compatibilitySystem = compatibilitySystem;
+        this.compatibilityRole = compatibilityRole;
+        this.compatibilityTempo = compatibilityTempo;
+        this.compatibilityLeague = compatibilityLeague;
+        this.compatibilityManager = compatibilityManager;
         this.confidenceScore = confidenceScore;
     }
 

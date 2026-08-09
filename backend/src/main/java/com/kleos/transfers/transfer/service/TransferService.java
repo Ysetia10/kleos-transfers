@@ -1,6 +1,7 @@
 package com.kleos.transfers.transfer.service;
 
 import com.kleos.transfers.common.bulk.BulkImportResponse;
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.transfer.dto.CreateTransferRequest;
 import com.kleos.transfers.transfer.dto.TransferResponse;
 import com.kleos.transfers.transfer.dto.UpdateTransferRequest;
@@ -18,7 +19,7 @@ public interface TransferService {
 
     BulkImportResponse<TransferResponse> createAll(List<CreateTransferRequest> requests);
 
-    Page<TransferResponse> findAll(Pageable pageable);
+    Page<TransferResponse> findAll(TransferStatus status, Pageable pageable);
 
     TransferResponse findById(UUID id);
 

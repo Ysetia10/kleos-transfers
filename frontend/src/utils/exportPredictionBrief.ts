@@ -29,6 +29,15 @@ export function buildPredictionBriefMarkdown(prediction: Prediction): string {
     `## Fit`,
     ``,
     `- Compatibility: ${formatNumber(Number(prediction.compatibilityScore), 0)}`,
+    ...(prediction.compatibilityBreakdown
+      ? [
+          `- System: ${formatNumber(Number(prediction.compatibilityBreakdown.system), 0)}`,
+          `- Role: ${formatNumber(Number(prediction.compatibilityBreakdown.role), 0)}`,
+          `- Tempo: ${formatNumber(Number(prediction.compatibilityBreakdown.tempo), 0)}`,
+          `- League: ${formatNumber(Number(prediction.compatibilityBreakdown.league), 0)}`,
+          `- Manager: ${formatNumber(Number(prediction.compatibilityBreakdown.manager), 0)}`,
+        ]
+      : []),
     `- Confidence: ${formatNumber(Number(prediction.confidenceScore), 0)}`,
     ``,
     `## Contextual signals`,

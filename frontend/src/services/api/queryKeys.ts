@@ -32,4 +32,8 @@ export const queryKeys = {
     trending: (seasonId = '', limit = 3) => ['stats', 'trending', seasonId, limit] as const,
     allTime: (limit = 10) => ['stats', 'all-time', limit] as const,
   },
+  transfers: {
+    list: (page: number, size: number, status = '') =>
+      ['transfers', 'list', page, size, status] as const,
+  },
 } as const

@@ -9,6 +9,7 @@ import com.kleos.transfers.contract.entity.Contract;
 import com.kleos.transfers.contract.repository.ContractRepository;
 import com.kleos.transfers.injury.entity.Injury;
 import com.kleos.transfers.injury.repository.InjuryRepository;
+import com.kleos.transfers.managerseason.repository.ManagerSeasonRepository;
 import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.player.repository.PlayerRepository;
 import com.kleos.transfers.playerseason.entity.PlayerSeason;
@@ -42,6 +43,7 @@ public class PredictionContextLoader {
     private final ClubSeasonRepository clubSeasonRepository;
     private final InjuryRepository injuryRepository;
     private final ContractRepository contractRepository;
+    private final ManagerSeasonRepository managerSeasonRepository;
 
     public PredictionContext load(UUID playerId, UUID targetClubId, UUID seasonId) {
         Player player = playerRepository.findById(playerId)
@@ -63,6 +65,11 @@ public class PredictionContextLoader {
         Optional<ClubSeason> clubSeason = priorSeason
                 .flatMap(prior -> clubSeasonRepository.findByClubIdAndSeasonId(targetClubId, prior.getId()));
         Optional<PlayerSeason> mostRecent = history.stream().findFirst();
+        Optional<String> managerName = managerSeasonRepository
+                .findCurrentManagersByClubIds(List.of(targetClubId))
+                .stream()
+                .findFirst()
+                .map(view -> view.getManagerName());
 
         return new PredictionContext(
                 player,
@@ -73,7 +80,8 @@ public class PredictionContextLoader {
                 injuries,
                 contracts,
                 clubSeason,
-                mostRecent
+                mostRecent,
+                managerName
         );
     }
 }

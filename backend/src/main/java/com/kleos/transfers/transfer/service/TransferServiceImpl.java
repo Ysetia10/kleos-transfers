@@ -7,6 +7,7 @@ import com.kleos.transfers.common.bulk.BulkImportSpec;
 import com.kleos.transfers.common.bulk.BulkImporter;
 import com.kleos.transfers.common.bulk.NaturalKeys;
 import com.kleos.transfers.common.exception.ResourceNotFoundException;
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.player.repository.PlayerRepository;
 import com.kleos.transfers.season.entity.Season;
@@ -63,8 +64,11 @@ public class TransferServiceImpl implements TransferService {
     }
 
     @Override
-    public Page<TransferResponse> findAll(Pageable pageable) {
-        return transferRepository.findAll(pageable).map(transferMapper::toResponse);
+    public Page<TransferResponse> findAll(TransferStatus status, Pageable pageable) {
+        if (status == null) {
+            return transferRepository.findAll(pageable).map(transferMapper::toResponse);
+        }
+        return transferRepository.findByStatus(status, pageable).map(transferMapper::toResponse);
     }
 
     @Override
@@ -122,7 +126,8 @@ public class TransferServiceImpl implements TransferService {
                     request.transferDate(),
                     request.fromClubId(),
                     request.toClubId(),
-                    request.type()
+                    request.type(),
+                    request.status() == null ? TransferStatus.COMPLETED : request.status()
             );
         }
 
@@ -142,7 +147,8 @@ public class TransferServiceImpl implements TransferService {
                             transfer.getTransferDate(),
                             transfer.getFromClub() == null ? null : transfer.getFromClub().getId(),
                             transfer.getToClub() == null ? null : transfer.getToClub().getId(),
-                            transfer.getType()))
+                            transfer.getType(),
+                            transfer.getStatus()))
                     .collect(Collectors.toSet());
         }
 
@@ -200,6 +206,7 @@ public class TransferServiceImpl implements TransferService {
     }
 
     private String activeUniquenessKey(CreateTransferRequest request) {
+        TransferStatus status = request.status() == null ? TransferStatus.COMPLETED : request.status();
         return request.playerId()
                 + ":"
                 + request.transferDate()
@@ -208,6 +215,8 @@ public class TransferServiceImpl implements TransferService {
                 + ":"
                 + Objects.toString(request.toClubId(), "none")
                 + ":"
-                + request.type().name();
+                + request.type().name()
+                + ":"
+                + status.name();
     }
 }

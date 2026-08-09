@@ -24,7 +24,8 @@ public record PredictionContext(
         List<Injury> recentInjuries,
         List<Contract> playerContracts,
         Optional<ClubSeason> targetClubSeason,
-        Optional<PlayerSeason> mostRecentSeason
+        Optional<PlayerSeason> mostRecentSeason,
+        Optional<String> targetManagerName
 ) {
 
     public int ageAtSeasonStart() {

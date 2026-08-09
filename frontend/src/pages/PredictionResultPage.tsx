@@ -6,6 +6,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { SquadTable } from '@/components/home/SquadTable'
+import { CompatibilityBreakdownChips } from '@/components/prediction/CompatibilityBreakdownChips'
 import { ExplanationList } from '@/components/prediction/ExplanationList'
 import { MetricGrid } from '@/components/prediction/MetricGrid'
 import { ScoreMeter } from '@/components/prediction/ScoreMeter'
@@ -102,10 +103,16 @@ export function PredictionResultPage() {
           </SurfaceCard>
           <SurfaceCard>
             <ScoreMeter
-              helper="How well the move fits age, role, injury, contract, and league context."
+              helper="Aggregate of system, role, tempo, league, and manager fit."
               label="Compatibility"
               value={Number(prediction.compatibilityScore)}
             />
+            <Box sx={{ mt: 2 }}>
+              <Typography color="text.secondary" sx={{ mb: 1 }} variant="caption">
+                Fit dimensions
+              </Typography>
+              <CompatibilityBreakdownChips breakdown={prediction.compatibilityBreakdown} />
+            </Box>
           </SurfaceCard>
         </Stack>
 

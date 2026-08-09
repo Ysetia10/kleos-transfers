@@ -66,7 +66,8 @@ class MinutesPredictorTest {
                 List.of(),
                 List.of(),
                 Optional.empty(),
-                Optional.of(history)
+                Optional.of(history),
+                Optional.empty()
         ));
 
         Player rival = player(LocalDate.of(1998, 1, 1));
@@ -99,7 +100,8 @@ class MinutesPredictorTest {
                 List.of(injury),
                 List.of(),
                 Optional.empty(),
-                Optional.of(history)
+                Optional.of(history),
+                Optional.empty()
         ));
 
         assertThat(injured.minutes()).isLessThan(healthy.minutes());
@@ -144,7 +146,8 @@ class MinutesPredictorTest {
                 List.of(),
                 List.of(),
                 Optional.empty(),
-                Optional.of(history)
+                Optional.of(history),
+                Optional.empty()
         ));
 
         // v0 would apply 0.70 competition on 4 rivals (~2170); v0.1 should stay higher.
@@ -187,7 +190,8 @@ class MinutesPredictorTest {
                 List.of(),
                 List.of(),
                 Optional.empty(),
-                Optional.of(history)
+                Optional.of(history),
+                Optional.empty()
         ));
 
         assertThat(result.minutes()).isGreaterThan(3_000);
@@ -227,7 +231,8 @@ class MinutesPredictorTest {
                 List.of(),
                 List.of(),
                 Optional.empty(),
-                Optional.of(history)
+                Optional.of(history),
+                Optional.empty()
         ));
 
         assertThat(result.minutes()).isLessThan(800);
@@ -279,7 +284,8 @@ class MinutesPredictorTest {
                 injuries,
                 List.of(),
                 Optional.empty(),
-                history.stream().findFirst()
+                history.stream().findFirst(),
+                Optional.empty()
         );
     }
 

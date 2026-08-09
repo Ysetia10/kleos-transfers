@@ -112,6 +112,14 @@ export interface Evaluation {
   evaluatedAt: string
 }
 
+export interface CompatibilityBreakdown {
+  system: number
+  role: number
+  tempo: number
+  league: number
+  manager: number
+}
+
 export interface Prediction {
   id: string
   runId: string
@@ -129,6 +137,7 @@ export interface Prediction {
   predictedXa: number
   predictedMarketValueEur: number | null
   compatibilityScore: number
+  compatibilityBreakdown: CompatibilityBreakdown | null
   confidenceScore: number
   explanations: Explanation[]
   evaluation: Evaluation | null

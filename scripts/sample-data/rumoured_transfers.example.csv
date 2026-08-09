@@ -1,0 +1,2 @@
+playerId,fromClubId,toClubId,seasonId,transferDate,feeEur,type,status,source,notes
+,,,,,,,,RUMOURED,editorial,Replace IDs then POST /api/v1/transfers/bulk — never evaluate rumours as completed moves

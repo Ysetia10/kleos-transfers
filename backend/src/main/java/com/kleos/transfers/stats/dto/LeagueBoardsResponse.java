@@ -12,6 +12,7 @@ public record LeagueBoardsResponse(
         String tournamentName,
         UUID seasonId,
         String seasonLabel,
+        String coverageNote,
         List<LeaderboardEntryResponse> topScorers,
         List<LeaderboardEntryResponse> topAssisters
 ) {

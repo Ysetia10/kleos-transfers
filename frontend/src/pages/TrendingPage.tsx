@@ -22,6 +22,7 @@ import {
   type LeaderboardEntry,
   type LeagueBoards,
 } from '@/services/stats/statsApi'
+import { listTransfers } from '@/services/transfer/transferApi'
 import { formatNumber } from '@/utils/format'
 
 function BoardTable({ title, rows }: { title: string; rows: LeaderboardEntry[] }) {
@@ -38,12 +39,20 @@ function BoardTable({ title, rows }: { title: string; rows: LeaderboardEntry[] }
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow hover key={`${title}-${row.playerId}`}>
+          {rows.map((row, index) => (
+            <TableRow hover key={`${title}-${row.playerId ?? row.playerName}-${index}`}>
               <TableCell>
-                <MuiLink component={RouterLink} to={routes.playerDetail(row.playerId)} underline="hover">
-                  {row.playerName}
-                </MuiLink>
+                {row.playerId ? (
+                  <MuiLink
+                    component={RouterLink}
+                    to={routes.playerDetail(row.playerId)}
+                    underline="hover"
+                  >
+                    {row.playerName}
+                  </MuiLink>
+                ) : (
+                  row.playerName
+                )}
                 {row.clubName ? (
                   <Typography color="text.secondary" component="span" sx={{ display: 'block' }} variant="caption">
                     {row.clubName}
@@ -52,7 +61,9 @@ function BoardTable({ title, rows }: { title: string; rows: LeaderboardEntry[] }
               </TableCell>
               <TableCell align="right">{formatNumber(row.goals)}</TableCell>
               <TableCell align="right">{formatNumber(row.assists)}</TableCell>
-              <TableCell align="right">{formatNumber(row.minutesPlayed)}</TableCell>
+              <TableCell align="right">
+                {row.minutesPlayed > 0 ? formatNumber(row.minutesPlayed) : '—'}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -75,9 +86,14 @@ function LeagueGrid({ boards }: { boards: LeagueBoards[] }) {
           <Stack spacing={3}>
             <Stack spacing={0.5}>
               <Typography color="primary.main" variant="caption">
-                {board.seasonLabel ?? 'Latest season'}
+                {board.seasonLabel ?? 'Career leaders'}
               </Typography>
               <Typography variant="h3">{board.tournamentName}</Typography>
+              {board.coverageNote ? (
+                <Typography color="text.secondary" variant="caption">
+                  {board.coverageNote}
+                </Typography>
+              ) : null}
             </Stack>
             <BoardTable rows={board.topScorers} title="Top scorers" />
             <BoardTable rows={board.topAssisters} title="Top assisters" />
@@ -96,6 +112,10 @@ export function TrendingPage() {
   const allTimeQuery = useQuery({
     queryKey: queryKeys.stats.allTime(8),
     queryFn: () => fetchAllTimeStats(8),
+  })
+  const transfersQuery = useQuery({
+    queryKey: queryKeys.transfers.list(0, 8, 'COMPLETED'),
+    queryFn: () => listTransfers(0, 8, 'COMPLETED'),
   })
 
   const highlight = trendingQuery.data?.[0]?.topScorers[0]
@@ -144,13 +164,63 @@ export function TrendingPage() {
             Engine
           </Typography>
           <Typography sx={{ mt: 1 }} variant="h2">
-            v0.2
+            v0.3
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
-            Heuristic baseline in production
+            Dimensional compatibility in production
           </Typography>
         </SurfaceCard>
       </Box>
+
+      <Stack spacing={2}>
+        <Typography variant="h3">Recent completed transfers</Typography>
+        <Typography color="text.secondary" variant="body2">
+          Inferred from consecutive club seasons (COMPLETED). Rumours use a separate status and are
+          not mixed into this list.
+        </Typography>
+        <QueryState
+          emptyDescription="Run scripts/infer_transfers_from_seasons.py after ingest."
+          emptyTitle="No transfers yet"
+          error={transfersQuery.error}
+          isEmpty={!transfersQuery.data?.content.length}
+          isError={transfersQuery.isError}
+          isLoading={transfersQuery.isLoading}
+          onRetry={() => void transfersQuery.refetch()}
+        >
+          <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Player</TableCell>
+                  <TableCell>From</TableCell>
+                  <TableCell>To</TableCell>
+                  <TableCell>Season</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {transfersQuery.data?.content.map((transfer) => (
+                  <TableRow hover key={transfer.id}>
+                    <TableCell>
+                      <MuiLink
+                        component={RouterLink}
+                        to={routes.playerDetail(transfer.playerId)}
+                        underline="hover"
+                      >
+                        {transfer.playerName}
+                      </MuiLink>
+                    </TableCell>
+                    <TableCell>{transfer.fromClubName ?? '—'}</TableCell>
+                    <TableCell>{transfer.toClubName ?? '—'}</TableCell>
+                    <TableCell>{transfer.seasonLabel}</TableCell>
+                    <TableCell>{transfer.status}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </SurfaceCard>
+        </QueryState>
+      </Stack>
 
       <Stack spacing={2}>
         <Typography variant="h3">Latest season boards</Typography>
@@ -168,10 +238,10 @@ export function TrendingPage() {
       </Stack>
 
       <Stack spacing={2}>
-        <Typography variant="h3">All-time leaders (ingested seasons)</Typography>
+        <Typography variant="h3">All-time leaders</Typography>
         <Typography color="text.secondary" variant="body2">
-          Career totals within each league across loaded seasons — not true historical all-time
-          yet.
+          Wikipedia-curated career leaders for PL and La Liga when available; otherwise totals
+          within loaded FBref seasons (since 2016/17).
         </Typography>
         <QueryState
           emptyDescription="Ingest player-seasons to populate boards."

@@ -2,6 +2,7 @@ package com.kleos.transfers.transfer.entity;
 
 import com.kleos.transfers.club.entity.Club;
 import com.kleos.transfers.common.entity.IdentityEntity;
+import com.kleos.transfers.domain.TransferStatus;
 import com.kleos.transfers.domain.TransferType;
 import com.kleos.transfers.player.entity.Player;
 import com.kleos.transfers.season.entity.Season;
@@ -21,10 +22,9 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
 /**
- * Historical record of a player moving between clubs (or free agency).
+ * Historical or market-signal record of a player moving between clubs (or free agency).
  *
- * <p>Does not generate predictions on create; prediction scenarios will reference
- * these rows later.
+ * <p>Does not generate predictions on create; prediction scenarios may reference these rows later.
  */
 @Entity
 @Table(name = "transfers")
@@ -59,7 +59,17 @@ public class Transfer extends IdentityEntity {
     @Column(nullable = false, length = 16)
     private TransferType type;
 
-    @Column(name = "uniqueness_key", nullable = false, length = 200)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private TransferStatus status;
+
+    @Column(length = 64)
+    private String source;
+
+    @Column(length = 500)
+    private String notes;
+
+    @Column(name = "uniqueness_key", nullable = false, length = 240)
     private String uniquenessKey;
 
     public Transfer(
@@ -69,9 +79,12 @@ public class Transfer extends IdentityEntity {
             Season season,
             LocalDate transferDate,
             BigDecimal feeEur,
-            TransferType type
+            TransferType type,
+            TransferStatus status,
+            String source,
+            String notes
     ) {
-        apply(player, fromClub, toClub, season, transferDate, feeEur, type);
+        apply(player, fromClub, toClub, season, transferDate, feeEur, type, status, source, notes);
     }
 
     public void reassign(
@@ -81,9 +94,12 @@ public class Transfer extends IdentityEntity {
             Season season,
             LocalDate transferDate,
             BigDecimal feeEur,
-            TransferType type
+            TransferType type,
+            TransferStatus status,
+            String source,
+            String notes
     ) {
-        apply(player, fromClub, toClub, season, transferDate, feeEur, type);
+        apply(player, fromClub, toClub, season, transferDate, feeEur, type, status, source, notes);
     }
 
     @Override
@@ -102,7 +118,10 @@ public class Transfer extends IdentityEntity {
             Season season,
             LocalDate transferDate,
             BigDecimal feeEur,
-            TransferType type
+            TransferType type,
+            TransferStatus status,
+            String source,
+            String notes
     ) {
         this.player = player;
         this.fromClub = fromClub;
@@ -111,6 +130,9 @@ public class Transfer extends IdentityEntity {
         this.transferDate = transferDate;
         this.feeEur = feeEur;
         this.type = type;
+        this.status = status == null ? TransferStatus.COMPLETED : status;
+        this.source = blankToNull(source);
+        this.notes = blankToNull(notes);
         refreshUniquenessKey();
     }
 
@@ -123,10 +145,19 @@ public class Transfer extends IdentityEntity {
                 + ":"
                 + clubKey(toClub)
                 + ":"
-                + type.name();
+                + type.name()
+                + ":"
+                + status.name();
     }
 
     private static String clubKey(Club club) {
         return club == null ? "none" : club.getId().toString();
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

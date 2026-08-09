@@ -62,12 +62,13 @@ class HeuristicPredictionEngineTest {
                 List.of(),
                 List.of(),
                 Optional.empty(),
-                Optional.of(history)
+                Optional.of(history),
+                Optional.of("Thomas Tuchel")
         );
 
         EngineResult result = engine.predict(context);
 
-        assertThat(engine.modelVersion()).isEqualTo(PredictionRun.MODEL_VERSION_V0_2);
+        assertThat(engine.modelVersion()).isEqualTo(PredictionRun.MODEL_VERSION_V0_3);
         assertThat(result.predictedMinutes()).isBetween(0, MinutesPredictor.MAX_MINUTES);
         assertThat(result.predictedGoals()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
         assertThat(result.predictedAssists()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
@@ -75,6 +76,12 @@ class HeuristicPredictionEngineTest {
         assertThat(result.predictedXa()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
         assertThat(result.predictedMarketValueEur()).isGreaterThan(BigDecimal.ZERO);
         assertThat(result.compatibilityScore()).isBetween(BigDecimal.ZERO, PredictionMath.bd(100));
+        assertThat(result.compatibilityBreakdown()).isNotNull();
+        assertThat(result.compatibilityBreakdown().system()).isBetween(BigDecimal.ZERO, PredictionMath.bd(100));
+        assertThat(result.compatibilityBreakdown().role()).isBetween(BigDecimal.ZERO, PredictionMath.bd(100));
+        assertThat(result.compatibilityBreakdown().tempo()).isBetween(BigDecimal.ZERO, PredictionMath.bd(100));
+        assertThat(result.compatibilityBreakdown().league()).isBetween(BigDecimal.ZERO, PredictionMath.bd(100));
+        assertThat(result.compatibilityBreakdown().manager()).isBetween(BigDecimal.ZERO, PredictionMath.bd(100));
         assertThat(result.confidenceScore()).isBetween(BigDecimal.ZERO, PredictionMath.bd(100));
         assertThat(result.factors()).isNotEmpty();
         assertThat(result.factors()).extracting(ExplanationFactor::code)
@@ -85,7 +92,8 @@ class HeuristicPredictionEngineTest {
                         FactorCodes.XG_RATE,
                         FactorCodes.XA_RATE,
                         FactorCodes.PERFORMANCE_VALUE,
-                        FactorCodes.DATA_COVERAGE
+                        FactorCodes.DATA_COVERAGE,
+                        FactorCodes.MANAGER_CONTEXT
                 );
     }
 

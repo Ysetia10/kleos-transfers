@@ -18,6 +18,8 @@ public interface PredictionService {
 
     Page<PredictionResponse> findAll(Pageable pageable);
 
+    Page<PredictionResponse> findByPlayerId(UUID playerId, Pageable pageable);
+
     PredictionRunResponse findRunById(UUID runId);
 
     PredictionResponse evaluate(UUID predictionId);

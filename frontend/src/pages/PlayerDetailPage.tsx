@@ -6,6 +6,7 @@ import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
+import { ScenarioComparisonSection } from '@/components/player/ScenarioComparisonSection'
 import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getPlayer } from '@/services/player/playerApi'
@@ -118,7 +119,7 @@ export function PlayerDetailPage() {
           <SurfaceCard accent="info">
             <Typography variant="h4">Build a scenario</Typography>
             <Typography color="text.secondary" sx={{ mt: 1, mb: 2 }} variant="body2">
-              Compare how this profile projects at a destination club for a chosen season.
+              Project this profile at a destination club, then compare routes below.
             </Typography>
             <Button
               component={RouterLink}
@@ -130,6 +131,8 @@ export function PlayerDetailPage() {
           </SurfaceCard>
         </Stack>
       </Box>
+
+      <ScenarioComparisonSection playerId={player.id} />
     </Stack>
   )
 }

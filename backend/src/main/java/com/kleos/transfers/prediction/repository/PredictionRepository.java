@@ -41,6 +41,8 @@ public interface PredictionRepository extends JpaRepository<Prediction, UUID> {
 
     Page<Prediction> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    Page<Prediction> findByPlayer_IdOrderByCreatedAtDesc(UUID playerId, Pageable pageable);
+
     @Query("""
             select p from Prediction p
             join fetch p.player

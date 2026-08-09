@@ -6,9 +6,18 @@ export async function createPrediction(request: CreatePredictionRequest): Promis
   return data
 }
 
-export async function listPredictions(page = 0, size = 20): Promise<SpringPage<Prediction>> {
+export async function listPredictions(
+  page = 0,
+  size = 20,
+  options?: { playerId?: string },
+): Promise<SpringPage<Prediction>> {
   const { data } = await httpClient.get<SpringPage<Prediction>>('/api/v1/predictions', {
-    params: { page, size, sort: 'createdAt,desc' },
+    params: {
+      page,
+      size,
+      sort: 'createdAt,desc',
+      ...(options?.playerId ? { playerId: options.playerId } : {}),
+    },
   })
   return data
 }

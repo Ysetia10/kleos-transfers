@@ -25,7 +25,8 @@ export const queryKeys = {
     list: (page: number, size: number) => ['seasons', 'list', page, size] as const,
   },
   predictions: {
-    list: (page: number, size: number) => ['predictions', 'list', page, size] as const,
+    list: (page: number, size: number, playerId = '') =>
+      ['predictions', 'list', page, size, playerId] as const,
     detail: (id: string) => ['predictions', 'detail', id] as const,
   },
   stats: {

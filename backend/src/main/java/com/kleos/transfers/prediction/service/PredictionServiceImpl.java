@@ -84,6 +84,12 @@ public class PredictionServiceImpl implements PredictionService {
     }
 
     @Override
+    public Page<PredictionResponse> findByPlayerId(UUID playerId, Pageable pageable) {
+        return predictionRepository.findByPlayer_IdOrderByCreatedAtDesc(playerId, pageable)
+                .map(predictionMapper::toResponse);
+    }
+
+    @Override
     public PredictionRunResponse findRunById(UUID runId) {
         PredictionRun run = predictionRunRepository.findById(runId)
                 .orElseThrow(() -> ResourceNotFoundException.of("PredictionRun", runId));

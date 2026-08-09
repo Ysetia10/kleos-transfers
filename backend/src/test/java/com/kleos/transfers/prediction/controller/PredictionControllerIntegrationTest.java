@@ -1,9 +1,11 @@
 package com.kleos.transfers.prediction.controller;
 
 import com.kleos.transfers.common.test.AbstractPostgresIntegrationTest;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -122,6 +124,57 @@ class PredictionControllerIntegrationTest extends AbstractPostgresIntegrationTes
 
         mockMvc.perform(get(PREDICTIONS_PATH + "/{id}", predictionId))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void listsPredictionsFilteredByPlayer() throws Exception {
+        UUID playerA = createPlayer("Bukayo Saka", "2001-09-05");
+        UUID playerB = createPlayer("Phil Foden", "2000-05-28");
+        UUID arsenalId = createClub("Arsenal", "ARS", "ENG");
+        UUID liverpoolId = createClub("Liverpool", "LIV", "ENG");
+        UUID priorSeasonId = createSeason("2023/24", "2023-07-01", "2024-06-30");
+        UUID seasonId = createSeason("2024/25", "2024-07-01", "2025-06-30");
+        UUID tournamentId = createTournament();
+        createClubSeason(arsenalId, seasonId, tournamentId);
+        createClubSeason(liverpoolId, seasonId, tournamentId);
+        createPlayerSeason(playerA, arsenalId, priorSeasonId, 2800, 14, 8);
+        createPlayerSeason(playerB, liverpoolId, priorSeasonId, 2600, 12, 7);
+
+        mockMvc.perform(post(PREDICTIONS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "playerId": "%s",
+                                  "targetClubId": "%s",
+                                  "seasonId": "%s"
+                                }
+                                """.formatted(playerA, liverpoolId, seasonId)))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post(PREDICTIONS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "playerId": "%s",
+                                  "targetClubId": "%s",
+                                  "seasonId": "%s"
+                                }
+                                """.formatted(playerA, arsenalId, seasonId)))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post(PREDICTIONS_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "playerId": "%s",
+                                  "targetClubId": "%s",
+                                  "seasonId": "%s"
+                                }
+                                """.formatted(playerB, arsenalId, seasonId)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get(PREDICTIONS_PATH).param("playerId", playerA.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.content[*].playerId").value(everyItem(is(playerA.toString()))));
     }
 
     @Test

@@ -8,11 +8,9 @@ import { z } from 'zod'
 import { ErrorState } from '@/components/common/ErrorState'
 import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { LoadingState } from '@/components/common/LoadingState'
-import { SquadTable } from '@/components/home/SquadTable'
 import { routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getClub, listClubs } from '@/services/club/clubApi'
-import { getClubSquad } from '@/services/club/squadApi'
 import { createPrediction } from '@/services/prediction/predictionApi'
 import { getPlayer, listPlayers } from '@/services/player/playerApi'
 import { listSeasons } from '@/services/season/seasonApi'
@@ -25,7 +23,6 @@ const schema = z.object({
   playerId: z.string().uuid('Select a player'),
   targetClubId: z.string().uuid('Select a target club'),
   seasonId: z.string().uuid('Select a season'),
-  note: z.string().max(255).optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -33,7 +30,6 @@ type FormValues = z.infer<typeof schema>
 interface PredictionFormProps {
   initialPlayerId?: string
   initialClubId?: string
-  showSquad?: boolean
   /** upcoming = current campaign only; historical = completed seasons (backtest path). */
   seasonMode?: 'upcoming' | 'historical'
 }
@@ -52,7 +48,6 @@ function seasonOptionLabel(season: Season): string {
 export function PredictionForm({
   initialPlayerId,
   initialClubId,
-  showSquad = false,
   seasonMode = 'upcoming',
 }: PredictionFormProps) {
   const navigate = useNavigate()
@@ -88,14 +83,14 @@ export function PredictionForm({
     enabled: !!initialClubId,
   })
 
+  const allSeasons = seasonsQuery.data?.content ?? []
   const seasons = useMemo(() => {
-    const all = seasonsQuery.data?.content ?? []
     if (seasonMode === 'historical') {
-      return all.filter((season) => !isUpcomingSeason(season))
+      return allSeasons.filter((season) => !isUpcomingSeason(season))
     }
-    const upcoming = all.filter((season) => isUpcomingSeason(season))
-    return upcoming.length > 0 ? upcoming : all.slice(0, 1)
-  }, [seasonsQuery.data?.content, seasonMode])
+    const upcoming = allSeasons.filter((season) => isUpcomingSeason(season))
+    return upcoming.length > 0 ? upcoming : allSeasons.slice(0, 1)
+  }, [allSeasons, seasonMode])
 
   const playerOptions = useMemo(() => {
     const byId = new Map<string, Player>()
@@ -130,11 +125,9 @@ export function PredictionForm({
       playerId: initialPlayerId ?? '',
       targetClubId: initialClubId ?? '',
       seasonId: '',
-      note: '',
     },
   })
 
-  const watchedClubId = useWatch({ control, name: 'targetClubId' })
   const watchedSeasonId = useWatch({ control, name: 'seasonId' })
 
   // Lock to the newest eligible season for the active mode when unset or out of scope.
@@ -154,26 +147,13 @@ export function PredictionForm({
       return null
     }
     return (
-      seasons
+      allSeasons
         .filter((season) => season.startDate < selectedSeason.startDate)
         .sort((a, b) => b.startDate.localeCompare(a.startDate))[0] ?? null
     )
-  }, [seasons, selectedSeason])
+  }, [allSeasons, selectedSeason])
 
-  const squadEnabled = showSquad && !!watchedClubId && !!watchedSeasonId
   const upcomingSelected = selectedSeason ? isUpcomingSeason(selectedSeason) : false
-
-  const squadQuery = useQuery({
-    queryKey: queryKeys.clubs.squad(watchedClubId || '', watchedSeasonId || ''),
-    queryFn: () => getClubSquad(watchedClubId, watchedSeasonId),
-    enabled: squadEnabled,
-  })
-
-  const selectedSeasonLabel = selectedSeason
-    ? seasonOptionLabel(selectedSeason)
-    : watchedSeasonId
-  const selectedClubName =
-    clubOptions.find((club) => club.id === watchedClubId)?.name ?? 'Selected club'
 
   const mutation = useMutation({
     mutationFn: createPrediction,
@@ -201,7 +181,6 @@ export function PredictionForm({
           playerId: values.playerId,
           targetClubId: values.targetClubId,
           seasonId: values.seasonId,
-          note: values.note?.trim() || undefined,
         })
       })}
       spacing={3}
@@ -376,49 +355,10 @@ export function PredictionForm({
         </Alert>
       ) : null}
 
-      <Controller
-        control={control}
-        name="note"
-        render={({ field }) => (
-          <TextField
-            {...field}
-            error={!!errors.note}
-            helperText={errors.note?.message}
-            label="Note (optional)"
-            multiline
-            rows={2}
-          />
-        )}
-      />
-
       {mutation.isError ? (
         <Alert severity="error" variant="outlined">
           {userFacingErrorMessage(mutation.error)}
         </Alert>
-      ) : null}
-
-      {showSquad ? (
-        <Stack spacing={1.5}>
-          <Typography component="h3" variant="h3">
-            Destination club roster
-          </Typography>
-          <Typography color="text.secondary" variant="body2">
-            {!squadEnabled
-              ? 'Select a target club and season to load destination competition context.'
-              : upcomingSelected && priorSeason
-                ? `${selectedClubName} · ${selectedSeason?.label} working squad from ${priorSeason.label} ± transfers (minutes from prior season until actuals exist).`
-                : `${selectedClubName} · ${selectedSeasonLabel} roster.`}
-          </Typography>
-          {squadEnabled ? (
-            <SquadTable
-              error={squadQuery.error}
-              isError={squadQuery.isError}
-              isLoading={squadQuery.isLoading}
-              onRetry={() => void squadQuery.refetch()}
-              squad={squadQuery.data}
-            />
-          ) : null}
-        </Stack>
       ) : null}
     </Stack>
   )

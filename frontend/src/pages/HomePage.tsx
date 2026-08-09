@@ -26,7 +26,6 @@ export function HomePage() {
           initialClubId={clubId}
           initialPlayerId={playerId}
           seasonMode="upcoming"
-          showSquad
         />
       </SurfaceCard>
 
@@ -56,7 +55,6 @@ export function HomePage() {
             initialClubId={clubId}
             initialPlayerId={playerId}
             seasonMode="historical"
-            showSquad
           />
         </DialogContent>
       </Dialog>

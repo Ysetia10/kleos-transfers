@@ -8,9 +8,7 @@ export const routes = {
   clubDetail: (id: string) => `/clubs/${id}` as const,
   transfers: '/transfers',
   trending: '/trending',
-  methodology: '/methodology',
   dashboard: '/dashboard',
-  about: '/about',
 } as const
 
 export type AppRoute =
@@ -41,5 +39,4 @@ export const navigationItems: ReadonlyArray<{ label: string; to: AppRoute }> = [
   { label: 'Clubs', to: routes.clubs },
   { label: 'Transfers', to: routes.transfers },
   { label: 'Trending', to: routes.trending },
-  { label: 'Methodology', to: routes.methodology },
 ]

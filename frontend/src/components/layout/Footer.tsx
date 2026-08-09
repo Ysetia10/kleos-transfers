@@ -21,19 +21,9 @@ export function Footer() {
           <Typography color="text.secondary" variant="body2">
             Kleos Transfers · explainable football transfer intelligence · v0.2 heuristic
           </Typography>
-          <Stack direction="row" spacing={2}>
-            <MuiLink component={RouterLink} color="text.secondary" to={routes.home} underline="hover">
-              Prediction
-            </MuiLink>
-            <MuiLink
-              component={RouterLink}
-              color="text.secondary"
-              to={routes.methodology}
-              underline="hover"
-            >
-              Methodology
-            </MuiLink>
-          </Stack>
+          <MuiLink component={RouterLink} color="text.secondary" to={routes.home} underline="hover">
+            Prediction
+          </MuiLink>
         </Stack>
       </Container>
     </Box>

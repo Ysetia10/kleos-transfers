@@ -115,9 +115,7 @@ public class FitRoutesService {
     }
 
     private void fillHypothetical(Map<String, FitRouteResponse> byPair, int limit) {
-        Optional<Season> seasonOpt = seasonRepository
-                .findAll(PageRequest.of(0, 1, org.springframework.data.domain.Sort.by(
-                        org.springframework.data.domain.Sort.Direction.DESC, "startDate")))
+        Optional<Season> seasonOpt = seasonRepository.findSeasonsWithPlayerDataOrderByStartDateDesc()
                 .stream()
                 .findFirst();
         if (seasonOpt.isEmpty()) {

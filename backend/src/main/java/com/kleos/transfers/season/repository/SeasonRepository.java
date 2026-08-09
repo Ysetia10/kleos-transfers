@@ -23,4 +23,17 @@ public interface SeasonRepository extends JpaRepository<Season, UUID> {
     List<Season> findAllByNormalizedLabel(@Param("normalizedLabels") Collection<String> normalizedLabels);
 
     Optional<Season> findFirstByStartDateLessThanOrderByStartDateDesc(LocalDate before);
+
+    /**
+     * Newest season that already has PlayerSeason rows — skips empty predict-to shells (e.g. 2026/27).
+     */
+    @Query("""
+            select s from Season s
+            where exists (
+                select 1 from PlayerSeason ps
+                where ps.season = s
+            )
+            order by s.startDate desc
+            """)
+    List<Season> findSeasonsWithPlayerDataOrderByStartDateDesc();
 }

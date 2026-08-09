@@ -103,10 +103,13 @@ public class StatsServiceImpl implements StatsService {
             return seasonRepository.findById(seasonId)
                     .orElseThrow(() -> ResourceNotFoundException.of("Season", seasonId));
         }
-        return seasonRepository.findAll(PageRequest.of(0, 1, org.springframework.data.domain.Sort.by(
-                        org.springframework.data.domain.Sort.Direction.DESC, "startDate")))
-                .stream()
+        // Prefer latest season with boards data — not an empty upcoming predict-to shell.
+        return seasonRepository.findSeasonsWithPlayerDataOrderByStartDateDesc().stream()
                 .findFirst()
+                .or(() -> seasonRepository.findAll(PageRequest.of(0, 1, org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "startDate")))
+                        .stream()
+                        .findFirst())
                 .orElseThrow(() -> new ResourceNotFoundException("No seasons available"));
     }
 

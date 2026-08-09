@@ -241,6 +241,146 @@ class MinutesPredictorTest {
     }
 
     @Test
+    void judgesFullBackCompetitionByFlankRatherThanBackLine() {
+        Club target = club("Newcastle", "ENG");
+        Season priorSeason = season("2023/24", LocalDate.of(2023, 7, 1), LocalDate.of(2024, 6, 30));
+
+        List<PlayerSeason> leftSidedDefence = List.of(
+                squadMate(target, priorSeason, Position.LB, 3_000),
+                squadMate(target, priorSeason, Position.LB, 2_400),
+                squadMate(target, priorSeason, Position.CB, 3_000),
+                squadMate(target, priorSeason, Position.CB, 2_800),
+                squadMate(target, priorSeason, Position.CM, 2_800)
+        );
+        List<PlayerSeason> defenceWithRightBack = List.of(
+                squadMate(target, priorSeason, Position.RB, 3_000),
+                squadMate(target, priorSeason, Position.LB, 3_000),
+                squadMate(target, priorSeason, Position.CB, 3_000),
+                squadMate(target, priorSeason, Position.CM, 2_800)
+        );
+
+        MinutesPredictor.Result openFlank = predictRightBack(target, leftSidedDefence);
+        MinutesPredictor.Result blockedFlank = predictRightBack(target, defenceWithRightBack);
+
+        // Two left-backs and a stack of centre-backs do not contest the right-back slot.
+        assertThat(openFlank.minutes()).isGreaterThan(2_600);
+        assertThat(blockedFlank.minutes()).isLessThan(openFlank.minutes() - 500);
+    }
+
+    @Test
+    void treatsDepartingStarterAsAVacatedSlotForTheReplacement() {
+        Club target = club("Liverpool", "ENG");
+        Season priorSeason = season("2025/26", LocalDate.of(2025, 7, 1), LocalDate.of(2026, 6, 30));
+        Season targetSeason = season("2026/27", LocalDate.of(2026, 7, 1), LocalDate.of(2027, 6, 30));
+
+        PlayerSeason departingStarter = squadMate(target, priorSeason, Position.CB, 2_900);
+        List<PlayerSeason> squad = List.of(
+                departingStarter,
+                squadMate(target, priorSeason, Position.CB, 2_600),
+                squadMate(target, priorSeason, Position.LB, 2_800),
+                squadMate(target, priorSeason, Position.RB, 2_700),
+                squadMate(target, priorSeason, Position.CM, 3_000)
+        );
+
+        Player signing = player(LocalDate.of(1999, 5, 20), Position.CB);
+        PlayerSeason history = new PlayerSeason(
+                signing,
+                club("Bournemouth", "ENG"),
+                priorSeason,
+                30,
+                2_400,
+                2,
+                1,
+                new BigDecimal("1.5"),
+                new BigDecimal("1.0"),
+                Position.CB
+        );
+
+        MinutesPredictor.Result incumbentStays = predictor.predict(new PredictionContext(
+                signing,
+                target,
+                targetSeason,
+                List.of(history),
+                squad,
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        MinutesPredictor.Result replacesStarter = predictor.predict(new PredictionContext(
+                signing,
+                target,
+                targetSeason,
+                List.of(history),
+                squad,
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty(),
+                List.of(departingStarter),
+                List.of()
+        ));
+
+        assertThat(replacesStarter.minutes()).isGreaterThan(incumbentStays.minutes());
+        assertThat(replacesStarter.minutes()).isGreaterThan(2_400);
+        assertThat(replacesStarter.factors()).extracting(ExplanationFactor::code)
+                .contains(FactorCodes.SQUAD_VACANCY);
+    }
+
+    @Test
+    void benchesArrivingKeeperWhenTheNumberOneStays() {
+        Club target = club("Chelsea", "ENG");
+        Season priorSeason = season("2025/26", LocalDate.of(2025, 7, 1), LocalDate.of(2026, 6, 30));
+        Season targetSeason = season("2026/27", LocalDate.of(2026, 7, 1), LocalDate.of(2027, 6, 30));
+
+        Player keeper = player(LocalDate.of(1997, 3, 7), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                keeper,
+                club("Crystal Palace", "ENG"),
+                priorSeason,
+                27,
+                2_400,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        MinutesPredictor.Result behindNumberOne = predictor.predict(new PredictionContext(
+                keeper,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(gkSquadMate(target, priorSeason, 3_100), gkSquadMate(target, priorSeason, 320)),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        MinutesPredictor.Result openGoal = predictor.predict(new PredictionContext(
+                keeper,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(gkSquadMate(target, priorSeason, 400)),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        assertThat(behindNumberOne.minutes()).isLessThan(1_200);
+        assertThat(openGoal.minutes()).isGreaterThan(2_200);
+    }
+
+    @Test
     void clampsToSeasonMaximum() {
         Player player = player(LocalDate.of(2002, 1, 1));
         Club club = club("Arsenal", "ENG");
@@ -289,14 +429,48 @@ class MinutesPredictorTest {
         );
     }
 
+    private MinutesPredictor.Result predictRightBack(Club target, List<PlayerSeason> squad) {
+        Season priorSeason = season("2023/24", LocalDate.of(2023, 7, 1), LocalDate.of(2024, 6, 30));
+        Season targetSeason = season("2024/25", LocalDate.of(2024, 7, 1), LocalDate.of(2025, 6, 30));
+        Player fullBack = player(LocalDate.of(1999, 2, 10), Position.RB);
+        PlayerSeason history = new PlayerSeason(
+                fullBack,
+                club("Girona", "ESP"),
+                priorSeason,
+                32,
+                2_600,
+                2,
+                6,
+                new BigDecimal("1.0"),
+                new BigDecimal("4.5"),
+                Position.RB
+        );
+        return predictor.predict(new PredictionContext(
+                fullBack,
+                target,
+                targetSeason,
+                List.of(history),
+                squad,
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+    }
+
     private PlayerSeason squadMate(Club club, Season season, Position position) {
+        return squadMate(club, season, position, 2_200);
+    }
+
+    private PlayerSeason squadMate(Club club, Season season, Position position, int minutes) {
         Player rival = player(LocalDate.of(1997, 1, 1), position);
         return new PlayerSeason(
                 rival,
                 club,
                 season,
-                28,
-                2_200,
+                Math.max(1, minutes / 90),
+                minutes,
                 3,
                 2,
                 new BigDecimal("2.5"),

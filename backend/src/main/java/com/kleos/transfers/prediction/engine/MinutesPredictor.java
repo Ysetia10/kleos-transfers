@@ -25,9 +25,19 @@ public class MinutesPredictor {
     static final int MIN_MINUTES = 0;
     static final int ESTABLISHED_STARTER_MINUTES = 2_500;
     static final int GK_STARTER_MINUTES = 2_500;
-    static final int GK_BACKUP_MINUTES = 1_200;
     static final int GK_DEFAULT_STARTER_MINUTES = 3_200;
-    static final int GK_DEFAULT_BACKUP_MINUTES = 450;
+    /** Prior-season minutes above which a club's keeper counts as a settled number one. */
+    static final int GK_INCUMBENT_MINUTES = 2_000;
+    /** Minutes an arriving keeper needs over the incumbent to be favoured for the gloves. */
+    static final int GK_TAKEOVER_EDGE = 600;
+    /** Minutes behind the incumbent at which the arrival is simply the backup. */
+    static final int GK_BACKUP_EDGE = -400;
+    /** League minutes a settled backup keeper typically picks up through rotation and injury. */
+    static final int GK_BENCH_MINUTES = 500;
+    static final int REPLACEMENT_BASELINE_MINUTES = 1_500;
+    static final double REPLACEMENT_FLOOR_MULTIPLIER = 0.92;
+    static final double MIN_COMPETITION_MULTIPLIER = 0.30;
+    static final double MAX_COMPETITION_MULTIPLIER = 1.12;
 
     public record Result(int minutes, int minutesLow, int minutesHigh, List<ExplanationFactor> factors) {
     }
@@ -91,6 +101,9 @@ public class MinutesPredictor {
         if (context.targetClubSquad().isEmpty()) {
             band += 0.03;
         }
+        if (!SquadDepthAnalyzer.hasPreciseRoles(context, resolvePosition(context))) {
+            band += 0.03;
+        }
         return Math.min(0.35, Math.max(0.12, band));
     }
 
@@ -109,56 +122,67 @@ public class MinutesPredictor {
         return new Result(minutes, minutes, minutes, factors);
     }
 
+    /**
+     * Goalkeeping is winner-take-most: one shirt, and the keeper who owned it last season keeps it
+     * unless the arrival clearly outplayed him. Whoever loses that contest drops to bench minutes,
+     * so the outcome is set on the baseline rather than shaved off it by a competition multiplier.
+     */
     private Result predictGoalkeeper(PredictionContext context) {
         List<ExplanationFactor> factors = new ArrayList<>();
         int recentWorkload = recentWorkloadMinutes(context);
+        SquadDepthAnalyzer.Assessment depth =
+                SquadDepthAnalyzer.analyze(context, Position.GK, recentWorkload);
+        SquadDepthAnalyzer.Contender incumbent = depth.rivals().stream()
+                .max(Comparator.comparingInt(SquadDepthAnalyzer.Contender::minutes))
+                .orElse(null);
+        int incumbentMinutes = incumbent == null ? 0 : incumbent.minutes();
         boolean starterProfile = recentWorkload >= GK_STARTER_MINUTES;
-        boolean backupProfile = recentWorkload > 0 && recentWorkload < GK_BACKUP_MINUTES;
+        int starterCeiling = (int) Math.round(Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES) * 0.90);
 
         int baseline;
         if (context.playerHistory().isEmpty()) {
             baseline = DEFAULT_MINUTES;
-            factors.add(new ExplanationFactor(
-                    FactorCodes.GK_ROLE,
-                    "Goalkeeper role",
+            factors.add(gkRoleFactor(
                     ExplanationDirection.NEUTRAL,
-                    PredictionMath.bd(14),
-                    "No prior GK seasons; using a neutral rotation baseline of "
-                            + DEFAULT_MINUTES
-                            + " minutes."
+                    14,
+                    "No prior GK seasons; using a neutral rotation baseline of " + DEFAULT_MINUTES + " minutes."
             ));
-        } else if (starterProfile) {
-            baseline = Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
-            factors.add(new ExplanationFactor(
-                    FactorCodes.GK_ROLE,
-                    "Goalkeeper role",
+        } else if (incumbentMinutes < GK_INCUMBENT_MINUTES) {
+            baseline = starterProfile ? Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES) : recentWorkload;
+            factors.add(gkRoleFactor(
+                    starterProfile ? ExplanationDirection.POSITIVE : ExplanationDirection.NEUTRAL,
+                    starterProfile ? 22 : 12,
+                    "Recent workload ("
+                            + recentWorkload
+                            + " min) "
+                            + (starterProfile ? "looks like a first-choice goalkeeper" : "is a rotation share")
+                            + "; carrying it forward."
+            ));
+            factors.add(gkCompetitionFactor(
                     ExplanationDirection.POSITIVE,
-                    PredictionMath.bd(22),
-                    "Recent workload ("
-                            + recentWorkload
-                            + " min) looks like a first-choice goalkeeper; projecting starter minutes."
-            ));
-        } else if (backupProfile) {
-            baseline = Math.min(recentWorkload, GK_DEFAULT_BACKUP_MINUTES);
-            factors.add(new ExplanationFactor(
-                    FactorCodes.GK_ROLE,
-                    "Goalkeeper role",
-                    ExplanationDirection.NEGATIVE,
-                    PredictionMath.bd(18),
-                    "Recent workload ("
-                            + recentWorkload
-                            + " min) looks like a backup goalkeeper; keeping minutes low."
+                    "No settled number one at "
+                            + context.targetClub().getName()
+                            + " (top rival GK minutes: "
+                            + incumbentMinutes
+                            + ")"
+                            + (depth.starterSlotVacated() ? " after the previous starter's exit" : "")
+                            + ", so the shirt is there to be taken."
             ));
         } else {
-            baseline = recentWorkload;
-            factors.add(new ExplanationFactor(
-                    FactorCodes.GK_ROLE,
-                    "Goalkeeper role",
-                    ExplanationDirection.NEUTRAL,
-                    PredictionMath.bd(12),
-                    "Recent GK workload ("
+            int edge = recentWorkload - incumbentMinutes;
+            baseline = contestedGoalkeeperMinutes(edge, recentWorkload, starterCeiling);
+            factors.add(gkRoleFactor(
+                    starterProfile ? ExplanationDirection.POSITIVE : ExplanationDirection.NEGATIVE,
+                    18,
+                    "Recent workload ("
                             + recentWorkload
-                            + " min) is between clear starter and clear backup; carrying that share forward."
+                            + " min) "
+                            + (starterProfile ? "is first-choice level" : "is below first-choice level")
+                            + " at his previous club."
+            ));
+            factors.add(gkCompetitionFactor(
+                    edge >= GK_TAKEOVER_EDGE ? ExplanationDirection.POSITIVE : ExplanationDirection.NEGATIVE,
+                    describeGoalkeeperContest(incumbent, edge, recentWorkload)
             ));
         }
 
@@ -172,19 +196,66 @@ public class MinutesPredictor {
 
         double ageMultiplier = goalkeeperAgeMultiplier(context.ageAtSeasonStart(), factors);
         double injuryMultiplier = injuryMultiplier(context, factors);
-        double competitionMultiplier = goalkeeperCompetitionMultiplier(
-                context,
-                starterProfile,
-                backupProfile,
-                factors
-        );
 
         int minutes = PredictionMath.clamp(
-                (int) Math.round(baseline * ageMultiplier * injuryMultiplier * competitionMultiplier),
+                (int) Math.round(baseline * ageMultiplier * injuryMultiplier),
                 MIN_MINUTES,
                 MAX_MINUTES
         );
         return new Result(minutes, minutes, minutes, factors);
+    }
+
+    /**
+     * Ramps from bench minutes to starter minutes across the workload gap with the incumbent, so a
+     * keeper who merely matches the number one still projects behind him.
+     */
+    private int contestedGoalkeeperMinutes(int edge, int recentWorkload, int starterCeiling) {
+        if (edge >= GK_TAKEOVER_EDGE) {
+            return starterCeiling;
+        }
+        double share = Math.min(1.0, Math.max(0.0,
+                (edge - GK_BACKUP_EDGE) / (double) (GK_TAKEOVER_EDGE - GK_BACKUP_EDGE)));
+        int contested = (int) Math.round(GK_BENCH_MINUTES + (share * (starterCeiling - GK_BENCH_MINUTES)));
+        return Math.min(contested, Math.max(recentWorkload, GK_BENCH_MINUTES));
+    }
+
+    private String describeGoalkeeperContest(
+            SquadDepthAnalyzer.Contender incumbent,
+            int edge,
+            int recentWorkload
+    ) {
+        String name = incumbent == null ? "the incumbent" : incumbent.name();
+        int incumbentMinutes = incumbent == null ? 0 : incumbent.minutes();
+        if (edge >= GK_TAKEOVER_EDGE) {
+            return "Played " + edge + " more minutes than " + name + " (" + incumbentMinutes
+                    + " min), so he is favoured to take the gloves.";
+        }
+        if (edge >= GK_BACKUP_EDGE) {
+            return name + " kept the shirt last season (" + incumbentMinutes + " min) and is staying, so"
+                    + " the arrival splits minutes at best rather than walking into the XI.";
+        }
+        return "First-choice keeper " + name + " (" + incumbentMinutes + " min) is staying, so an arrival on "
+                + recentWorkload + " minutes projects as the backup and only plays through injury or rotation.";
+    }
+
+    private ExplanationFactor gkRoleFactor(ExplanationDirection direction, int impact, String detail) {
+        return new ExplanationFactor(
+                FactorCodes.GK_ROLE,
+                "Goalkeeper role",
+                direction,
+                PredictionMath.bd(impact),
+                detail
+        );
+    }
+
+    private ExplanationFactor gkCompetitionFactor(ExplanationDirection direction, String detail) {
+        return new ExplanationFactor(
+                FactorCodes.SQUAD_COMPETITION,
+                "Squad competition",
+                direction,
+                PredictionMath.bd(20),
+                detail
+        );
     }
 
     private int baselineMinutes(PredictionContext context, List<ExplanationFactor> factors) {
@@ -347,99 +418,142 @@ public class MinutesPredictor {
         return multiplier;
     }
 
+    /**
+     * Depth-chart competition at the player's exact role: how many starting slots that role owns,
+     * how many are already held by more established rivals, and whether the window vacated one.
+     */
     private double competitionMultiplier(
             PredictionContext context,
             int baselineMinutes,
             List<ExplanationFactor> factors
     ) {
-        Position position = resolvePosition(context);
-        Set<Position> group = PositionGroups.groupOf(position);
+        Position role = resolvePosition(context);
+        SquadDepthAnalyzer.Assessment depth =
+                SquadDepthAnalyzer.analyze(context, role, baselineMinutes);
 
-        long rivals = context.targetClubSquad().stream()
-                .filter(ps -> !ps.getPlayer().getId().equals(context.player().getId()))
-                .filter(ps -> group.contains(ps.getPrimaryPosition()))
-                .count();
+        double multiplier = opennessMultiplier(depth.openness());
+        multiplier *= crowdingMultiplier(depth.crowding());
+        multiplier = PredictionMath.clamp(multiplier, MIN_COMPETITION_MULTIPLIER, MAX_COMPETITION_MULTIPLIER);
 
-        if (rivals == 0) {
-            factors.add(new ExplanationFactor(
+        factors.add(competitionFactor(context, depth, multiplier));
+        if (depth.starterSlotVacated()) {
+            multiplier = applyVacancy(context, depth, baselineMinutes, multiplier, factors);
+        }
+        if (!depth.preciseRoles()) {
+            factors.add(rolePrecisionFactor(context, depth));
+        }
+        return multiplier;
+    }
+
+    private double opennessMultiplier(double openness) {
+        if (openness >= 1.0) {
+            return 1.05;
+        }
+        if (openness > 0) {
+            return 0.78 + (0.27 * openness);
+        }
+        return Math.max(0.30, 0.78 / (1.0 + (1.10 * -openness)));
+    }
+
+    /**
+     * Small extra haircut for squads that stack bodies at a role even below the subject.
+     */
+    private double crowdingMultiplier(double crowding) {
+        double excess = Math.max(0, crowding - 1.15);
+        return 1.0 - Math.min(0.12, 0.08 * excess);
+    }
+
+    /**
+     * A departing starter leaves a slot the club has to fill, so a replacement signing with real
+     * minutes behind him is unlikely to be squeezed out.
+     */
+    private double applyVacancy(
+            PredictionContext context,
+            SquadDepthAnalyzer.Assessment depth,
+            int baselineMinutes,
+            double multiplier,
+            List<ExplanationFactor> factors
+    ) {
+        double boosted = multiplier * (1.0 + Math.min(0.12, 0.12 * depth.vacated()));
+        if (baselineMinutes >= REPLACEMENT_BASELINE_MINUTES) {
+            boosted = Math.max(boosted, REPLACEMENT_FLOOR_MULTIPLIER);
+        }
+        boosted = Math.min(MAX_COMPETITION_MULTIPLIER, boosted);
+
+        String leaver = depth.topDeparture()
+                .map(departure -> departure.name() + " (" + departure.minutes() + " min)")
+                .orElse("a first-choice starter");
+        factors.add(new ExplanationFactor(
+                FactorCodes.SQUAD_VACANCY,
+                "Vacated starting slot",
+                ExplanationDirection.POSITIVE,
+                PredictionMath.bd(Math.abs(boosted - multiplier) * 100 + 8),
+                context.targetClub().getName()
+                        + " is losing "
+                        + leaver
+                        + " at "
+                        + depth.role()
+                        + " this window, so the arriving replacement inherits starting minutes rather than"
+                        + " queueing behind the incumbent."
+        ));
+        return boosted;
+    }
+
+    private ExplanationFactor competitionFactor(
+            PredictionContext context,
+            SquadDepthAnalyzer.Assessment depth,
+            double multiplier
+    ) {
+        String scope = depth.preciseRoles()
+                ? "at " + depth.role()
+                : "across the " + depth.role() + " line";
+        if (depth.rivals().isEmpty()) {
+            return new ExplanationFactor(
                     FactorCodes.SQUAD_COMPETITION,
                     "Squad competition",
                     ExplanationDirection.POSITIVE,
                     PredictionMath.bd(10),
-                    "No recorded same-position rivals at the target club in the prior season."
-            ));
-            return 1.05;
+                    "No rivals " + scope + " in the post-transfer squad at " + context.targetClub().getName() + "."
+            );
         }
 
-        double multiplier = rivals == 1 ? 0.96 : rivals == 2 ? 0.90 : rivals == 3 ? 0.85 : 0.80;
-        boolean established = baselineMinutes >= ESTABLISHED_STARTER_MINUTES;
-        if (established) {
-            multiplier = 1.0 - ((1.0 - multiplier) * 0.45);
-        }
-
-        factors.add(new ExplanationFactor(
+        String blocker = depth.topBlocker()
+                .map(rival -> " Ahead of him: " + rival.name() + " (" + rival.minutes() + " min at " + rival.role() + ").")
+                .orElse(" No rival at that role is more established than he is.");
+        boolean negative = multiplier < 1.0;
+        return new ExplanationFactor(
                 FactorCodes.SQUAD_COMPETITION,
                 "Squad competition",
-                ExplanationDirection.NEGATIVE,
-                PredictionMath.bd(rivals * 6.0),
-                rivals
-                        + " player(s) logged in the same position group at "
-                        + context.targetClub().getName()
-                        + " in the prior season"
-                        + (established ? "; haircut softened for an established-starter baseline" : "")
-                        + "."
-        ));
-        return multiplier;
+                negative ? ExplanationDirection.NEGATIVE : ExplanationDirection.POSITIVE,
+                PredictionMath.bd(Math.abs(1.0 - multiplier) * 60 + 6),
+                String.format(
+                        "%.1f starting slot(s) %s, contested by %.1f weighted rival(s), %.1f of them ranked ahead.%s",
+                        depth.slots(),
+                        scope,
+                        depth.contested(),
+                        depth.blocked(),
+                        blocker
+                )
+        );
     }
 
-    private double goalkeeperCompetitionMultiplier(
+    private ExplanationFactor rolePrecisionFactor(
             PredictionContext context,
-            boolean starterProfile,
-            boolean backupProfile,
-            List<ExplanationFactor> factors
+            SquadDepthAnalyzer.Assessment depth
     ) {
-        int rivalStarterMinutes = context.targetClubSquad().stream()
-                .filter(ps -> !ps.getPlayer().getId().equals(context.player().getId()))
-                .filter(ps -> ps.getPrimaryPosition() == Position.GK)
-                .map(PlayerSeason::getMinutesPlayed)
-                .max(Comparator.naturalOrder())
-                .orElse(0);
-
-        double multiplier;
-        String detail;
-        ExplanationDirection direction;
-        if (rivalStarterMinutes < 2_000) {
-            multiplier = starterProfile ? 1.06 : backupProfile ? 0.90 : 1.0;
-            direction = starterProfile ? ExplanationDirection.POSITIVE : ExplanationDirection.NEUTRAL;
-            detail = "No clear prior-season starting GK at "
-                    + context.targetClub().getName()
-                    + " (top rival GK minutes: "
-                    + rivalStarterMinutes
-                    + ").";
-        } else if (starterProfile) {
-            // Arriving first-choice GKs often win the job; keep only a mild contest haircut.
-            multiplier = 0.90;
-            direction = ExplanationDirection.NEGATIVE;
-            detail = "Target club already had a high-minute GK ("
-                    + rivalStarterMinutes
-                    + " min); mild contest haircut for an arriving starter.";
-        } else {
-            multiplier = 0.55;
-            direction = ExplanationDirection.NEGATIVE;
-            detail = "Target club already had a starting GK ("
-                    + rivalStarterMinutes
-                    + " min); backup/rotational pathway keeps minutes suppressed.";
-        }
-
-        factors.add(new ExplanationFactor(
-                FactorCodes.SQUAD_COMPETITION,
-                "Squad competition",
-                direction,
-                PredictionMath.bd(Math.abs(1.0 - multiplier) * 40),
-                detail
-        ));
-        return multiplier;
+        return new ExplanationFactor(
+                FactorCodes.ROLE_PRECISION,
+                "Role precision",
+                ExplanationDirection.NEUTRAL,
+                PredictionMath.bd(10),
+                context.targetClub().getName()
+                        + " squad roles are only recorded at line level for the prior season, so competition is"
+                        + " judged across the whole line instead of the exact "
+                        + depth.role()
+                        + " slot."
+        );
     }
+
 
     private static Position resolvePosition(PredictionContext context) {
         return context.mostRecentSeason()

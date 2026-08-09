@@ -9,6 +9,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PlayerDetailPage } from '@/pages/PlayerDetailPage'
 import { PlayersPage } from '@/pages/PlayersPage'
 import { PredictionResultPage } from '@/pages/PredictionResultPage'
+import { TransfersPage } from '@/pages/TransfersPage'
 import { TrendingPage } from '@/pages/TrendingPage'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="players/:id" element={<PlayerDetailPage />} />
         <Route path={routes.clubs.slice(1)} element={<ClubsPage />} />
         <Route path="clubs/:id" element={<ClubDetailPage />} />
+        <Route path={routes.transfers.slice(1)} element={<TransfersPage />} />
         <Route path={routes.trending.slice(1)} element={<TrendingPage />} />
         <Route path={routes.methodology.slice(1)} element={<MethodologyPage />} />
         <Route path={routes.about.slice(1)} element={<Navigate replace to={routes.methodology} />} />

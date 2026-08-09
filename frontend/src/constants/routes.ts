@@ -6,6 +6,7 @@ export const routes = {
   playerDetail: (id: string) => `/players/${id}` as const,
   clubs: '/clubs',
   clubDetail: (id: string) => `/clubs/${id}` as const,
+  transfers: '/transfers',
   trending: '/trending',
   methodology: '/methodology',
   dashboard: '/dashboard',
@@ -38,6 +39,7 @@ export const navigationItems: ReadonlyArray<{ label: string; to: AppRoute }> = [
   { label: 'Simulator', to: routes.home },
   { label: 'Players', to: routes.players },
   { label: 'Clubs', to: routes.clubs },
+  { label: 'Transfers', to: routes.transfers },
   { label: 'Trending', to: routes.trending },
   { label: 'Methodology', to: routes.methodology },
 ]

@@ -25,6 +25,7 @@ import {
   type LeaderboardEntry,
   type LeagueBoards,
 } from '@/services/stats/statsApi'
+import { listSeasons } from '@/services/season/seasonApi'
 import { listTransfers } from '@/services/transfer/transferApi'
 import { formatNumber } from '@/utils/format'
 
@@ -98,8 +99,22 @@ function LeagueGrid({ boards }: { boards: LeagueBoards[] }) {
                 </Typography>
               ) : null}
             </Stack>
-            <BoardTable rows={board.topScorers} title="Top scorers" />
-            <BoardTable rows={board.topAssisters} title="Top assisters" />
+            <BoardTable
+              rows={board.topScorers}
+              title={
+                board.seasonLabel
+                  ? `Previous season top scorers (${board.seasonLabel})`
+                  : 'Previous season top scorers'
+              }
+            />
+            <BoardTable
+              rows={board.topAssisters}
+              title={
+                board.seasonLabel
+                  ? `Previous season top assisters (${board.seasonLabel})`
+                  : 'Previous season top assisters'
+              }
+            />
           </Stack>
         </SurfaceCard>
       ))}
@@ -116,9 +131,20 @@ export function TrendingPage() {
     queryKey: queryKeys.stats.allTime(8),
     queryFn: () => fetchAllTimeStats(8),
   })
+  const seasonsQuery = useQuery({
+    queryKey: queryKeys.seasons.list(0, 20),
+    queryFn: () => listSeasons(0, 20),
+  })
+  const latestWindowSeasonId =
+    seasonsQuery.data?.content.find((season) => {
+      const end = new Date(`${season.endDate}T23:59:59`)
+      return end >= new Date()
+    })?.id ?? seasonsQuery.data?.content[0]?.id
+
   const transfersQuery = useQuery({
-    queryKey: queryKeys.transfers.list(0, 8, 'COMPLETED'),
-    queryFn: () => listTransfers(0, 8, 'COMPLETED'),
+    queryKey: queryKeys.transfers.list(0, 8, 'COMPLETED', latestWindowSeasonId ?? ''),
+    queryFn: () => listTransfers(0, 8, 'COMPLETED', latestWindowSeasonId),
+    enabled: !!latestWindowSeasonId,
   })
   const fitRoutesQuery = useQuery({
     queryKey: queryKeys.stats.fitRoutes(8),
@@ -130,7 +156,7 @@ export function TrendingPage() {
   return (
     <Stack spacing={4}>
       <PageHeader
-        description="Output leaders from the latest ingested season, plus career totals within each league."
+        description="Previous-season scoring boards (latest campaign with data — currently 2025/26 while 2026/27 is still empty), plus career totals and completed moves to project."
         eyebrow="Transfer intelligence"
         title="Trending"
       />
@@ -267,11 +293,22 @@ export function TrendingPage() {
       </Stack>
 
       <Stack spacing={2}>
-        <Typography variant="h3">Recent completed transfers</Typography>
-        <Typography color="text.secondary" variant="body2">
-          Inferred from consecutive club seasons (COMPLETED). Rumours use a separate status and are
-          not mixed into this list.
-        </Typography>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          sx={{ alignItems: { sm: 'baseline' }, justifyContent: 'space-between' }}
+        >
+          <Stack spacing={0.5}>
+            <Typography variant="h3">Recent completed transfers</Typography>
+            <Typography color="text.secondary" variant="body2">
+              Latest window deals (Wikipedia-dated) for the upcoming season. Open Transfers to
+              project each signing at their new club.
+            </Typography>
+          </Stack>
+          <Button component={RouterLink} to={routes.transfers} variant="outlined">
+            View all transfers
+          </Button>
+        </Stack>
         <QueryState
           emptyDescription="Run scripts/infer_transfers_from_seasons.py after ingest."
           emptyTitle="No transfers yet"
@@ -317,12 +354,20 @@ export function TrendingPage() {
       </Stack>
 
       <Stack spacing={2}>
-        <Typography variant="h3">Latest season boards</Typography>
+        <Typography variant="h3">Previous season boards</Typography>
+        <Typography color="text.secondary" variant="body2">
+          Leaders from the latest campaign that has PlayerSeason data. Upcoming shells (e.g. 2026/27)
+          stay out of these tables until outcomes exist.
+        </Typography>
         <QueryState
           emptyDescription="Ingest player-seasons to populate boards."
-          emptyTitle="No trending stats"
+          emptyTitle="No previous-season stats"
           error={trendingQuery.error}
-          isEmpty={!trendingQuery.data?.length}
+          isEmpty={
+            !trendingQuery.data?.some(
+              (board) => board.topScorers.length > 0 || board.topAssisters.length > 0,
+            )
+          }
           isError={trendingQuery.isError}
           isLoading={trendingQuery.isLoading}
           onRetry={() => void trendingQuery.refetch()}

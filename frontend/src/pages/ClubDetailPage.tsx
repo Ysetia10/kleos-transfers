@@ -111,7 +111,7 @@ export function ClubDetailPage() {
         <Stack spacing={2}>
           <SurfaceCard accent="info">
             <Typography color="primary.main" variant="caption">
-              Fit index · {club.fitIndexVersion}
+              Fit index
             </Typography>
             <Typography sx={{ mt: 1 }} variant="h3">
               {Number.isFinite(club.fitIndex) ? Math.round(club.fitIndex) : '—'}

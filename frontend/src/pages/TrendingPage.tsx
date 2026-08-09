@@ -165,7 +165,7 @@ export function TrendingPage() {
         sx={{
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
         }}
       >
         <SurfaceCard accent="positive">
@@ -190,17 +190,6 @@ export function TrendingPage() {
             {trendingQuery.data?.length
               ? trendingQuery.data.map((board) => board.tournamentName).join(' · ')
               : 'Top-five European leagues'}
-          </Typography>
-        </SurfaceCard>
-        <SurfaceCard>
-          <Typography color="text.secondary" variant="caption">
-            Engine
-          </Typography>
-          <Typography sx={{ mt: 1 }} variant="h2">
-            v0.3
-          </Typography>
-          <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
-            Dimensional compatibility in production
           </Typography>
         </SurfaceCard>
       </Box>

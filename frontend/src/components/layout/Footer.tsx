@@ -19,7 +19,7 @@ export function Footer() {
           sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
         >
           <Typography color="text.secondary" variant="body2">
-            Kleos Transfers · explainable football transfer intelligence · v0.2 heuristic
+            Kleos Transfers · explainable football transfer intelligence
           </Typography>
           <MuiLink component={RouterLink} color="text.secondary" to={routes.home} underline="hover">
             Prediction

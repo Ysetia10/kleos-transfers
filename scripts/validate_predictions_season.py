@@ -50,6 +50,7 @@ class Candidate:
     season_label: str
     country_code: str
     league_name: str
+    position: str
     minutes: int
     goals: int
     assists: int
@@ -120,7 +121,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--seasons",
         default="",
-        help="Comma-separated seasons (overrides --season). Example: 2022/23,2023/24,2024/25",
+        help="Comma-separated seasons (overrides --season). Empty = every completed season with PlayerSeason data",
     )
     parser.add_argument("--min-minutes", type=int, default=900, help="Minimum actual minutes in target season")
     parser.add_argument(
@@ -133,8 +134,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--per-league-limit",
         type=int,
-        default=40,
-        help="Max candidates per destination league per season (default 40)",
+        default=0,
+        help="Max candidates per destination league per season (0 = all eligible club-changers)",
+    )
+    parser.add_argument(
+        "--max-samples-per-league",
+        type=int,
+        default=0,
+        help="Max sample rows kept per league in the published artifact (0 = keep all evaluated)",
     )
     parser.add_argument(
         "--countries",
@@ -199,6 +206,7 @@ def discover_candidates(
     """ if require_club_change else ""
 
     safe_countries = ",".join("'" + code.replace("'", "") + "'" for code in countries)
+    rank_filter = "TRUE" if per_league_limit <= 0 else f"league_rank <= {int(per_league_limit)}"
     sql = f"""
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
     FROM (
@@ -219,6 +227,7 @@ def discover_candidates(
             WHEN 'FRA' THEN 'Ligue 1'
             ELSE c.country_code
           END AS league_name,
+          COALESCE(NULLIF(TRIM(ps.primary_position), ''), p.primary_position) AS position,
           ps.minutes_played AS minutes,
           ps.goals,
           ps.assists,
@@ -244,7 +253,7 @@ def discover_candidates(
           )
           {club_change_sql}
       ) ranked
-      WHERE league_rank <= {int(per_league_limit)}
+      WHERE {rank_filter}
       ORDER BY country_code, minutes DESC
     ) t
     """
@@ -271,12 +280,51 @@ def discover_candidates(
             season_label=row["season_label"],
             country_code=row["country_code"],
             league_name=row["league_name"],
+            position=str(row.get("position") or ""),
             minutes=int(row["minutes"]),
             goals=int(row["goals"]),
             assists=int(row["assists"]),
         )
         for row in payload
     ]
+
+
+def discover_completed_seasons(db_url: str, countries: list[str], min_minutes: int) -> list[str]:
+    """Seasons with club-changer outcomes in the top-5 leagues (excludes seasons still in progress)."""
+    safe_countries = ",".join("'" + code.replace("'", "") + "'" for code in countries)
+    sql = f"""
+    SELECT COALESCE(json_agg(label ORDER BY start_date), '[]'::json)
+    FROM (
+      SELECT s.label, s.start_date
+      FROM seasons s
+      WHERE s.deleted_at IS NULL
+        AND s.end_date < CURRENT_DATE
+        AND EXISTS (
+          SELECT 1
+          FROM player_seasons ps
+          JOIN clubs c ON c.id = ps.club_id AND c.deleted_at IS NULL
+          WHERE ps.season_id = s.id
+            AND ps.deleted_at IS NULL
+            AND ps.minutes_played >= {int(min_minutes)}
+            AND c.country_code IN ({safe_countries})
+            AND EXISTS (
+              SELECT 1
+              FROM player_seasons hist
+              JOIN seasons hist_s ON hist_s.id = hist.season_id
+              WHERE hist.player_id = ps.player_id
+                AND hist_s.start_date < s.start_date
+                AND hist.deleted_at IS NULL
+            )
+        )
+    ) t
+    """
+    completed = subprocess.run(
+        ["psql", db_url, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-c", sql],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return list(json.loads(completed.stdout.strip() or "[]"))
 
 
 def metric_table_lines(metrics: dict[str, Any]) -> list[str]:
@@ -376,19 +424,25 @@ def resolve_evaluation(created: dict[str, Any], api_url: str) -> dict[str, Any]:
 
 def main() -> int:
     args = parse_args()
-    seasons = [s.strip() for s in args.seasons.split(",") if s.strip()]
-    if not seasons:
-        seasons = [args.season.strip() or "2024/25"]
     countries = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
     if not countries:
         countries = DEFAULT_COUNTRIES
+
+    seasons = [s.strip() for s in args.seasons.split(",") if s.strip()]
+    if not seasons and args.season.strip():
+        seasons = [args.season.strip()]
+    if not seasons:
+        seasons = discover_completed_seasons(args.db, countries, args.min_minutes)
+        if not seasons:
+            raise SystemExit("No completed seasons with PlayerSeason data found")
 
     print("Kleos prediction validation")
     print(f"  seasons: {', '.join(seasons)}")
     print(f"  api:     {args.api_url}{' (dry-run)' if args.dry_run else ''}")
     print(f"  min minutes: {args.min_minutes}")
     print(f"  club change: {args.require_club_change}")
-    print(f"  per-league limit: {args.per_league_limit}")
+    print(f"  per-league limit: {args.per_league_limit or 'all'}")
+    print(f"  max samples/league: {args.max_samples_per_league or 'all'}")
     print(f"  countries: {','.join(countries)}")
 
     candidates: list[Candidate] = []
@@ -411,7 +465,7 @@ def main() -> int:
     if args.dry_run:
         for row in candidates[:30]:
             print(
-                f"    [{row.country_code}] {row.player_name} -> {row.club_name} "
+                f"    [{row.country_code}] {row.player_name} ({row.position}) -> {row.club_name} "
                 f"({row.season_label}, {row.minutes} min)"
             )
         if len(candidates) > 30:
@@ -422,6 +476,7 @@ def main() -> int:
     by_league: dict[str, RunBucket] = {code: RunBucket() for code in countries}
     failures: list[dict[str, str]] = []
     model_version = "v0.3-heuristic"
+    max_samples = args.max_samples_per_league
 
     for index, candidate in enumerate(candidates, start=1):
         note = f"backtest:{candidate.season_label}:{candidate.country_code}:{index}"
@@ -444,6 +499,7 @@ def main() -> int:
             sample = {
                 "player": candidate.player_name,
                 "playerId": candidate.player_id,
+                "position": candidate.position,
                 "club": candidate.club_name,
                 "clubId": candidate.club_id,
                 "season": candidate.season_label,
@@ -460,11 +516,11 @@ def main() -> int:
                 "assistsError": evaluation["assistsError"],
                 "predictionId": created["id"],
             }
-            if len(overall.samples) < 12:
+            if len(overall.samples) < 24:
                 overall.samples.append(sample)
-            if len(bucket.samples) < 8:
+            if max_samples <= 0 or len(bucket.samples) < max_samples:
                 bucket.samples.append(sample)
-            if index % 25 == 0 or index == len(candidates):
+            if index % 50 == 0 or index == len(candidates):
                 print(f"  progress {index}/{len(candidates)}")
         except Exception as error:  # noqa: BLE001 — collect and continue batch
             failures.append({"player": candidate.player_name, "error": str(error)[:300]})
@@ -522,6 +578,12 @@ def main() -> int:
         resource_path = resource_dir / "latest.json"
         resource_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
         print(f"Wrote {resource_path}")
+        # Live bootRun classpath (src/main/resources is not reloaded until rebuild)
+        build_resource = ROOT / "backend" / "build" / "resources" / "main" / "model-accuracy" / "latest.json"
+        if build_resource.parent.exists() or (ROOT / "backend" / "build" / "resources" / "main").exists():
+            build_resource.parent.mkdir(parents=True, exist_ok=True)
+            build_resource.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            print(f"Wrote {build_resource}")
     return 0
 
 

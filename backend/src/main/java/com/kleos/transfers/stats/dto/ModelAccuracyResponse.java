@@ -62,6 +62,7 @@ public record ModelAccuracyResponse(
     public record SamplePrediction(
             String player,
             String playerId,
+            String position,
             String club,
             String clubId,
             String season,

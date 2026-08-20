@@ -22,7 +22,7 @@ export function NewBadge({ label = 'First season at this club' }: NewBadgeProps)
           borderColor: 'success.main',
           color: 'success.main',
           fontSize: 10,
-          fontWeight: 700,
+          fontWeight: 500,
           letterSpacing: 0.04,
           textTransform: 'uppercase',
           verticalAlign: 'middle',

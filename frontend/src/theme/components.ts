@@ -13,6 +13,10 @@ export const components: Components<Theme> = {
       },
       body: {
         backgroundImage: 'none',
+        fontFamily: 'Arial, Helvetica, sans-serif',
+      },
+      'b, strong': {
+        fontWeight: 500,
       },
       '::selection': {
         backgroundColor: 'rgba(59, 130, 246, 0.35)',
@@ -42,7 +46,7 @@ export const components: Components<Theme> = {
         borderRadius: 10,
         padding: theme.spacing(1, 2),
         textTransform: 'none',
-        fontWeight: 600,
+        fontWeight: 500,
         transition: 'transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease',
         '&:hover': {
           transform: 'translateY(-1px)',
@@ -78,14 +82,14 @@ export const components: Components<Theme> = {
   MuiTableCell: {
     styleOverrides: {
       head: ({ theme }) => ({
+        ...theme.typography.label,
         color: theme.palette.text.secondary,
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        letterSpacing: '0.04em',
         textTransform: 'uppercase',
+        letterSpacing: '0.04em',
         borderBottomColor: theme.palette.divider,
       }),
       body: ({ theme }) => ({
+        ...theme.typography.normal,
         borderBottomColor: theme.palette.divider,
       }),
     },
@@ -94,14 +98,14 @@ export const components: Components<Theme> = {
     styleOverrides: {
       root: {
         borderRadius: 8,
-        fontWeight: 600,
+        fontWeight: 500,
       },
     },
   },
   MuiLink: {
     styleOverrides: {
       root: {
-        fontWeight: 600,
+        fontWeight: 500,
       },
     },
   },

@@ -19,15 +19,24 @@ declare module '@mui/material/styles' {
 
   interface TypographyVariants {
     bodyLarge: CSSProperties
+    normal: CSSProperties
+    secondary: CSSProperties
+    label: CSSProperties
   }
 
   interface TypographyVariantsOptions {
     bodyLarge?: CSSProperties
+    normal?: CSSProperties
+    secondary?: CSSProperties
+    label?: CSSProperties
   }
 }
 
 declare module '@mui/material/Typography' {
   interface TypographyPropsVariantOverrides {
     bodyLarge: true
+    normal: true
+    secondary: true
+    label: true
   }
 }

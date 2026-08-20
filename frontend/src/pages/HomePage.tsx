@@ -4,20 +4,19 @@ import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { PredictionForm } from '@/components/prediction/PredictionForm'
-import { RecentPredictionsSection } from '@/components/home/RecentPredictionsSection'
 import { ModelAccuracySection } from '@/components/home/ModelAccuracySection'
 
 export function HomePage() {
   const [params] = useSearchParams()
   const playerId = params.get('playerId') ?? undefined
   const clubId = params.get('clubId') ?? undefined
-  const [historicalOpen, setHistoricalOpen] = useState(false)
+  const [simulatorOpen, setSimulatorOpen] = useState(false)
 
   return (
     <Stack spacing={4}>
       <PageHeader
-        description="Project a player into the current campaign using the destination club’s latest completed roster ± window transfers."
-        eyebrow="Prediction workspace"
+        description="Pick a player and a destination club to project next season’s minutes, goals, and assists — using the club’s latest completed squad plus confirmed transfer updates."
+        eyebrow="Prediction"
         title="Prediction"
       />
 
@@ -30,26 +29,34 @@ export function HomePage() {
         />
       </SurfaceCard>
 
-      <Stack spacing={1} sx={{ alignItems: { sm: 'flex-start' } }}>
-        <Button onClick={() => setHistoricalOpen(true)} variant="outlined">
+      <ModelAccuracySection />
+
+      <Stack spacing={1.5}>
+        <Typography variant="h5">Simulator</Typography>
+        <Typography color="text.secondary" variant="body2">
+          Run the same engine on a completed season to compare predicted minutes and output with what
+          actually happened.
+        </Typography>
+        <Button
+          onClick={() => setSimulatorOpen(true)}
+          sx={{ alignSelf: { sm: 'flex-start' } }}
+          variant="outlined"
+        >
           Predict for previous seasons
         </Button>
-        <Typography color="text.secondary" variant="body2">
-          Open the backtest path for completed campaigns (actuals available for evaluation).
-        </Typography>
       </Stack>
 
       <Dialog
         fullWidth
         maxWidth="md"
-        onClose={() => setHistoricalOpen(false)}
-        open={historicalOpen}
+        onClose={() => setSimulatorOpen(false)}
+        open={simulatorOpen}
       >
-        <DialogTitle>Predict for previous seasons</DialogTitle>
+        <DialogTitle>Simulator — previous seasons</DialogTitle>
         <DialogContent>
           <Typography color="text.secondary" sx={{ mb: 2 }} variant="body2">
-            Choose a completed season to project into. Use this when you want to validate the engine
-            against known outcomes.
+            Choose a completed season, then run a prediction. When outcomes exist, the result page
+            shows predicted vs actual stats.
           </Typography>
           <PredictionForm
             key={`${playerId ?? ''}:${clubId ?? ''}:historical`}
@@ -59,10 +66,6 @@ export function HomePage() {
           />
         </DialogContent>
       </Dialog>
-
-      <ModelAccuracySection />
-
-      <RecentPredictionsSection />
     </Stack>
   )
 }

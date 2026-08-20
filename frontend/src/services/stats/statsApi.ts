@@ -85,6 +85,7 @@ export interface MetricBlock {
 export interface AccuracySample {
   player: string
   playerId?: string
+  position?: string
   club: string
   clubId?: string
   season: string

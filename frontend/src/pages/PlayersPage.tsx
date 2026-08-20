@@ -184,7 +184,7 @@ export function PlayersPage() {
                         >
                           {player.fullName}
                         </MuiLink>
-                        <Typography color="text.secondary" variant="caption">
+                        <Typography color="text.secondary" variant="secondary">
                           {player.primaryPosition} · {formatFootballCountry(player.nationality)}
                         </Typography>
                       </Stack>

@@ -14,7 +14,7 @@ export function ScoreMeter({ label, value, helper }: ScoreMeterProps) {
     <Stack spacing={1}>
       <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
         <Typography variant="subtitle2">{label}</Typography>
-        <Typography sx={{ fontWeight: 600 }} variant="subtitle2">
+        <Typography sx={{ fontWeight: 500 }} variant="subtitle2">
           {Math.round(clamped)}
         </Typography>
       </Stack>

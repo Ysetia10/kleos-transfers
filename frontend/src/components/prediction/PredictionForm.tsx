@@ -153,8 +153,6 @@ export function PredictionForm({
     )
   }, [allSeasons, selectedSeason])
 
-  const upcomingSelected = selectedSeason ? isUpcomingSeason(selectedSeason) : false
-
   const mutation = useMutation({
     mutationFn: createPrediction,
     onSuccess: (prediction) => {
@@ -191,7 +189,10 @@ export function PredictionForm({
           gap: 2,
           gridTemplateColumns: {
             xs: '1fr',
-            md: 'minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 0.9fr) auto',
+            md:
+              seasonMode === 'historical'
+                ? 'minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 0.9fr) auto'
+                : 'minmax(0, 1.3fr) minmax(0, 1.2fr) auto',
           },
           alignItems: 'start',
         }}
@@ -312,7 +313,7 @@ export function PredictionForm({
                       errors.seasonId?.message ??
                       'Completed seasons can be checked against actual outcomes'
                     }
-                    label="Target season"
+                    label="Season"
                     required
                   />
                 )}
@@ -320,14 +321,7 @@ export function PredictionForm({
               />
             )}
           />
-        ) : (
-          <TextField
-            helperText="Current campaign only — use previous-seasons mode for backtests"
-            label="Target season"
-            slotProps={{ input: { readOnly: true } }}
-            value={selectedSeason ? seasonOptionLabel(selectedSeason) : '—'}
-          />
-        )}
+        ) : null}
 
         <Button
           disabled={mutation.isPending}
@@ -339,20 +333,19 @@ export function PredictionForm({
         </Button>
       </Box>
 
-      {seasonMode === 'upcoming' && upcomingSelected ? (
-        <Alert severity="info" variant="outlined">
-          Predicting <strong>{selectedSeason?.label}</strong> before kick-off. Destination squad starts
-          from the club’s <strong>latest completed roster</strong>
-          {priorSeason ? <> ({priorSeason.label})</> : null}, then removes confirmed outs and adds
-          confirmed/announced ins for {selectedSeason?.label}.
-        </Alert>
+      {seasonMode === 'upcoming' && selectedSeason ? (
+        <Typography color="text.secondary" variant="body2">
+          Runs for {selectedSeason.label}. Squad context uses the club’s latest completed roster
+          {priorSeason ? ` (${priorSeason.label})` : ''} with confirmed outs removed and confirmed
+          / announced signings added.
+        </Typography>
       ) : null}
 
       {seasonMode === 'historical' ? (
-        <Alert severity="info" variant="outlined">
-          Previous-season mode projects into a completed campaign so you can compare against actual
-          minutes and output when PlayerSeason rows exist.
-        </Alert>
+        <Typography color="text.secondary" variant="body2">
+          Simulator mode projects into a completed season so you can compare the forecast with actual
+          minutes and output.
+        </Typography>
       ) : null}
 
       {mutation.isError ? (

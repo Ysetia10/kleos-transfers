@@ -42,7 +42,7 @@ export function Navbar() {
             to={routes.home}
           >
             <BrandMark animated size={30} />
-            <Typography sx={{ fontWeight: 700, letterSpacing: '-0.02em' }} variant="h4">
+            <Typography sx={{ fontWeight: 500, letterSpacing: '-0.02em' }} variant="h4">
               Kleos
             </Typography>
           </Box>

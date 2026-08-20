@@ -67,7 +67,7 @@ export function IdentityMedia({
         height: size,
         borderRadius: radius,
         fontSize: size * 0.36,
-        fontWeight: 700,
+        fontWeight: 500,
         bgcolor: 'primary.main',
         color: 'primary.contrastText',
         flexShrink: 0,

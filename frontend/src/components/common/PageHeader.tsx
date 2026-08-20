@@ -3,13 +3,23 @@ import type { ReactNode } from 'react'
 
 interface PageHeaderProps {
   eyebrow?: string
-  title: ReactNode
+  /** When omitted, only eyebrow + description show (no large title). */
+  title?: ReactNode
   description?: ReactNode
   actions?: ReactNode
   leading?: ReactNode
+  /** Extra styles for the eyebrow (e.g. larger section label). */
+  eyebrowSx?: object
 }
 
-export function PageHeader({ eyebrow, title, description, actions, leading }: PageHeaderProps) {
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+  leading,
+  eyebrowSx,
+}: PageHeaderProps) {
   return (
     <Stack
       direction={{ xs: 'column', md: 'row' }}
@@ -20,13 +30,15 @@ export function PageHeader({ eyebrow, title, description, actions, leading }: Pa
         {leading}
         <Stack spacing={0.75} sx={{ minWidth: 0 }}>
           {eyebrow ? (
-            <Typography color="primary.main" variant="caption">
+            <Typography color="primary.main" sx={eyebrowSx} variant="caption">
               {eyebrow}
             </Typography>
           ) : null}
-          <Typography component="h1" variant="h1">
-            {title}
-          </Typography>
+          {title != null && title !== '' ? (
+            <Typography component="h1" variant="h1">
+              {title}
+            </Typography>
+          ) : null}
           {description ? (
             <Typography color="text.secondary" variant="bodyLarge">
               {description}

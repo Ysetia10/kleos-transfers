@@ -68,7 +68,7 @@ export function TransferBadge({ transfer, children }: TransferBadgeProps) {
             bgcolor: 'action.hover',
             color: 'primary.main',
             fontSize: 11,
-            fontWeight: 700,
+            fontWeight: 500,
             lineHeight: 1,
             letterSpacing: 0.02,
             cursor: 'pointer',

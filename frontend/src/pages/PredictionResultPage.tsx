@@ -17,7 +17,6 @@ import { queryKeys } from '@/services/api/queryKeys'
 import { getClubSquad } from '@/services/club/squadApi'
 import { getPrediction } from '@/services/prediction/predictionApi'
 import { downloadPredictionBrief } from '@/utils/exportPredictionBrief'
-import { formatNumber } from '@/utils/format'
 
 export function PredictionResultPage() {
   const { id = '' } = useParams()
@@ -45,8 +44,6 @@ export function PredictionResultPage() {
   }
 
   const confidence = Number(prediction.confidenceScore)
-  const confidenceLabel =
-    confidence >= 70 ? 'High signal' : confidence >= 45 ? 'Moderate signal' : 'Thin signal'
 
   return (
     <Stack spacing={4}>
@@ -63,14 +60,16 @@ export function PredictionResultPage() {
         }
         description={`${prediction.playerName} → ${prediction.targetClubName} · ${prediction.seasonLabel}`}
         eyebrow="Prediction workspace"
-        title="Prediction"
+        eyebrowSx={{ fontSize: 'calc(0.7rem + 2pt)' }}
       />
 
+      {/* Summary band: short cards share one row — never paired with the tall “why” column. */}
       <Box
         sx={{
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1.15fr)' },
+          alignItems: 'start',
         }}
       >
         <Stack spacing={2}>
@@ -86,31 +85,20 @@ export function PredictionResultPage() {
             </Typography>
           </SurfaceCard>
           <SurfaceCard accent="positive">
-            <Typography color="text.secondary" variant="caption">
-              Model confidence
-            </Typography>
-            <Typography sx={{ mt: 1 }} variant="h1">
-              {formatNumber(confidence, 0)}%
-            </Typography>
-            <Typography color="success.main" sx={{ mt: 0.5 }} variant="body2">
-              {confidenceLabel}
-            </Typography>
-            <Box sx={{ mt: 2 }}>
+            <Stack spacing={2}>
               <ScoreMeter label="Confidence" value={confidence} />
-            </Box>
-          </SurfaceCard>
-          <SurfaceCard>
-            <ScoreMeter
-              helper="Aggregate of system, role, tempo, league, and manager fit."
-              label="Compatibility"
-              value={Number(prediction.compatibilityScore)}
-            />
-            <Box sx={{ mt: 2 }}>
-              <Typography color="text.secondary" sx={{ mb: 1 }} variant="caption">
-                Fit dimensions
-              </Typography>
-              <CompatibilityBreakdownChips breakdown={prediction.compatibilityBreakdown} />
-            </Box>
+              <ScoreMeter
+                helper="Aggregate of system, role, tempo, league, and manager fit."
+                label="Compatibility"
+                value={Number(prediction.compatibilityScore)}
+              />
+              <Box>
+                <Typography color="text.secondary" sx={{ mb: 1 }} variant="caption">
+                  Fit dimensions
+                </Typography>
+                <CompatibilityBreakdownChips breakdown={prediction.compatibilityBreakdown} />
+              </Box>
+            </Stack>
           </SurfaceCard>
         </Stack>
 
@@ -139,17 +127,18 @@ export function PredictionResultPage() {
             <ActualOutcomeCard evaluation={prediction.evaluation} prediction={prediction} />
           ) : null}
         </Stack>
-
-        <SurfaceCard>
-          <Typography color="text.secondary" variant="caption">
-            Contextual signals
-          </Typography>
-          <Typography sx={{ mt: 1, mb: 2 }} variant="h3">
-            Why this result
-          </Typography>
-          <ExplanationList explanations={prediction.explanations} />
-        </SurfaceCard>
       </Box>
+
+      {/* Full-width narrative: uses horizontal space instead of stretching one side column. */}
+      <SurfaceCard>
+        <Typography color="text.secondary" variant="caption">
+          Contextual signals
+        </Typography>
+        <Typography sx={{ mt: 1, mb: 2 }} variant="h3">
+          Why this result
+        </Typography>
+        <ExplanationList explanations={prediction.explanations} />
+      </SurfaceCard>
 
       <Stack spacing={2}>
         <Typography variant="h3">

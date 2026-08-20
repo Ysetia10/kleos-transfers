@@ -48,7 +48,7 @@ export function CompatibilityBreakdownChips({
             <Typography color="text.secondary" variant="caption">
               {dimension.label}
             </Typography>
-            <Typography color={tone(value)} sx={{ display: 'block', fontWeight: 700 }} variant="body2">
+            <Typography color={tone(value)} sx={{ display: 'block', fontWeight: 500 }} variant="body2">
               {formatNumber(value, 0)}
             </Typography>
           </Box>

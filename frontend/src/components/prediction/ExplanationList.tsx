@@ -1,4 +1,4 @@
-import { Chip, Stack, Typography } from '@mui/material'
+import { Box, Chip, Stack, Typography } from '@mui/material'
 import {
   Bar,
   BarChart,
@@ -62,7 +62,17 @@ export function ExplanationList({ explanations }: ExplanationListProps) {
         </Stack>
       ) : null}
 
-      <Stack component="ol" spacing={1.5} sx={{ listStyle: 'none', m: 0, p: 0 }}>
+      <Box
+        component="ol"
+        sx={{
+          display: 'grid',
+          gap: 1.5,
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+          listStyle: 'none',
+          m: 0,
+          p: 0,
+        }}
+      >
         {explanations.map((item) => (
           <Stack
             component="li"
@@ -83,7 +93,7 @@ export function ExplanationList({ explanations }: ExplanationListProps) {
             }}
           >
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography sx={{ fontWeight: 600 }} variant="subtitle2">
+              <Typography sx={{ fontWeight: 500 }} variant="subtitle2">
                 {item.label}
               </Typography>
               <Chip
@@ -101,7 +111,7 @@ export function ExplanationList({ explanations }: ExplanationListProps) {
             </Typography>
           </Stack>
         ))}
-      </Stack>
+      </Box>
     </Stack>
   )
 }

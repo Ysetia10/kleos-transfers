@@ -119,7 +119,7 @@ export function PitchLineup({ squad, title = 'Starting XI by minutes' }: PitchLi
               sx={{
                 color: '#fff',
                 textShadow: '0 1px 2px rgba(0,0,0,0.55)',
-                fontWeight: 600,
+                fontWeight: 500,
                 lineHeight: 1.15,
                 textAlign: 'center',
                 fontSize: 11,

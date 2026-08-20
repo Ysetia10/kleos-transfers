@@ -68,3 +68,57 @@ export async function fetchHighestFitRoutes(limit = 8): Promise<FitRoute[]> {
   })
   return data
 }
+
+export interface MetricTriple {
+  mae: number
+  rmse: number
+  bias_actual_minus_predicted: number
+}
+
+export interface MetricBlock {
+  n: number
+  minutes?: MetricTriple
+  goals?: MetricTriple
+  assists?: MetricTriple
+}
+
+export interface AccuracySample {
+  player: string
+  playerId?: string
+  club: string
+  clubId?: string
+  season: string
+  league?: string
+  countryCode?: string
+  predictedMinutes: number
+  actualMinutes: number
+  minutesError?: number
+  predictedGoals: number
+  actualGoals: number
+  goalsError?: number
+  predictedAssists: number
+  actualAssists: number
+  assistsError?: number
+  predictionId?: string
+}
+
+export interface LeagueAccuracy {
+  countryCode: string
+  leagueName: string
+  metrics: MetricBlock
+  samples: AccuracySample[]
+}
+
+export interface ModelAccuracy {
+  generatedAt: string
+  seasons: string[]
+  modelVersion: string
+  metrics: MetricBlock
+  byLeague: Record<string, LeagueAccuracy>
+  samplePredictions: AccuracySample[]
+}
+
+export async function fetchModelAccuracy(): Promise<ModelAccuracy> {
+  const { data } = await httpClient.get<ModelAccuracy>('/api/v1/stats/model-accuracy')
+  return data
+}

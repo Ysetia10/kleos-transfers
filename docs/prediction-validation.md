@@ -41,16 +41,16 @@ Ordered by minutes descending, then capped by `--limit`.
 ```bash
 # Backend must be running against the loaded historical DB
 ./scripts/validate_predictions_season.py --season 2024/25 --dry-run
-./scripts/validate_predictions_season.py --season 2024/25 --limit 200
+./scripts/validate_predictions_season.py --seasons 2022/23,2023/24,2024/25 --per-league-limit 40
 ```
 
 For each candidate the job:
 
-1. `POST /api/v1/predictions` with `note=backtest:{season}:{n}`
-2. `POST /api/v1/predictions/{id}/evaluate`
-3. Aggregates MAE, RMSE, and mean bias for minutes / goals / assists / xG / xA
+1. `POST /api/v1/predictions` with `note=backtest:{season}:{country}:{n}`
+2. Reuses evaluation attached on create when present; otherwise `POST /api/v1/predictions/{id}/evaluate`
+3. Aggregates MAE, RMSE, and mean bias for minutes / goals / assists — **overall and by destination league** (`ENG`/`ESP`/`GER`/`ITA`/`FRA`)
 
-Artifacts land under `research/validation/` (JSON + short Markdown summary).
+Artifacts land under `research/validation/` (JSON + short Markdown summary). The product API serves the latest summary from `GET /api/v1/stats/model-accuracy` (classpath copy of `latest.json`).
 
 ## Metrics
 

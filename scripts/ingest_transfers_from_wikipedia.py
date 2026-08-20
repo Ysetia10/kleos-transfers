@@ -82,11 +82,61 @@ CLUB_ALIASES = {
     "inter milan": "Inter",
     "internazionale": "Inter",
     "ac milan": "Milan",
+    "milan": "Milan",
     "bayern munich": "Bayern Munich",
+    "fc bayern munich": "Bayern Munich",
     "rb leipzig": "RB Leipzig",
     "paris saint-germain": "Paris S-G",
     "paris saint germain": "Paris S-G",
     "psg": "Paris S-G",
+    "borussia dortmund": "Dortmund",
+    "borussia monchengladbach": "Gladbach",
+    "borussia mönchengladbach": "Gladbach",
+    "eintracht frankfurt": "Eint Frankfurt",
+    "bayer leverkusen": "Leverkusen",
+    "tsg hoffenheim": "Hoffenheim",
+    "vfb stuttgart": "Stuttgart",
+    "1. fc koln": "Köln",
+    "1. fc köln": "Köln",
+    "fc koln": "Köln",
+    "mainz 05": "Mainz 05",
+    "union berlin": "Union Berlin",
+    "werder bremen": "Werder Bremen",
+    "sc freiburg": "Freiburg",
+    "fc augsburg": "Augsburg",
+    "hamburger sv": "Hamburger SV",
+    "real betis": "Betis",
+    "betis": "Betis",
+    "celta vigo": "Celta Vigo",
+    "rcd espanyol": "Espanyol",
+    "ca osasuna": "Osasuna",
+    "deportivo alaves": "Alavés",
+    "alaves": "Alavés",
+    "alavés": "Alavés",
+    "getafe cf": "Getafe",
+    "levante ud": "Levante",
+    "rayo vallecano": "Rayo Vallecano",
+    "sevilla fc": "Sevilla",
+    "valencia cf": "Valencia",
+    "villarreal cf": "Villarreal",
+    "olympique lyonnais": "Lyon",
+    "olympique de marseille": "Marseille",
+    "as monaco": "Monaco",
+    "ogc nice": "Nice",
+    "stade rennais": "Rennes",
+    "lille osc": "Lille",
+    "rc lens": "Lens",
+    "juventus": "Juventus",
+    "ssc napoli": "Napoli",
+    "as roma": "Roma",
+    "ss lazio": "Lazio",
+    "atalanta": "Atalanta",
+    "acf fiorentina": "Fiorentina",
+    "torino": "Torino",
+    "genoa": "Genoa",
+    "hellas verona": "Hellas Verona",
+    "sporting lisbon": "Sporting CP",
+    "sporting cp": "Sporting CP",
 }
 
 
@@ -133,17 +183,22 @@ def strip_wiki(cell: str) -> str:
     text = re.sub(r"<ref[^>]*>.*?</ref>", "", text, flags=re.S | re.I)
     text = re.sub(r"<ref[^/]*/>", "", text, flags=re.I)
     text = re.sub(r"\{\{ntsh\|[^}]*\}\}", "", text, flags=re.I)
-    text = re.sub(r"\{\{flagg?\|[^}]*\}\}", "", text, flags=re.I)
+    # Resolve links before nuking templates ({{Sort|…|[[Name]]}} nests icons).
+    for _ in range(4):
+        updated = re.sub(r"\[\[(?:[^|\]]*\|)?([^\]]+)\]\]", r"\1", text)
+        if updated == text:
+            break
+        text = updated
+    text = re.sub(r"\{\{flag(?:icon|g)?\|[^}]*\}\}", "", text, flags=re.I)
     text = re.sub(r"\{\{fla\|[^}]*\}\}", "", text, flags=re.I)
-    # {{sortname|First|Last|dab=...}}
     text = re.sub(
         r"\{\{sortname\|([^}|]+)\|([^}|]+)(?:\|[^}]*)?\}\}",
         r"\1 \2",
         text,
         flags=re.I,
     )
-    # [[Link|Display]] or [[Link]]
-    text = re.sub(r"\[\[(?:[^|\]]*\|)?([^\]]+)\]\]", r"\1", text)
+    # {{Sort|sortkey|display}} — keep display (Italian Serie A tables).
+    text = re.sub(r"\{\{[Ss]ort\|[^|]+\|([^}]*)\}\}", r"\1", text)
     text = re.sub(r"\{\{[^}]+\}\}", "", text)
     text = re.sub(r"'{2,}", "", text)
     text = re.sub(r"<[^>]+>", "", text)
@@ -152,8 +207,16 @@ def strip_wiki(cell: str) -> str:
 
 
 def parse_date(cell: str) -> str | None:
+    """Parse a table date cell, including {{dts|format=dmy|YYYY|M|D}} used on Serie A pages."""
+    dts = re.search(
+        r"\{\{dts\|(?:format=dmy\|)?(?P<y>\d{4})\|(?P<m>\d{1,2})\|(?P<d>\d{1,2})\}\}",
+        cell,
+        flags=re.I,
+    )
+    if dts:
+        return f"{int(dts.group('y')):04d}-{int(dts.group('m')):02d}-{int(dts.group('d')):02d}"
+
     text = strip_wiki(cell)
-    # rowspan leftovers / empty
     if not text or text.lower() in {"", "—", "-"}:
         return None
     m = re.match(
@@ -166,6 +229,21 @@ def parse_date(cell: str) -> str | None:
     if not month:
         return None
     return f"{int(m.group('y')):04d}-{month:02d}-{int(m.group('d')):02d}"
+
+
+def parse_cite_date(blob: str) -> str | None:
+    """Pull the first citation date=… from a ref block (club In/Out pages)."""
+    m = re.search(
+        r"\|\s*date\s*=\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{4}-\d{2}-\d{2})",
+        blob,
+        flags=re.I,
+    )
+    if not m:
+        return None
+    raw = m.group(1).strip()
+    if re.match(r"\d{4}-\d{2}-\d{2}$", raw):
+        return raw
+    return parse_date(raw)
 
 
 def parse_fee(cell: str) -> tuple[str, float | None]:
@@ -199,39 +277,171 @@ def club_name(cell: str) -> str | None:
 
 
 def split_table_rows(wikitext: str) -> list[list[str]]:
-    """Split first permanent-transfer wikitable into rows of cells."""
-    # Prefer Transfers section before Loans
+    """Split permanent-transfer wikitable(s) into rows of cells."""
     section = wikitext
-    if "== Transfers ==" in wikitext:
-        section = wikitext.split("== Transfers ==", 1)[1]
-    if "== Loans ==" in section:
-        section = section.split("== Loans ==", 1)[0]
+    # Italian pages use ==Transfers== without spaces around the title.
+    for marker in ("== Transfers ==", "==Transfers==", "=== Transfers ===", "===Transfers==="):
+        if marker in wikitext:
+            section = wikitext.split(marker, 1)[1]
+            break
+    for loan_marker in ("== Loans ==", "==Loans==", "=== Loans ===", "===Loans==="):
+        if loan_marker in section:
+            section = section.split(loan_marker, 1)[0]
 
-    start = section.find('{| class="wikitable')
-    if start < 0:
-        start = section.find("{|")
-    if start < 0:
-        return []
-    end = section.find("|}", start)
-    table = section[start : end if end > start else None]
-    rows_raw = re.split(r"\n\|-", table)
+    tables: list[str] = []
+    search_from = 0
+    while True:
+        start = section.find("{|", search_from)
+        if start < 0:
+            break
+        end = section.find("|}", start)
+        if end < 0:
+            break
+        tables.append(section[start : end + 2])
+        search_from = end + 2
+
     rows: list[list[str]] = []
-    for chunk in rows_raw[1:]:  # skip header chunk
-        cells: list[str] = []
-        for line in chunk.splitlines():
-            line = line.strip()
-            if not line.startswith("|") or line.startswith("|+"):
-                continue
-            if line.startswith("|-" ):
-                continue
-            # |value or |rowspan=2|value
-            cell = re.sub(r"^\|(?:rowspan=\"?\d+\"?\|)?", "", line, count=1, flags=re.I)
-            if cell.startswith("!"):
-                continue
-            cells.append(cell)
-        if cells:
-            rows.append(cells)
+    for table in tables:
+        if "wikitable" not in table.lower() and "Date" not in table and "Moving from" not in table:
+            continue
+        rows_raw = re.split(r"\n\|-", table)
+        for chunk in rows_raw[1:]:  # skip header chunk
+            cells: list[str] = []
+            for line in chunk.splitlines():
+                line = line.strip()
+                if not line.startswith("|") or line.startswith("|+") or line.startswith("|!"):
+                    continue
+                if line.startswith("|-"):
+                    continue
+                cell = re.sub(r"^\|(?:rowspan=\"?\d+\"?\|)?", "", line, count=1, flags=re.I)
+                if cell.startswith("!"):
+                    continue
+                cells.append(cell)
+            if cells:
+                rows.append(cells)
     return rows
+
+
+def _wiki_link_text(raw: str) -> str | None:
+    text = strip_wiki(raw)
+    if not text or text.lower() in {"unattached", "free agent", "n/a", "—", "-", "tbd"}:
+        return None
+    text = re.sub(r"\s+F\.?C\.?$", "", text, flags=re.I)
+    text = re.sub(r"\s+A\.?F\.?C\.?$", "", text, flags=re.I)
+    return text.strip() or None
+
+
+def parse_fs_player_blocks(section: str, club_name_value: str) -> list[RawTransfer]:
+    """Parse {{fs player|…|other=from/to …}} club In/Out lists (ES/DE/FR pages)."""
+    out: list[RawTransfer] = []
+    # Prefer explicit In/Out columns when present.
+    parts = re.split(r"'''(?:In|Out):'''", section, flags=re.I)
+    # If split failed to find both, still scan whole section with direction from other=.
+    blocks: list[tuple[str, str]] = []
+    if len(parts) >= 3:
+        # parts[0]=preamble, then alternating after In/Out markers — detect by scanning markers.
+        markers = list(re.finditer(r"'''(In|Out):'''", section, flags=re.I))
+        for index, marker in enumerate(markers):
+            end = markers[index + 1].start() if index + 1 < len(markers) else len(section)
+            blocks.append((marker.group(1).lower(), section[marker.end() : end]))
+    else:
+        blocks.append(("unknown", section))
+
+    player_re = re.compile(
+        r"\{\{fs player\|(?P<body>[\s\S]*?)\}\}(?P<tail>(?:<ref[\s\S]*?</ref>)*)",
+        flags=re.I,
+    )
+    for direction, blob in blocks:
+        for match in player_re.finditer(blob):
+            body = match.group("body")
+            tail = match.group("tail") or ""
+            name_m = re.search(r"\|name=((?:\[\[[^\]]*\]\]|[^|])*)", body, flags=re.I)
+            other_m = re.search(r"\|other=((?:\[\[[^\]]*\]\]|\{\{[^}]*\}\}|[^|])*)", body, flags=re.I)
+            if not name_m:
+                continue
+            name_raw = name_m.group(1)
+            other = other_m.group(1) if other_m else ""
+            player = _wiki_link_text(name_raw)
+            if not player:
+                continue
+            other_l = other.lower()
+            if "retired" in other_l or re.search(r"\bto\s+tbd\b", other_l) or other_l.strip() in {"tbd"}:
+                continue
+            if re.search(r"\bon loan\b|\bloan to\b|\bloan return\b", other_l):
+                continue
+
+            counterpart = None
+            from_m = re.search(r"\bfrom\b(.+)$", other, flags=re.I)
+            to_m = re.search(r"\bto\b(.+)$", other, flags=re.I)
+            if from_m:
+                counterpart = _wiki_link_text(from_m.group(1))
+            elif to_m:
+                counterpart = _wiki_link_text(to_m.group(1))
+
+            if direction == "in" or (direction == "unknown" and from_m):
+                from_club, to_club = counterpart, club_name_value
+            elif direction == "out" or (direction == "unknown" and to_m):
+                from_club, to_club = club_name_value, counterpart
+            else:
+                continue
+            if not from_club and not to_club:
+                continue
+
+            date = parse_cite_date(tail) or parse_cite_date(match.group(0) + tail) or "2026-07-01"
+            fee_raw = "Undisclosed"
+            kind = "PERMANENT"
+            if re.search(r"\bfree\b", other_l):
+                kind = "FREE"
+            out.append(
+                RawTransfer(
+                    date=date,
+                    player=player,
+                    from_club=from_club,
+                    to_club=to_club,
+                    fee_raw=fee_raw,
+                    transfer_type=kind,
+                    page_title="",
+                )
+            )
+            setattr(out[-1], "fee_eur", 0.0 if kind == "FREE" else None)
+    return out
+
+
+def parse_club_section_transfers(page_title: str, wikitext: str) -> list[RawTransfer]:
+    """Club-by-club In/Out pages used by La Liga / Bundesliga / Ligue 1 lists."""
+    out: list[RawTransfer] = []
+    # === [[Club]] === or ===Club===
+    sections = re.split(r"\n={2,4}\s*", wikitext)
+    for chunk in sections:
+        if not chunk.strip():
+            continue
+        header, _, body = chunk.partition("\n")
+        header = header.strip().strip("=").strip()
+        if not header or header.lower() in {
+            "la liga",
+            "bundesliga",
+            "2. bundesliga",
+            "ligue 1",
+            "ligue 2",
+            "serie a",
+            "notes",
+            "references",
+            "transfers",
+            "premier league",
+            "championship",
+        }:
+            continue
+        if "'''In:'''" not in body and "'''Out:'''" not in body:
+            continue
+        if "{{fs player" not in body.lower():
+            continue
+        club = _wiki_link_text(header)
+        if not club:
+            continue
+        for row in parse_fs_player_blocks(body, club):
+            row.page_title = page_title
+            out.append(row)
+    return out
 
 
 def parse_permanent_transfers(page_title: str, wikitext: str) -> list[RawTransfer]:
@@ -261,9 +471,7 @@ def parse_permanent_transfers(page_title: str, wikitext: str) -> list[RawTransfe
             continue
         from_club = club_name(from_cell)
         to_club = club_name(to_cell)
-        kind, _fee = parse_fee(fee_cell)
-        # Keep fee string parse separately for payload
-        _kind2, fee_eur = parse_fee(fee_cell)
+        kind, fee_eur = parse_fee(fee_cell)
         out.append(
             RawTransfer(
                 date=date,
@@ -275,8 +483,19 @@ def parse_permanent_transfers(page_title: str, wikitext: str) -> list[RawTransfe
                 page_title=page_title,
             )
         )
-        # attach fee on object via monkey — store in fee_raw parse later
         setattr(out[-1], "fee_eur", fee_eur)
+
+    # Club-section pages (ES/DE/FR) often have no Date|Player wikitable.
+    if not out:
+        out = parse_club_section_transfers(page_title, wikitext)
+    elif "{{fs player" in wikitext.lower() and "'''In:'''" in wikitext:
+        # Some pages mix formats — union club-section rows too.
+        seen = {(r.player.lower(), r.from_club, r.to_club, r.date) for r in out}
+        for row in parse_club_section_transfers(page_title, wikitext):
+            key = (row.player.lower(), row.from_club, row.to_club, row.date)
+            if key not in seen:
+                out.append(row)
+                seen.add(key)
     return out
 
 

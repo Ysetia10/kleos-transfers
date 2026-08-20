@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { PredictionForm } from '@/components/prediction/PredictionForm'
 import { RecentPredictionsSection } from '@/components/home/RecentPredictionsSection'
+import { ModelAccuracySection } from '@/components/home/ModelAccuracySection'
 
 export function HomePage() {
   const [params] = useSearchParams()
@@ -58,6 +59,8 @@ export function HomePage() {
           />
         </DialogContent>
       </Dialog>
+
+      <ModelAccuracySection />
 
       <RecentPredictionsSection />
     </Stack>

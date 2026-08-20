@@ -119,12 +119,13 @@ Creates **forward Season identity shells** (default `2026/27`) so the simulator 
 
 ## `validate_predictions_season.py`
 
-Backtests the active heuristic engine against a **completed** season: creates predictions via the API, evaluates them into `PredictionEvaluation`, and writes MAE/RMSE summaries under `research/validation/`.
+Backtests the active heuristic engine against **completed** seasons: creates predictions via the API, evaluates them into `PredictionEvaluation`, and writes MAE/RMSE summaries **overall and by destination league** under `research/validation/` (also copies `latest.json` into the backend classpath for `GET /api/v1/stats/model-accuracy`).
 
 ```bash
 # backend running; historical seasons loaded
 ./scripts/validate_predictions_season.py --season 2024/25 --dry-run
-./scripts/validate_predictions_season.py --season 2024/25 --limit 200
+./scripts/validate_predictions_season.py --seasons 2022/23,2023/24,2024/25 --per-league-limit 40
+./scripts/validate_predictions_season.py --season 2024/25 --countries ENG --per-league-limit 50
 ```
 
 Methodology: [`docs/prediction-validation.md`](../docs/prediction-validation.md).

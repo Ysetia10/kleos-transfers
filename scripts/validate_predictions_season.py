@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""Backtest v0 predictions against a completed season's PlayerSeason outcomes.
+"""Backtest Kleos predictions against completed PlayerSeason outcomes.
 
-For each candidate (player at a club in the target season with prior history):
-  1. POST /api/v1/predictions  (engine runs as-of season start — no outcome leak)
-  2. POST /api/v1/predictions/{id}/evaluate
-  3. Aggregate MAE / RMSE / bias for minutes, goals, assists, xG, xA
-
-Candidate discovery uses local PostgreSQL (same DB the backend uses). Predictions and
-evaluations go through the HTTP API so they reuse PredictionEvaluation persistence.
+For each club-changer in a completed season:
+  1. POST /api/v1/predictions  (engine as-of season start — no outcome leak)
+  2. Reuse evaluation from create when present, else POST …/evaluate
+  3. Aggregate MAE / RMSE / bias overall and **by destination league**
 
 Examples:
   ./scripts/validate_predictions_season.py --season 2024/25 --dry-run
-  ./scripts/validate_predictions_season.py --season 2024/25 --limit 200
+  ./scripts/validate_predictions_season.py --seasons 2022/23,2023/24,2024/25 --per-league-limit 40
 """
 
 from __future__ import annotations
@@ -24,13 +21,23 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT_DIR = ROOT / "research" / "validation"
+
+LEAGUE_LABELS = {
+    "ENG": "Premier League",
+    "ESP": "La Liga",
+    "GER": "Bundesliga",
+    "ITA": "Serie A",
+    "FRA": "Ligue 1",
+}
+
+DEFAULT_COUNTRIES = list(LEAGUE_LABELS.keys())
 
 
 @dataclass
@@ -40,6 +47,9 @@ class Candidate:
     club_id: str
     club_name: str
     season_id: str
+    season_label: str
+    country_code: str
+    league_name: str
     minutes: int
     goals: int
     assists: int
@@ -97,10 +107,21 @@ class Metrics:
         }
 
 
+@dataclass
+class RunBucket:
+    metrics: Metrics = field(default_factory=Metrics)
+    samples: list[dict[str, Any]] = field(default_factory=list)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--api-url", default=os.environ.get("KLEOS_API_URL", "http://localhost:8080"))
-    parser.add_argument("--season", default="2024/25", help="Completed season label to validate")
+    parser.add_argument("--season", default="", help="Single completed season label (e.g. 2024/25)")
+    parser.add_argument(
+        "--seasons",
+        default="",
+        help="Comma-separated seasons (overrides --season). Example: 2022/23,2023/24,2024/25",
+    )
     parser.add_argument("--min-minutes", type=int, default=900, help="Minimum actual minutes in target season")
     parser.add_argument(
         "--require-club-change",
@@ -108,11 +129,17 @@ def parse_args() -> argparse.Namespace:
         default=True,
         help="Only players whose most recent prior club differs from the target club",
     )
-    parser.add_argument("--limit", type=int, default=200, help="Max candidates to predict/evaluate")
+    parser.add_argument("--limit", type=int, default=0, help="Max candidates overall (0 = no overall cap)")
+    parser.add_argument(
+        "--per-league-limit",
+        type=int,
+        default=40,
+        help="Max candidates per destination league per season (default 40)",
+    )
     parser.add_argument(
         "--countries",
-        default="",
-        help="Optional comma-separated club country codes to restrict cohort (e.g. ENG,ESP)",
+        default=",".join(DEFAULT_COUNTRIES),
+        help="Comma-separated destination club country codes (default: ENG,ESP,GER,ITA,FRA)",
     )
     parser.add_argument("--dry-run", action="store_true", help="List candidates only; no API writes")
     parser.add_argument(
@@ -124,6 +151,12 @@ def parse_args() -> argparse.Namespace:
         help="PostgreSQL URL for candidate discovery (psql)",
     )
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
+    parser.add_argument(
+        "--publish-latest",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Also write research/validation/latest.json for the product API (default: on)",
+    )
     return parser.parse_args()
 
 
@@ -136,7 +169,7 @@ def http_json(method: str, url: str, body: dict | None = None) -> Any:
         headers={"Content-Type": "application/json", "Accept": "application/json"},
     )
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=90) as response:
             raw = response.read().decode("utf-8")
             return json.loads(raw) if raw else None
     except urllib.error.HTTPError as error:
@@ -149,10 +182,9 @@ def discover_candidates(
     season_label: str,
     min_minutes: int,
     require_club_change: bool,
-    limit: int,
-    countries: list[str] | None = None,
+    per_league_limit: int,
+    countries: list[str],
 ) -> list[Candidate]:
-    # Most recent prior club differs from the target-season club (arrived / returned).
     club_change_sql = """
       AND (
         SELECT prior_ps.club_id
@@ -166,42 +198,54 @@ def discover_candidates(
       ) IS DISTINCT FROM ps.club_id
     """ if require_club_change else ""
 
-    country_sql = ""
-    if countries:
-        safe = ",".join("'" + code.replace("'", "") + "'" for code in countries)
-        country_sql = f" AND c.country_code IN ({safe})"
-
+    safe_countries = ",".join("'" + code.replace("'", "") + "'" for code in countries)
     sql = f"""
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
     FROM (
-      SELECT
-        p.id::text AS player_id,
-        p.full_name AS player_name,
-        c.id::text AS club_id,
-        c.name AS club_name,
-        s.id::text AS season_id,
-        ps.minutes_played AS minutes,
-        ps.goals,
-        ps.assists
-      FROM player_seasons ps
-      JOIN players p ON p.id = ps.player_id AND p.deleted_at IS NULL
-      JOIN clubs c ON c.id = ps.club_id AND c.deleted_at IS NULL
-      JOIN seasons s ON s.id = ps.season_id AND s.deleted_at IS NULL
-      WHERE s.label = '{season_label}'
-        AND ps.deleted_at IS NULL
-        AND ps.minutes_played >= {int(min_minutes)}
-        AND EXISTS (
-          SELECT 1
-          FROM player_seasons hist
-          JOIN seasons hist_s ON hist_s.id = hist.season_id
-          WHERE hist.player_id = ps.player_id
-            AND hist_s.start_date < s.start_date
-            AND hist.deleted_at IS NULL
-        )
-        {club_change_sql}
-        {country_sql}
-      ORDER BY ps.minutes_played DESC
-      LIMIT {int(limit)}
+      SELECT * FROM (
+        SELECT
+          p.id::text AS player_id,
+          p.full_name AS player_name,
+          c.id::text AS club_id,
+          c.name AS club_name,
+          s.id::text AS season_id,
+          s.label AS season_label,
+          c.country_code,
+          CASE c.country_code
+            WHEN 'ENG' THEN 'Premier League'
+            WHEN 'ESP' THEN 'La Liga'
+            WHEN 'GER' THEN 'Bundesliga'
+            WHEN 'ITA' THEN 'Serie A'
+            WHEN 'FRA' THEN 'Ligue 1'
+            ELSE c.country_code
+          END AS league_name,
+          ps.minutes_played AS minutes,
+          ps.goals,
+          ps.assists,
+          ROW_NUMBER() OVER (
+            PARTITION BY c.country_code
+            ORDER BY ps.minutes_played DESC, p.full_name
+          ) AS league_rank
+        FROM player_seasons ps
+        JOIN players p ON p.id = ps.player_id AND p.deleted_at IS NULL
+        JOIN clubs c ON c.id = ps.club_id AND c.deleted_at IS NULL
+        JOIN seasons s ON s.id = ps.season_id AND s.deleted_at IS NULL
+        WHERE s.label = '{season_label}'
+          AND ps.deleted_at IS NULL
+          AND ps.minutes_played >= {int(min_minutes)}
+          AND c.country_code IN ({safe_countries})
+          AND EXISTS (
+            SELECT 1
+            FROM player_seasons hist
+            JOIN seasons hist_s ON hist_s.id = hist.season_id
+            WHERE hist.player_id = ps.player_id
+              AND hist_s.start_date < s.start_date
+              AND hist.deleted_at IS NULL
+          )
+          {club_change_sql}
+      ) ranked
+      WHERE league_rank <= {int(per_league_limit)}
+      ORDER BY country_code, minutes DESC
     ) t
     """
     try:
@@ -224,6 +268,9 @@ def discover_candidates(
             club_id=row["club_id"],
             club_name=row["club_name"],
             season_id=row["season_id"],
+            season_label=row["season_label"],
+            country_code=row["country_code"],
+            league_name=row["league_name"],
             minutes=int(row["minutes"]),
             goals=int(row["goals"]),
             assists=int(row["assists"]),
@@ -232,9 +279,19 @@ def discover_candidates(
     ]
 
 
-def write_report(out_dir: Path, season: str, payload: dict[str, Any]) -> tuple[Path, Path]:
+def metric_table_lines(metrics: dict[str, Any]) -> list[str]:
+    if not metrics.get("n"):
+        return ["| _(no evaluations)_ | | | |"]
+    return [
+        f"| Minutes | {metrics['minutes']['mae']} | {metrics['minutes']['rmse']} | {metrics['minutes']['bias_actual_minus_predicted']} |",
+        f"| Goals | {metrics['goals']['mae']} | {metrics['goals']['rmse']} | {metrics['goals']['bias_actual_minus_predicted']} |",
+        f"| Assists | {metrics['assists']['mae']} | {metrics['assists']['rmse']} | {metrics['assists']['bias_actual_minus_predicted']} |",
+    ]
+
+
+def write_report(out_dir: Path, label: str, payload: dict[str, Any]) -> tuple[Path, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = season.replace("/", "-")
+    stamp = label.replace("/", "-").replace(",", "_")
     model_slug = str(payload.get("modelVersion") or "model").replace("/", "-")
     json_path = out_dir / f"{model_slug}-{stamp}.json"
     md_path = out_dir / f"{model_slug}-{stamp}.md"
@@ -242,7 +299,7 @@ def write_report(out_dir: Path, season: str, payload: dict[str, Any]) -> tuple[P
 
     metrics = payload["metrics"]
     lines = [
-        f"# Prediction validation — {season}",
+        f"# Prediction validation — {label}",
         "",
         f"Generated: `{payload['generatedAt']}`",
         f"Model: `{payload['modelVersion']}`",
@@ -252,32 +309,53 @@ def write_report(out_dir: Path, season: str, payload: dict[str, Any]) -> tuple[P
         "",
         f"- Min actual minutes: `{payload['selection']['minMinutes']}`",
         f"- Require prior club change: `{payload['selection']['requireClubChange']}`",
-        f"- Limit: `{payload['selection']['limit']}`",
+        f"- Per-league limit: `{payload['selection']['perLeagueLimit']}`",
+        f"- Countries: `{', '.join(payload['selection']['countries'])}`",
+        f"- Seasons: `{', '.join(payload['selection']['seasons'])}`",
         "",
-        "## Error metrics (actual − predicted)",
+        "## Overall error metrics (actual − predicted)",
         "",
         "| Metric | MAE | RMSE | Bias |",
         "|--------|-----|------|------|",
+        *metric_table_lines(metrics),
+        "",
+        "## By league",
+        "",
     ]
-    if metrics.get("n"):
+    by_league = payload.get("byLeague") or {}
+    for code in sorted(by_league.keys()):
+        league = by_league[code]
         lines.extend(
             [
-                f"| Minutes | {metrics['minutes']['mae']} | {metrics['minutes']['rmse']} | {metrics['minutes']['bias_actual_minus_predicted']} |",
-                f"| Goals | {metrics['goals']['mae']} | {metrics['goals']['rmse']} | {metrics['goals']['bias_actual_minus_predicted']} |",
-                f"| Assists | {metrics['assists']['mae']} | {metrics['assists']['rmse']} | {metrics['assists']['bias_actual_minus_predicted']} |",
-                f"| xG | {metrics['xg']['mae']} | {metrics['xg']['rmse']} | — |",
-                f"| xA | {metrics['xa']['mae']} | {metrics['xa']['rmse']} | — |",
+                f"### {league.get('leagueName', code)} (`{code}`)",
+                "",
+                f"n = **{league['metrics'].get('n', 0)}**",
+                "",
+                "| Metric | MAE | RMSE | Bias |",
+                "|--------|-----|------|------|",
+                *metric_table_lines(league["metrics"]),
+                "",
             ]
         )
-    else:
-        lines.append("| _(no evaluations)_ | | | |")
+        samples = league.get("samples") or []
+        if samples:
+            lines.append("Example club-changers:")
+            lines.append("")
+            for sample in samples[:5]:
+                lines.append(
+                    f"- **{sample['player']}** → {sample['club']} ({sample['season']}): "
+                    f"pred {sample['predictedMinutes']} min / {sample['predictedGoals']} G / {sample['predictedAssists']} A; "
+                    f"actual {sample['actualMinutes']} min / {sample['actualGoals']} G / {sample['actualAssists']} A"
+                )
+            lines.append("")
+
     lines.extend(
         [
-            "",
             "## Notes",
             "",
             "- See [`docs/prediction-validation.md`](../../docs/prediction-validation.md) for methodology.",
             "- Negative bias means the model over-predicted on average.",
+            "- Cohort is destination-league club-changers with prior history (as-of season start).",
             "",
         ]
     )
@@ -285,41 +363,68 @@ def write_report(out_dir: Path, season: str, payload: dict[str, Any]) -> tuple[P
     return json_path, md_path
 
 
+def resolve_evaluation(created: dict[str, Any], api_url: str) -> dict[str, Any]:
+    evaluation = created.get("evaluation")
+    if evaluation:
+        return evaluation
+    evaluated = http_json(
+        "POST",
+        f"{api_url.rstrip('/')}/api/v1/predictions/{created['id']}/evaluate",
+    )
+    return evaluated["evaluation"]
+
+
 def main() -> int:
     args = parse_args()
+    seasons = [s.strip() for s in args.seasons.split(",") if s.strip()]
+    if not seasons:
+        seasons = [args.season.strip() or "2024/25"]
+    countries = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
+    if not countries:
+        countries = DEFAULT_COUNTRIES
+
     print("Kleos prediction validation")
-    print(f"  season: {args.season}")
-    print(f"  api:    {args.api_url}{' (dry-run)' if args.dry_run else ''}")
+    print(f"  seasons: {', '.join(seasons)}")
+    print(f"  api:     {args.api_url}{' (dry-run)' if args.dry_run else ''}")
     print(f"  min minutes: {args.min_minutes}")
     print(f"  club change: {args.require_club_change}")
-    print(f"  limit:  {args.limit}")
-    countries = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
-    if countries:
-        print(f"  countries: {','.join(countries)}")
+    print(f"  per-league limit: {args.per_league_limit}")
+    print(f"  countries: {','.join(countries)}")
 
-    candidates = discover_candidates(
-        args.db,
-        args.season,
-        args.min_minutes,
-        args.require_club_change,
-        args.limit,
-        countries or None,
-    )
-    print(f"  candidates: {len(candidates)}")
+    candidates: list[Candidate] = []
+    for season in seasons:
+        season_rows = discover_candidates(
+            args.db,
+            season,
+            args.min_minutes,
+            args.require_club_change,
+            args.per_league_limit,
+            countries,
+        )
+        print(f"  {season}: {len(season_rows)} candidates")
+        candidates.extend(season_rows)
+
+    if args.limit and args.limit > 0:
+        candidates = candidates[: args.limit]
+    print(f"  total candidates: {len(candidates)}")
+
     if args.dry_run:
-        for row in candidates[:20]:
-            print(f"    {row.player_name} -> {row.club_name} ({row.minutes} min)")
-        if len(candidates) > 20:
-            print(f"    … {len(candidates) - 20} more")
+        for row in candidates[:30]:
+            print(
+                f"    [{row.country_code}] {row.player_name} -> {row.club_name} "
+                f"({row.season_label}, {row.minutes} min)"
+            )
+        if len(candidates) > 30:
+            print(f"    … {len(candidates) - 30} more")
         return 0
 
-    metrics = Metrics()
+    overall = RunBucket()
+    by_league: dict[str, RunBucket] = {code: RunBucket() for code in countries}
     failures: list[dict[str, str]] = []
-    samples: list[dict[str, Any]] = []
-    model_version = "v0-heuristic"
+    model_version = "v0.3-heuristic"
 
     for index, candidate in enumerate(candidates, start=1):
-        note = f"backtest:{args.season}:{index}"
+        note = f"backtest:{candidate.season_label}:{candidate.country_code}:{index}"
         try:
             created = http_json(
                 "POST",
@@ -332,56 +437,91 @@ def main() -> int:
                 },
             )
             model_version = created.get("modelVersion") or model_version
-            evaluated = http_json(
-                "POST",
-                f"{args.api_url.rstrip('/')}/api/v1/predictions/{created['id']}/evaluate",
-            )
-            evaluation = evaluated["evaluation"]
-            metrics.add(evaluation)
-            if len(samples) < 10:
-                samples.append(
-                    {
-                        "player": candidate.player_name,
-                        "club": candidate.club_name,
-                        "predictedMinutes": created["predictedMinutes"],
-                        "actualMinutes": evaluation["actualMinutes"],
-                        "minutesError": evaluation["minutesError"],
-                        "predictedGoals": created["predictedGoals"],
-                        "actualGoals": evaluation["actualGoals"],
-                    }
-                )
+            evaluation = resolve_evaluation(created, args.api_url)
+            overall.metrics.add(evaluation)
+            bucket = by_league.setdefault(candidate.country_code, RunBucket())
+            bucket.metrics.add(evaluation)
+            sample = {
+                "player": candidate.player_name,
+                "playerId": candidate.player_id,
+                "club": candidate.club_name,
+                "clubId": candidate.club_id,
+                "season": candidate.season_label,
+                "league": candidate.league_name,
+                "countryCode": candidate.country_code,
+                "predictedMinutes": created["predictedMinutes"],
+                "actualMinutes": evaluation["actualMinutes"],
+                "minutesError": evaluation["minutesError"],
+                "predictedGoals": created["predictedGoals"],
+                "actualGoals": evaluation["actualGoals"],
+                "goalsError": evaluation["goalsError"],
+                "predictedAssists": created["predictedAssists"],
+                "actualAssists": evaluation["actualAssists"],
+                "assistsError": evaluation["assistsError"],
+                "predictionId": created["id"],
+            }
+            if len(overall.samples) < 12:
+                overall.samples.append(sample)
+            if len(bucket.samples) < 8:
+                bucket.samples.append(sample)
             if index % 25 == 0 or index == len(candidates):
                 print(f"  progress {index}/{len(candidates)}")
         except Exception as error:  # noqa: BLE001 — collect and continue batch
             failures.append({"player": candidate.player_name, "error": str(error)[:300]})
             print(f"  fail[{index}] {candidate.player_name}: {error}")
 
+    by_league_payload = {
+        code: {
+            "countryCode": code,
+            "leagueName": LEAGUE_LABELS.get(code, code),
+            "metrics": bucket.metrics.summary(),
+            "samples": bucket.samples,
+        }
+        for code, bucket in sorted(by_league.items())
+        if bucket.metrics.n > 0 or code in countries
+    }
+
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "season": args.season,
+        "seasons": seasons,
         "modelVersion": model_version,
         "selection": {
             "minMinutes": args.min_minutes,
             "requireClubChange": args.require_club_change,
+            "perLeagueLimit": args.per_league_limit,
             "limit": args.limit,
             "countries": countries,
+            "seasons": seasons,
             "candidatesFound": len(candidates),
-            "evaluated": metrics.n,
+            "evaluated": overall.metrics.n,
             "failed": len(failures),
         },
-        "metrics": metrics.summary(),
-        "samplePredictions": samples,
-        "failures": failures[:20],
+        "metrics": overall.metrics.summary(),
+        "byLeague": by_league_payload,
+        "samplePredictions": overall.samples,
+        "failures": failures[:30],
     }
     print(json.dumps(payload["metrics"], indent=2))
-    if metrics.n == 0:
+    if overall.metrics.n == 0:
         print("No evaluations succeeded — refusing to overwrite research/validation artifacts.", file=sys.stderr)
         if failures:
             print(f"First failure: {failures[0]}", file=sys.stderr)
         return 1
-    json_path, md_path = write_report(args.out_dir, args.season, payload)
+
+    label = "_".join(s.replace("/", "-") for s in seasons)
+    json_path, md_path = write_report(args.out_dir, label, payload)
     print(f"Wrote {json_path}")
     print(f"Wrote {md_path}")
+    if args.publish_latest:
+        latest = args.out_dir / "latest.json"
+        latest.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        print(f"Wrote {latest}")
+        # Product API classpath copy
+        resource_dir = ROOT / "backend" / "src" / "main" / "resources" / "model-accuracy"
+        resource_dir.mkdir(parents=True, exist_ok=True)
+        resource_path = resource_dir / "latest.json"
+        resource_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        print(f"Wrote {resource_path}")
     return 0
 
 

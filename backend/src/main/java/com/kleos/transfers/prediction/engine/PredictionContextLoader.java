@@ -92,6 +92,8 @@ public class PredictionContextLoader {
                 SQUAD_WINDOW_STATUSES
         );
 
+        List<PlayerSeason> departing = departingSquadMembers(window, seasonId, targetClubId, playerId, squad);
+
         return new PredictionContext(
                 player,
                 targetClub,
@@ -103,7 +105,7 @@ public class PredictionContextLoader {
                 clubSeason,
                 mostRecent,
                 managerName,
-                departingSquadMembers(window, targetClubId, playerId, squad),
+                departing,
                 arrivingSquadMembers(window, targetClubId, playerId, asOf)
         );
     }
@@ -111,19 +113,39 @@ public class PredictionContextLoader {
     /**
      * Prior-season rows of players leaving the target club in this window; their minutes are the
      * slot the club now has to fill.
+     *
+     * <p>Detects outs via {@code fromClub} on the club window <em>and</em> any season transfer for a
+     * prior-squad player whose destination is not this club (covers null/mis-tagged {@code fromClub}).
      */
     private List<PlayerSeason> departingSquadMembers(
-            List<Transfer> window,
+            List<Transfer> clubWindow,
+            UUID seasonId,
             UUID targetClubId,
             UUID subjectId,
             List<PlayerSeason> squad
     ) {
         Set<UUID> leaving = new HashSet<>();
-        for (Transfer transfer : window) {
+        for (Transfer transfer : clubWindow) {
             if (transfer.getFromClub() != null && targetClubId.equals(transfer.getFromClub().getId())) {
                 leaving.add(transfer.getPlayer().getId());
             }
         }
+
+        Set<UUID> squadIds = new HashSet<>();
+        for (PlayerSeason row : squad) {
+            squadIds.add(row.getPlayer().getId());
+        }
+        squadIds.remove(subjectId);
+        if (!squadIds.isEmpty()) {
+            for (Transfer transfer : transferRepository.findBySeasonIdAndPlayerIdInAndStatusIn(
+                    seasonId, squadIds, SQUAD_WINDOW_STATUSES
+            )) {
+                if (isDepartureFromClub(transfer, targetClubId)) {
+                    leaving.add(transfer.getPlayer().getId());
+                }
+            }
+        }
+
         if (leaving.isEmpty()) {
             return List.of();
         }
@@ -131,6 +153,14 @@ public class PredictionContextLoader {
                 .filter(row -> leaving.contains(row.getPlayer().getId()))
                 .filter(row -> !row.getPlayer().getId().equals(subjectId))
                 .toList();
+    }
+
+    private static boolean isDepartureFromClub(Transfer transfer, UUID targetClubId) {
+        if (transfer.getFromClub() != null && targetClubId.equals(transfer.getFromClub().getId())) {
+            return true;
+        }
+        // Prior-squad player arriving elsewhere this window — treat as leaving even if fromClub is null.
+        return transfer.getToClub() != null && !targetClubId.equals(transfer.getToClub().getId());
     }
 
     /**

@@ -331,6 +331,154 @@ class MinutesPredictorTest {
     }
 
     @Test
+    void floorsWalkInMinutesWhenStarterSlotIsVacated() {
+        Club target = club("Crotone", "ITA");
+        Season priorSeason = season("2016/17", LocalDate.of(2016, 7, 1), LocalDate.of(2017, 6, 30));
+        Season targetSeason = season("2017/18", LocalDate.of(2017, 7, 1), LocalDate.of(2018, 6, 30));
+
+        PlayerSeason departingStarter = squadMate(target, priorSeason, Position.CM, 2_800);
+        List<PlayerSeason> squad = List.of(
+                departingStarter,
+                squadMate(target, priorSeason, Position.CM, 900),
+                squadMate(target, priorSeason, Position.CB, 2_500)
+        );
+
+        Player signing = player(LocalDate.of(1997, 6, 1), Position.CM);
+        PlayerSeason history = new PlayerSeason(
+                signing,
+                club("Juventus", "ITA"),
+                priorSeason,
+                1,
+                5,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.CM
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                signing,
+                target,
+                targetSeason,
+                List.of(history),
+                squad,
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty(),
+                List.of(departingStarter),
+                List.of()
+        ));
+
+        assertThat(result.minutes()).isGreaterThanOrEqualTo(1_400);
+        assertThat(result.factors()).extracting(ExplanationFactor::code)
+                .contains(FactorCodes.SQUAD_VACANCY);
+    }
+
+    @Test
+    void floorsWalkInMinutesWhenDepthIsOpenWithoutTaggedDeparture() {
+        Club target = club("Como", "ITA");
+        Season priorSeason = season("2023/24", LocalDate.of(2023, 7, 1), LocalDate.of(2024, 6, 30));
+        Season targetSeason = season("2024/25", LocalDate.of(2024, 7, 1), LocalDate.of(2025, 6, 30));
+
+        // Only soft rivals remain — no locked starter, no departure list.
+        List<PlayerSeason> squad = List.of(
+                squadMate(target, priorSeason, Position.CM, 900),
+                squadMate(target, priorSeason, Position.CM, 600),
+                squadMate(target, priorSeason, Position.CB, 2_400)
+        );
+
+        Player signing = player(LocalDate.of(2004, 9, 8), Position.CM);
+        PlayerSeason history = new PlayerSeason(
+                signing,
+                club("Real Madrid", "ESP"),
+                priorSeason,
+                2,
+                80,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.CM
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                signing,
+                target,
+                targetSeason,
+                List.of(history),
+                squad,
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        assertThat(result.minutes()).isGreaterThanOrEqualTo(1_500);
+        assertThat(result.factors()).extracting(ExplanationFactor::code)
+                .contains(FactorCodes.SQUAD_VACANCY);
+    }
+
+    @Test
+    void ignoresFullyRecoveredInjuriesBeforeSeasonStart() {
+        Player player = player(LocalDate.of(1998, 3, 1), Position.CB);
+        Club priorClub = club("Liverpool", "ENG");
+        Club target = club("Liverpool", "ENG");
+        Season priorSeason = season("2020/21", LocalDate.of(2020, 7, 1), LocalDate.of(2021, 6, 30));
+        Season targetSeason = season("2021/22", LocalDate.of(2021, 7, 1), LocalDate.of(2022, 6, 30));
+
+        PlayerSeason history = new PlayerSeason(
+                player,
+                priorClub,
+                priorSeason,
+                5,
+                370,
+                1,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.CB
+        );
+        Injury recovered = new Injury(
+                player,
+                "ACL rupture",
+                InjurySeverity.SEVERE,
+                LocalDate.of(2020, 10, 17),
+                LocalDate.of(2021, 2, 25)
+        );
+
+        MinutesPredictor.Result withRecovered = predictor.predict(new PredictionContext(
+                player,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(),
+                List.of(recovered),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+        MinutesPredictor.Result healthy = predictor.predict(new PredictionContext(
+                player,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        assertThat(withRecovered.minutes()).isEqualTo(healthy.minutes());
+    }
+
+    @Test
     void benchesArrivingKeeperWhenTheNumberOneStays() {
         Club target = club("Chelsea", "ENG");
         Season priorSeason = season("2025/26", LocalDate.of(2025, 7, 1), LocalDate.of(2026, 6, 30));
@@ -376,8 +524,51 @@ class MinutesPredictorTest {
                 Optional.empty()
         ));
 
-        assertThat(behindNumberOne.minutes()).isLessThan(1_200);
-        assertThat(openGoal.minutes()).isGreaterThan(2_200);
+        assertThat(behindNumberOne.minutes()).isLessThan(800);
+        assertThat(openGoal.minutes()).isGreaterThan(2_800);
+    }
+
+    @Test
+    void givesStarterMinutesWhenPriorNumberOneDepartsEvenIfBackupRemains() {
+        Club target = club("Arsenal", "ENG");
+        Season priorSeason = season("2025/26", LocalDate.of(2025, 7, 1), LocalDate.of(2026, 6, 30));
+        Season targetSeason = season("2026/27", LocalDate.of(2026, 7, 1), LocalDate.of(2027, 6, 30));
+
+        Player arrival = player(LocalDate.of(1995, 9, 15), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                arrival,
+                club("Brentford", "ENG"),
+                priorSeason,
+                38,
+                3_420,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        PlayerSeason departingStarter = gkSquadMate(target, priorSeason, 3_400);
+        PlayerSeason residualBackup = gkSquadMate(target, priorSeason, 2_100);
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                arrival,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(departingStarter, residualBackup),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty(),
+                List.of(departingStarter),
+                List.of()
+        ));
+
+        assertThat(result.minutes()).isGreaterThan(2_800);
+        assertThat(result.factors()).extracting(ExplanationFactor::code)
+                .contains(FactorCodes.SQUAD_COMPETITION);
     }
 
     @Test

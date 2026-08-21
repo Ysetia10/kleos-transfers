@@ -5,7 +5,9 @@ import com.kleos.transfers.playerseason.entity.PlayerSeason;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -24,7 +26,7 @@ final class SquadDepthAnalyzer {
     /** Minutes at which a squad member reads as a fully locked-in starter. */
     static final int LOCKED_STARTER_MINUTES = 2_600;
     /** Minutes a departing player must have logged for his exit to count as a vacated starting slot. */
-    static final int VACATED_STARTER_MINUTES = 1_800;
+    static final int VACATED_STARTER_MINUTES = 1_500;
     /** Weighted vacancy above which the club is clearly replacing a first-choice player. */
     static final double STARTER_SLOT_VACATED = 0.55;
     /** Share of the pool that must carry finer-than-line roles before exact slots are trusted. */
@@ -84,6 +86,18 @@ final class SquadDepthAnalyzer {
             return vacated >= STARTER_SLOT_VACATED;
         }
 
+        /**
+         * Thin remaining depth at the role — no starter-level rival left — even when no
+         * transfer-tagged departure was recorded.
+         */
+        boolean openDepthForWalkIn() {
+            int topRivalMinutes = rivals.stream()
+                    .mapToInt(Contender::minutes)
+                    .max()
+                    .orElse(0);
+            return topRivalMinutes < VACATED_STARTER_MINUTES;
+        }
+
         Optional<Contender> topBlocker() {
             return rivals.stream()
                     .filter(rival -> rival.blocking() > 0.1)
@@ -104,9 +118,10 @@ final class SquadDepthAnalyzer {
 
     static Assessment analyze(PredictionContext context, Position role, int baselineMinutes) {
         List<PlayerSeason> pool = competingSquad(context);
-        List<PlayerSeason> leaving = context.departingSquadMembers().stream()
-                .filter(row -> !row.getPlayer().getId().equals(context.player().getId()))
-                .toList();
+        Set<UUID> poolIds = new HashSet<>();
+        for (PlayerSeason row : pool) {
+            poolIds.add(row.getPlayer().getId());
+        }
 
         boolean precise = preciseRoles(role, pool);
         double slots = precise ? RoleProfiles.exactSlots(role) : RoleProfiles.lineSlots(role);
@@ -124,16 +139,33 @@ final class SquadDepthAnalyzer {
             blocked += rival.blocking();
         }
 
-        List<Contender> departures = new ArrayList<>();
-        double vacated = 0;
-        for (PlayerSeason row : leaving) {
+        // Explicit window departures + prior-roster starters already removed from the competing pool
+        // (transfer-tagged outs, including null fromClub caught by the loader).
+        Map<UUID, Contender> departuresById = new LinkedHashMap<>();
+        for (PlayerSeason row : context.departingSquadMembers()) {
+            if (row.getPlayer().getId().equals(context.player().getId())) {
+                continue;
+            }
             Contender leaver = contender(row, role, precise, baselineMinutes);
             if (leaver.minutes() < VACATED_STARTER_MINUTES || leaver.load() <= 0) {
                 continue;
             }
-            departures.add(leaver);
-            vacated += leaver.load();
+            departuresById.put(row.getPlayer().getId(), leaver);
         }
+        for (PlayerSeason row : context.targetClubSquad()) {
+            UUID playerId = row.getPlayer().getId();
+            if (playerId.equals(context.player().getId()) || poolIds.contains(playerId)) {
+                continue;
+            }
+            Contender leaver = contender(row, role, precise, baselineMinutes);
+            if (leaver.minutes() < VACATED_STARTER_MINUTES || leaver.load() <= 0) {
+                continue;
+            }
+            departuresById.putIfAbsent(playerId, leaver);
+        }
+
+        List<Contender> departures = new ArrayList<>(departuresById.values());
+        double vacated = departures.stream().mapToDouble(Contender::load).sum();
 
         return new Assessment(role, precise, slots, contested, blocked, vacated, rivals, departures);
     }

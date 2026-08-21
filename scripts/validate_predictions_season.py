@@ -148,6 +148,11 @@ def parse_args() -> argparse.Namespace:
         default=",".join(DEFAULT_COUNTRIES),
         help="Comma-separated destination club country codes (default: ENG,ESP,GER,ITA,FRA)",
     )
+    parser.add_argument(
+        "--positions",
+        default="",
+        help="Comma-separated primary positions to include (e.g. GK). Empty = all positions",
+    )
     parser.add_argument("--dry-run", action="store_true", help="List candidates only; no API writes")
     parser.add_argument(
         "--db",
@@ -191,6 +196,7 @@ def discover_candidates(
     require_club_change: bool,
     per_league_limit: int,
     countries: list[str],
+    positions: list[str] | None = None,
 ) -> list[Candidate]:
     club_change_sql = """
       AND (
@@ -206,6 +212,13 @@ def discover_candidates(
     """ if require_club_change else ""
 
     safe_countries = ",".join("'" + code.replace("'", "") + "'" for code in countries)
+    position_filter = ""
+    if positions:
+        safe_positions = ",".join("'" + pos.replace("'", "") + "'" for pos in positions)
+        position_filter = (
+            f" AND COALESCE(NULLIF(TRIM(ps.primary_position), ''), p.primary_position)"
+            f" IN ({safe_positions})"
+        )
     rank_filter = "TRUE" if per_league_limit <= 0 else f"league_rank <= {int(per_league_limit)}"
     sql = f"""
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
@@ -243,6 +256,7 @@ def discover_candidates(
           AND ps.deleted_at IS NULL
           AND ps.minutes_played >= {int(min_minutes)}
           AND c.country_code IN ({safe_countries})
+          {position_filter}
           AND EXISTS (
             SELECT 1
             FROM player_seasons hist
@@ -427,6 +441,7 @@ def main() -> int:
     countries = [c.strip().upper() for c in args.countries.split(",") if c.strip()]
     if not countries:
         countries = DEFAULT_COUNTRIES
+    positions = [p.strip().upper() for p in args.positions.split(",") if p.strip()]
 
     seasons = [s.strip() for s in args.seasons.split(",") if s.strip()]
     if not seasons and args.season.strip():
@@ -444,6 +459,7 @@ def main() -> int:
     print(f"  per-league limit: {args.per_league_limit or 'all'}")
     print(f"  max samples/league: {args.max_samples_per_league or 'all'}")
     print(f"  countries: {','.join(countries)}")
+    print(f"  positions: {','.join(positions) if positions else 'all'}")
 
     candidates: list[Candidate] = []
     for season in seasons:
@@ -454,6 +470,7 @@ def main() -> int:
             args.require_club_change,
             args.per_league_limit,
             countries,
+            positions or None,
         )
         print(f"  {season}: {len(season_rows)} candidates")
         candidates.extend(season_rows)

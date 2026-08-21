@@ -5,6 +5,7 @@ import com.kleos.transfers.domain.InjurySeverity;
 import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.injury.entity.Injury;
 import com.kleos.transfers.playerseason.entity.PlayerSeason;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -23,15 +24,16 @@ public class MinutesPredictor {
     static final int DEFAULT_MINUTES = 1_800;
     static final int MAX_MINUTES = 3_800;
     static final int MIN_MINUTES = 0;
-    static final int ESTABLISHED_STARTER_MINUTES = 2_500;
+    static final int ESTABLISHED_STARTER_MINUTES = 2_000;
     static final int GK_STARTER_MINUTES = 2_500;
     static final int GK_DEFAULT_STARTER_MINUTES = 3_200;
     /** Prior-season minutes above which a club's keeper counts as a settled number one. */
     static final int GK_INCUMBENT_MINUTES = 2_000;
     /** Minutes an arriving keeper needs over the incumbent to be favoured for the gloves. */
-    static final int GK_TAKEOVER_EDGE = 600;
-    /** Minutes behind the incumbent at which the arrival is simply the backup. */
-    static final int GK_BACKUP_EDGE = -400;
+    static final int GK_TAKEOVER_EDGE = 400;
+    /** Soft takeover when the incumbent is only a borderline starter. */
+    static final int GK_SOFT_TAKEOVER_EDGE = 250;
+    static final int GK_SOFT_INCUMBENT_CEILING = 2_700;
     /** League minutes a settled backup keeper typically picks up through rotation and injury. */
     static final int GK_BENCH_MINUTES = 500;
     static final int REPLACEMENT_BASELINE_MINUTES = 1_500;
@@ -112,20 +114,152 @@ public class MinutesPredictor {
         int baseline = baselineMinutes(context, factors);
         double ageMultiplier = ageMultiplier(context.ageAtSeasonStart(), factors);
         double injuryMultiplier = injuryMultiplier(context, factors);
-        double competitionMultiplier = competitionMultiplier(context, baseline, factors);
+        Position role = resolvePosition(context);
+        SquadDepthAnalyzer.Assessment depth =
+                SquadDepthAnalyzer.analyze(context, role, baseline);
+        double competitionMultiplier = competitionMultiplier(context, baseline, depth, factors);
 
         int minutes = PredictionMath.clamp(
                 (int) Math.round(baseline * ageMultiplier * injuryMultiplier * competitionMultiplier),
                 MIN_MINUTES,
                 MAX_MINUTES
         );
+        // Rule A/D (v0.5+): absolute floor when a starter slot is vacated (incl. low-history walk-ins).
+        minutes = applyVacancyMinutesFloor(context, depth, baseline, minutes, factors);
+        // v0.6: open depth without a tagged leaver — still a walk-into-XI pattern.
+        minutes = applyOpenDepthWalkInFloor(context, depth, baseline, minutes, factors);
+        // Rule B (v0.5): established arrivals rarely collapse below ~1600' historically.
+        minutes = applyEstablishedArrivalFloor(baseline, minutes, factors);
         return new Result(minutes, minutes, minutes, factors);
     }
 
     /**
-     * Goalkeeping is winner-take-most: one shirt, and the keeper who owned it last season keeps it
-     * unless the arrival clearly outplayed him. Whoever loses that contest drops to bench minutes,
-     * so the outcome is set on the baseline rather than shaved off it by a competition multiplier.
+     * When the destination role's starter left in-window, do not let competition haircuts collapse
+     * the projection toward zero. Covers both established replacements and low-history walk-ins
+     * (loan/youth → vacated shirt), which dominate CM/ITA under-prediction tails.
+     */
+    private int applyVacancyMinutesFloor(
+            PredictionContext context,
+            SquadDepthAnalyzer.Assessment depth,
+            int baselineMinutes,
+            int minutes,
+            List<ExplanationFactor> factors
+    ) {
+        if (!depth.starterSlotVacated()) {
+            return minutes;
+        }
+        int leaverMinutes = depth.topDeparture().map(SquadDepthAnalyzer.Contender::minutes).orElse(2_200);
+        int vacancyFloor;
+        if (baselineMinutes >= 1_000) {
+            vacancyFloor = PredictionMath.clamp(
+                    Math.max(2_000, (int) Math.round(baselineMinutes * 0.80)),
+                    2_000,
+                    2_900
+            );
+        } else {
+            // Low prior minutes but a starter shirt opened — inherit ~55% of the leaver's load.
+            vacancyFloor = PredictionMath.clamp(
+                    (int) Math.round(leaverMinutes * 0.55),
+                    1_400,
+                    2_400
+            );
+        }
+        if (vacancyFloor <= minutes) {
+            return minutes;
+        }
+        factors.add(new ExplanationFactor(
+                FactorCodes.SQUAD_VACANCY,
+                "Replacement minutes floor",
+                ExplanationDirection.POSITIVE,
+                PredictionMath.bd(12),
+                "Vacated starter slot at "
+                        + context.targetClub().getName()
+                        + " ("
+                        + leaverMinutes
+                        + " min departed): projecting at least "
+                        + vacancyFloor
+                        + " minutes"
+                        + (baselineMinutes < 1_000
+                                ? " for a low-history walk-in."
+                                : " for a signing with " + baselineMinutes + " recent minutes.")
+        ));
+        return PredictionMath.clamp(vacancyFloor, MIN_MINUTES, MAX_MINUTES);
+    }
+
+    /**
+     * When transfer coverage misses a departure but the remaining depth chart is thin, low-history
+     * arrivals still often walk into meaningful minutes (esp. ITA/ESP CM).
+     */
+    private int applyOpenDepthWalkInFloor(
+            PredictionContext context,
+            SquadDepthAnalyzer.Assessment depth,
+            int baselineMinutes,
+            int minutes,
+            List<ExplanationFactor> factors
+    ) {
+        if (depth.starterSlotVacated() || baselineMinutes >= 1_200 || !depth.openDepthForWalkIn()) {
+            return minutes;
+        }
+        int walkInFloor = baselineMinutes < 400 ? 1_500 : 1_700;
+        if (walkInFloor <= minutes) {
+            return minutes;
+        }
+        factors.add(new ExplanationFactor(
+                FactorCodes.SQUAD_VACANCY,
+                "Open depth walk-in floor",
+                ExplanationDirection.POSITIVE,
+                PredictionMath.bd(10),
+                "Thin remaining depth at "
+                        + resolvePosition(context)
+                        + " for "
+                        + context.targetClub().getName()
+                        + " with no locked starter ahead — projecting at least "
+                        + walkInFloor
+                        + " minutes."
+        ));
+        return PredictionMath.clamp(walkInFloor, MIN_MINUTES, MAX_MINUTES);
+    }
+
+    /**
+     * Club-changers with ≥ {@link #ESTABLISHED_STARTER_MINUTES} prior minutes still median ~1.5–1.8k
+     * even into locked roles — keep a hard floor so competition cannot project near-zero.
+     */
+    private int applyEstablishedArrivalFloor(
+            int baselineMinutes,
+            int minutes,
+            List<ExplanationFactor> factors
+    ) {
+        if (baselineMinutes < ESTABLISHED_STARTER_MINUTES) {
+            return minutes;
+        }
+        int establishedFloor = 1_600;
+        if (establishedFloor <= minutes) {
+            return minutes;
+        }
+        factors.add(new ExplanationFactor(
+                FactorCodes.SQUAD_COMPETITION,
+                "Established arrival floor",
+                ExplanationDirection.POSITIVE,
+                PredictionMath.bd(8),
+                "Club-changers with ≥"
+                        + ESTABLISHED_STARTER_MINUTES
+                        + " recent minutes rarely drop below ~"
+                        + establishedFloor
+                        + " in the next season."
+        ));
+        return PredictionMath.clamp(establishedFloor, MIN_MINUTES, MAX_MINUTES);
+    }
+
+    /**
+     * Goalkeeping is winner-take-most. Empirically (top-5 club-changing GKs):
+     * <ul>
+     *   <li>Starter arrives and prior #1 stays → median ~360' (backup)</li>
+     *   <li>Starter arrives and prior #1 leaves → median ~2790' (takes the shirt)</li>
+     *   <li>Backup arrives and prior #1 stays → median ~270'</li>
+     *   <li>Backup arrives and prior #1 leaves → median ~2040'</li>
+     * </ul>
+     * So when a settled number one remains, outcomes are binary (takeover vs bench), not a soft
+     * minutes split. An vacated starter shirt opens the role even if a residual rival remains.
      */
     private Result predictGoalkeeper(PredictionContext context) {
         List<ExplanationFactor> factors = new ArrayList<>();
@@ -137,6 +271,8 @@ public class MinutesPredictor {
                 .orElse(null);
         int incumbentMinutes = incumbent == null ? 0 : incumbent.minutes();
         boolean starterProfile = recentWorkload >= GK_STARTER_MINUTES;
+        boolean substantialStarterShare = recentWorkload >= GK_INCUMBENT_MINUTES;
+        boolean shirtOpen = incumbentMinutes < GK_INCUMBENT_MINUTES || depth.starterSlotVacated();
         int starterCeiling = (int) Math.round(Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES) * 0.90);
 
         int baseline;
@@ -147,20 +283,34 @@ public class MinutesPredictor {
                     14,
                     "No prior GK seasons; using a neutral rotation baseline of " + DEFAULT_MINUTES + " minutes."
             ));
-        } else if (incumbentMinutes < GK_INCUMBENT_MINUTES) {
-            baseline = starterProfile ? Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES) : recentWorkload;
+        } else if (shirtOpen) {
+            if (starterProfile || substantialStarterShare || recentWorkload >= 1_200) {
+                // Meaningful prior into an open shirt → project as #1.
+                baseline = Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
+            } else if (depth.starterSlotVacated()) {
+                // Thin prior into a vacated shirt still often becomes the default starter.
+                baseline = Math.max(recentWorkload, 2_200);
+            } else {
+                baseline = Math.max(recentWorkload, GK_BENCH_MINUTES);
+            }
             factors.add(gkRoleFactor(
-                    starterProfile ? ExplanationDirection.POSITIVE : ExplanationDirection.NEUTRAL,
-                    starterProfile ? 22 : 12,
+                    starterProfile || substantialStarterShare || depth.starterSlotVacated() || recentWorkload >= 1_200
+                            ? ExplanationDirection.POSITIVE
+                            : ExplanationDirection.NEUTRAL,
+                    starterProfile || substantialStarterShare || recentWorkload >= 1_200 ? 24 : 14,
                     "Recent workload ("
                             + recentWorkload
                             + " min) "
-                            + (starterProfile ? "looks like a first-choice goalkeeper" : "is a rotation share")
-                            + "; carrying it forward."
+                            + (starterProfile || substantialStarterShare || recentWorkload >= 1_200
+                                    ? "is first-choice / high-share level"
+                                    : depth.starterSlotVacated()
+                                            ? "is modest, but the starting shirt is vacant"
+                                            : "is a rotation share")
+                            + "; projecting accordingly."
             ));
             factors.add(gkCompetitionFactor(
                     ExplanationDirection.POSITIVE,
-                    "No settled number one at "
+                    "No settled number one blocking the gloves at "
                             + context.targetClub().getName()
                             + " (top rival GK minutes: "
                             + incumbentMinutes
@@ -169,8 +319,16 @@ public class MinutesPredictor {
                             + ", so the shirt is there to be taken."
             ));
         } else {
+            // Rule 1: settled #1 stays — takeover with a clear edge (softer vs borderline incumbents).
             int edge = recentWorkload - incumbentMinutes;
-            baseline = contestedGoalkeeperMinutes(edge, recentWorkload, starterCeiling);
+            int neededEdge = incumbentMinutes <= GK_SOFT_INCUMBENT_CEILING && starterProfile
+                    ? GK_SOFT_TAKEOVER_EDGE
+                    : GK_TAKEOVER_EDGE;
+            if (edge >= neededEdge) {
+                baseline = starterCeiling;
+            } else {
+                baseline = GK_BENCH_MINUTES;
+            }
             factors.add(gkRoleFactor(
                     starterProfile ? ExplanationDirection.POSITIVE : ExplanationDirection.NEGATIVE,
                     18,
@@ -181,8 +339,8 @@ public class MinutesPredictor {
                             + " at his previous club."
             ));
             factors.add(gkCompetitionFactor(
-                    edge >= GK_TAKEOVER_EDGE ? ExplanationDirection.POSITIVE : ExplanationDirection.NEGATIVE,
-                    describeGoalkeeperContest(incumbent, edge, recentWorkload)
+                    edge >= neededEdge ? ExplanationDirection.POSITIVE : ExplanationDirection.NEGATIVE,
+                    describeGoalkeeperContest(incumbent, edge, neededEdge, recentWorkload)
             ));
         }
 
@@ -205,37 +363,22 @@ public class MinutesPredictor {
         return new Result(minutes, minutes, minutes, factors);
     }
 
-    /**
-     * Ramps from bench minutes to starter minutes across the workload gap with the incumbent, so a
-     * keeper who merely matches the number one still projects behind him.
-     */
-    private int contestedGoalkeeperMinutes(int edge, int recentWorkload, int starterCeiling) {
-        if (edge >= GK_TAKEOVER_EDGE) {
-            return starterCeiling;
-        }
-        double share = Math.min(1.0, Math.max(0.0,
-                (edge - GK_BACKUP_EDGE) / (double) (GK_TAKEOVER_EDGE - GK_BACKUP_EDGE)));
-        int contested = (int) Math.round(GK_BENCH_MINUTES + (share * (starterCeiling - GK_BENCH_MINUTES)));
-        return Math.min(contested, Math.max(recentWorkload, GK_BENCH_MINUTES));
-    }
-
     private String describeGoalkeeperContest(
             SquadDepthAnalyzer.Contender incumbent,
             int edge,
+            int neededEdge,
             int recentWorkload
     ) {
         String name = incumbent == null ? "the incumbent" : incumbent.name();
         int incumbentMinutes = incumbent == null ? 0 : incumbent.minutes();
-        if (edge >= GK_TAKEOVER_EDGE) {
+        if (edge >= neededEdge) {
             return "Played " + edge + " more minutes than " + name + " (" + incumbentMinutes
                     + " min), so he is favoured to take the gloves.";
         }
-        if (edge >= GK_BACKUP_EDGE) {
-            return name + " kept the shirt last season (" + incumbentMinutes + " min) and is staying, so"
-                    + " the arrival splits minutes at best rather than walking into the XI.";
-        }
-        return "First-choice keeper " + name + " (" + incumbentMinutes + " min) is staying, so an arrival on "
-                + recentWorkload + " minutes projects as the backup and only plays through injury or rotation.";
+        return "First-choice keeper " + name + " (" + incumbentMinutes
+                + " min) is staying, so an arrival on " + recentWorkload
+                + " minutes projects as the backup (~" + GK_BENCH_MINUTES
+                + " min) unless injury or cup rotation intervenes.";
     }
 
     private ExplanationFactor gkRoleFactor(ExplanationDirection direction, int impact, String detail) {
@@ -386,21 +529,57 @@ public class MinutesPredictor {
             return 1.05;
         }
 
-        boolean ongoing = injuries.stream().anyMatch(Injury::isOngoing);
-        int daysOut = injuries.stream()
-                .mapToInt(injury -> injury.getDaysOut() == null ? 45 : injury.getDaysOut())
-                .sum();
-        boolean severe = injuries.stream().anyMatch(i -> i.getSeverity() == InjurySeverity.SEVERE);
+        LocalDate asOf = context.season().getStartDate();
+        // Club-changers often bounce back after a completed spell; only haircut material unavailability
+        // still overlapping the lookback into the new season.
+        double weightedDays = 0;
+        boolean ongoing = false;
+        boolean severeNearStart = false;
+        int counted = 0;
+        for (Injury injury : injuries) {
+            if (injury.isOngoing() || injury.getEndDate() == null) {
+                ongoing = true;
+                counted++;
+                weightedDays += injury.getDaysOut() == null ? 60 : injury.getDaysOut();
+                if (injury.getSeverity() == InjurySeverity.SEVERE) {
+                    severeNearStart = true;
+                }
+                continue;
+            }
+            long daysSinceReturn = java.time.temporal.ChronoUnit.DAYS.between(injury.getEndDate(), asOf);
+            if (daysSinceReturn >= 90) {
+                // Fully recovered before season start — keep for explanation but ignore in multiplier.
+                continue;
+            }
+            counted++;
+            double weight = daysSinceReturn >= 45 ? 0.35 : daysSinceReturn >= 14 ? 0.65 : 1.0;
+            int daysOut = injury.getDaysOut() == null ? 45 : injury.getDaysOut();
+            weightedDays += daysOut * weight;
+            if (injury.getSeverity() == InjurySeverity.SEVERE && daysSinceReturn < 45) {
+                severeNearStart = true;
+            }
+        }
+
+        if (counted == 0) {
+            factors.add(new ExplanationFactor(
+                    FactorCodes.INJURY_BURDEN,
+                    "Injury burden",
+                    ExplanationDirection.POSITIVE,
+                    PredictionMath.bd(6),
+                    "Prior injury spell(s) ended well before season start — treating availability as recovered."
+            ));
+            return 1.02;
+        }
 
         double multiplier = 1.0;
         if (ongoing) {
-            multiplier -= 0.25;
+            multiplier -= 0.18;
         }
-        if (severe) {
-            multiplier -= 0.15;
+        if (severeNearStart) {
+            multiplier -= 0.10;
         }
-        multiplier -= Math.min(0.30, daysOut / 400.0);
-        multiplier = Math.max(0.45, multiplier);
+        multiplier -= Math.min(0.22, weightedDays / 500.0);
+        multiplier = Math.max(0.55, multiplier);
 
         factors.add(new ExplanationFactor(
                 FactorCodes.INJURY_BURDEN,
@@ -408,10 +587,10 @@ public class MinutesPredictor {
                 ExplanationDirection.NEGATIVE,
                 PredictionMath.bd((1.0 - multiplier) * 50),
                 "Recent injury load: "
-                        + injuries.size()
-                        + " spell(s), ~"
-                        + daysOut
-                        + " days out"
+                        + counted
+                        + " material spell(s), ~"
+                        + Math.round(weightedDays)
+                        + " weighted days out"
                         + (ongoing ? ", including an ongoing spell" : "")
                         + "."
         ));
@@ -425,19 +604,19 @@ public class MinutesPredictor {
     private double competitionMultiplier(
             PredictionContext context,
             int baselineMinutes,
+            SquadDepthAnalyzer.Assessment depth,
             List<ExplanationFactor> factors
     ) {
-        Position role = resolvePosition(context);
-        SquadDepthAnalyzer.Assessment depth =
-                SquadDepthAnalyzer.analyze(context, role, baselineMinutes);
-
         double multiplier = opennessMultiplier(depth.openness());
         multiplier *= crowdingMultiplier(depth.crowding());
-        multiplier = PredictionMath.clamp(multiplier, MIN_COMPETITION_MULTIPLIER, MAX_COMPETITION_MULTIPLIER);
+        // Established arrivals: competition floor 0.50 (Rule C) — softens near-zero haircuts.
+        double minMult = baselineMinutes >= ESTABLISHED_STARTER_MINUTES ? 0.50 : MIN_COMPETITION_MULTIPLIER;
+        multiplier = PredictionMath.clamp(multiplier, minMult, MAX_COMPETITION_MULTIPLIER);
 
         factors.add(competitionFactor(context, depth, multiplier));
         if (depth.starterSlotVacated()) {
             multiplier = applyVacancy(context, depth, baselineMinutes, multiplier, factors);
+            multiplier = PredictionMath.clamp(multiplier, minMult, MAX_COMPETITION_MULTIPLIER);
         }
         if (!depth.preciseRoles()) {
             factors.add(rolePrecisionFactor(context, depth));

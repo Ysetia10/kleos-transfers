@@ -64,4 +64,22 @@ public interface TransferRepository extends JpaRepository<Transfer, UUID> {
             @Param("playerIds") Collection<UUID> playerIds,
             @Param("statuses") Collection<TransferStatus> statuses
     );
+    /**
+     * Confirmed or announced moves for a set of players in one season (any club).
+     * Used to spot prior-squad members leaving even when {@code fromClub} is missing.
+     */
+    @Query("""
+            select t from Transfer t
+            join fetch t.player
+            left join fetch t.fromClub
+            left join fetch t.toClub
+            where t.season.id = :seasonId
+              and t.player.id in :playerIds
+              and t.status in :statuses
+            """)
+    List<Transfer> findBySeasonIdAndPlayerIdInAndStatusIn(
+            @Param("seasonId") UUID seasonId,
+            @Param("playerIds") Collection<UUID> playerIds,
+            @Param("statuses") Collection<TransferStatus> statuses
+    );
 }

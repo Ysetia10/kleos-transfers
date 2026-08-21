@@ -32,6 +32,18 @@ public class PredictionRun extends IdentityEntity {
     /** Adds dimensional compatibility (system/role/tempo/league/manager) on top of {@link #MODEL_VERSION_V0_2}. */
     public static final String MODEL_VERSION_V0_3 = "v0.3-heuristic";
 
+    /** Hardens GK winner-take-most rules from club-changer backtests (incumbent stays → bench; vacated shirt → starter). */
+    public static final String MODEL_VERSION_V0_4 = "v0.4-heuristic";
+
+    /** Outfield vacancy/established floors + injury ingest readiness on top of {@link #MODEL_VERSION_V0_4}. */
+    public static final String MODEL_VERSION_V0_5 = "v0.5-heuristic";
+
+    /**
+     * Broader vacancy detection (transfer outs without fromClub + open-depth walk-ins), recovered-injury
+     * dampening, and sharper GK open-shirt / takeover edges on top of {@link #MODEL_VERSION_V0_5}.
+     */
+    public static final String MODEL_VERSION_V0_6 = "v0.6-heuristic";
+
     @Column(name = "model_version", nullable = false, length = 40)
     private String modelVersion;
 

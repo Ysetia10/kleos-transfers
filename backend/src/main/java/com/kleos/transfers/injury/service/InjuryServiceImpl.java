@@ -58,6 +58,12 @@ public class InjuryServiceImpl implements InjuryService {
     }
 
     @Override
+    public Page<InjuryResponse> findByPlayerId(UUID playerId, Pageable pageable) {
+        requirePlayer(playerId);
+        return injuryRepository.findByPlayer_Id(playerId, pageable).map(injuryMapper::toResponse);
+    }
+
+    @Override
     public InjuryResponse findById(UUID id) {
         return injuryMapper.toResponse(findInjury(id));
     }

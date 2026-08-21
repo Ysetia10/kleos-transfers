@@ -20,6 +20,8 @@ public interface InjuryService {
 
     Page<InjuryResponse> findAll(Pageable pageable);
 
+    Page<InjuryResponse> findByPlayerId(UUID playerId, Pageable pageable);
+
     InjuryResponse findById(UUID id);
 
     InjuryResponse update(UUID id, UpdateInjuryRequest request);

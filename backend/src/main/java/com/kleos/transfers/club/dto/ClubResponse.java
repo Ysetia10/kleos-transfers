@@ -24,6 +24,7 @@ public record ClubResponse(
         UUID currentManagerId,
         String currentManagerName,
         String currentManagerSeasonLabel,
+        String currentManagerSinceSeasonLabel,
         Boolean currentManagerFirstSeasonAtClub,
         TacticalSystem tacticalSystem,
         TempoProfile tempo,

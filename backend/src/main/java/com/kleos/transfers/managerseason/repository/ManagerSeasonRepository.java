@@ -42,7 +42,17 @@ public interface ManagerSeasonRepository extends JpaRepository<ManagerSeason, UU
                                  AND prior.club_id = ms.club_id
                                  AND prior.manager_id = ms.manager_id
                                  AND ps.start_date < s.start_date
-                           ) AS "firstSeasonAtClub"
+                           ) AS "firstSeasonAtClub",
+                           (
+                               SELECT ps.label
+                               FROM manager_seasons tenure
+                               JOIN seasons ps ON ps.id = tenure.season_id
+                               WHERE tenure.deleted_at IS NULL
+                                 AND tenure.club_id = ms.club_id
+                                 AND tenure.manager_id = ms.manager_id
+                               ORDER BY ps.start_date ASC
+                               LIMIT 1
+                           ) AS "sinceSeasonLabel"
                     FROM manager_seasons ms
                     JOIN managers m ON m.id = ms.manager_id
                     JOIN seasons s ON s.id = ms.season_id

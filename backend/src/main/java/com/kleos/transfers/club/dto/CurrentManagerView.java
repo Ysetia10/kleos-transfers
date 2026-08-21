@@ -26,4 +26,7 @@ public interface CurrentManagerView {
 
     /** True when this manager has no earlier appointment at the same club. */
     Boolean getFirstSeasonAtClub();
+
+    /** Earliest season label for this manager at this club (tenure start). */
+    String getSinceSeasonLabel();
 }

@@ -376,6 +376,7 @@ class ClubServiceImplTest {
                 null,
                 null,
                 null,
+                null,
                 java.math.BigDecimal.valueOf(38.0),
                 RecruitmentSignal.UNKNOWN,
                 ClubFitIndexCalculator.VERSION,

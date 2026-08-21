@@ -152,6 +152,27 @@ class InjuryControllerIntegrationTest extends AbstractPostgresIntegrationTest {
                 .andExpect(jsonPath("$.skippedCount").value(1));
     }
 
+    @Test
+    void listsInjuriesFilteredByPlayerId() throws Exception {
+        UUID jude = createPlayer("Jude Bellingham");
+        UUID phil = createPlayer("Phil Foden");
+
+        mockMvc.perform(post(INJURIES_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(injuryJson(jude, "Hamstring strain", "MODERATE", "2024-03-01", "2024-04-01")))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post(INJURIES_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(injuryJson(phil, "Ankle sprain", "MINOR", "2024-05-01", "2024-05-10")))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get(INJURIES_PATH).param("playerId", jude.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].playerId").value(jude.toString()))
+                .andExpect(jsonPath("$.content[0].injuryType").value("Hamstring strain"));
+    }
+
     private UUID createPlayer(String name) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/players")
                         .contentType(MediaType.APPLICATION_JSON)

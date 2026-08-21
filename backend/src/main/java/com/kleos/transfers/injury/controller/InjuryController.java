@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -48,8 +49,12 @@ public class InjuryController {
 
     @GetMapping
     public ResponseEntity<Page<InjuryResponse>> findAll(
+            @RequestParam(required = false) UUID playerId,
             @PageableDefault(size = 20, sort = "startDate", direction = Sort.Direction.DESC) Pageable pageable
     ) {
+        if (playerId != null) {
+            return ResponseEntity.ok(injuryService.findByPlayerId(playerId, pageable));
+        }
         return ResponseEntity.ok(injuryService.findAll(pageable));
     }
 

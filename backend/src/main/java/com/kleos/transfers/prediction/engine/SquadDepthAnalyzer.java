@@ -29,8 +29,13 @@ final class SquadDepthAnalyzer {
     static final int VACATED_STARTER_MINUTES = 1_500;
     /** Weighted vacancy above which the club is clearly replacing a first-choice player. */
     static final double STARTER_SLOT_VACATED = 0.55;
-    /** Share of the pool that must carry finer-than-line roles before exact slots are trusted. */
-    static final double PRECISE_ROLE_SHARE = 0.35;
+    /**
+     * Minimum count of flank/depth codes (RB/LB/CAM/…) that signals the pool was enriched beyond
+     * GK/DF/MF/FW. Real CB/CM/ST from PulseLive still count as "coarse" for overlap purposes, so we
+     * cannot require a large share of the whole outfield — only enough lateral labels to trust exact
+     * slots.
+     */
+    static final int MIN_LATERAL_ROLE_HINTS = 2;
 
     private SquadDepthAnalyzer() {
     }
@@ -123,7 +128,10 @@ final class SquadDepthAnalyzer {
             poolIds.add(row.getPlayer().getId());
         }
 
-        boolean precise = preciseRoles(role, pool);
+        // Exact slots only when the *subject* also carries a flank/depth code. Coarse CB/CM/ST
+        // labels (including full-backs mis-tagged as CB from DF feeds) stay on line competition so
+        // they are not crushed inside a 2-CB pile they do not actually play.
+        boolean precise = preciseRoles(role, pool) && !RoleProfiles.isCoarse(role);
         double slots = precise ? RoleProfiles.exactSlots(role) : RoleProfiles.lineSlots(role);
 
         List<Contender> rivals = new ArrayList<>();
@@ -218,10 +226,12 @@ final class SquadDepthAnalyzer {
     }
 
     /**
-     * Exact slots are only trustworthy when the squad's roles came from match-level data. A squad
-     * still on the GK/DF/MF/FW feed carries no flank codes at all, so a run of full-backs and
-     * wingers in the pool is the signal that roles have been enriched. Goalkeeper is unambiguous
-     * either way.
+     * Exact slots are only trustworthy when the squad carries lateral/depth codes from enrichment
+     * (PulseLive / FBref match roles). A squad still on the GK/DF/MF/FW feed has none of those, so
+     * competition stays line-wide. Goalkeeper is unambiguous either way.
+     *
+     * <p>CB/CM/ST remain "coarse" for overlap math even when correctly labeled, so the gate keys off
+     * a small count of flank/depth codes rather than a share of the whole outfield.
      */
     private static boolean preciseRoles(Position role, List<PlayerSeason> pool) {
         if (role == Position.GK) {
@@ -234,7 +244,7 @@ final class SquadDepthAnalyzer {
         if (outfield.isEmpty()) {
             return !RoleProfiles.isCoarse(role);
         }
-        long precise = outfield.stream().filter(position -> !RoleProfiles.isCoarse(position)).count();
-        return precise >= Math.max(2, Math.ceil(outfield.size() * PRECISE_ROLE_SHARE));
+        long lateralHints = outfield.stream().filter(position -> !RoleProfiles.isCoarse(position)).count();
+        return lateralHints >= MIN_LATERAL_ROLE_HINTS;
     }
 }

@@ -28,7 +28,7 @@ public class MinutesPredictor {
     static final int GK_STARTER_MINUTES = 2_500;
     static final int GK_DEFAULT_STARTER_MINUTES = 3_200;
     /** Prior-season minutes above which a club's keeper counts as a settled number one. */
-    static final int GK_INCUMBENT_MINUTES = 2_000;
+    static final int GK_INCUMBENT_MINUTES = 2_400;
     /** Minutes an arriving keeper needs over the incumbent to be favoured for the gloves. */
     static final int GK_TAKEOVER_EDGE = 400;
     /** Soft takeover when the incumbent is only a borderline starter. */
@@ -197,10 +197,18 @@ public class MinutesPredictor {
             int minutes,
             List<ExplanationFactor> factors
     ) {
-        if (depth.starterSlotVacated() || baselineMinutes >= 1_200 || !depth.openDepthForWalkIn()) {
+        if (depth.starterSlotVacated() || !depth.openDepthForWalkIn()) {
             return minutes;
         }
-        int walkInFloor = baselineMinutes < 400 ? 1_500 : 1_700;
+        int walkInFloor;
+        if (baselineMinutes >= 1_200) {
+            // Useful prior into a role with no locked starter — do not stay near zero.
+            walkInFloor = 1_800;
+        } else if (baselineMinutes < 400) {
+            walkInFloor = 1_500;
+        } else {
+            walkInFloor = 1_700;
+        }
         if (walkInFloor <= minutes) {
             return minutes;
         }
@@ -221,18 +229,24 @@ public class MinutesPredictor {
     }
 
     /**
-     * Club-changers with ≥ {@link #ESTABLISHED_STARTER_MINUTES} prior minutes still median ~1.5–1.8k
-     * even into locked roles — keep a hard floor so competition cannot project near-zero.
+     * Club-changers with solid prior minutes still median well above zero even into locked roles.
+     * Floor triggers below the old 2,000' bar so utility starters (~1.1–1.6k) are not zeroed out.
      */
     private int applyEstablishedArrivalFloor(
             int baselineMinutes,
             int minutes,
             List<ExplanationFactor> factors
     ) {
-        if (baselineMinutes < ESTABLISHED_STARTER_MINUTES) {
+        int establishedFloor;
+        if (baselineMinutes >= ESTABLISHED_STARTER_MINUTES) {
+            establishedFloor = 1_600;
+        } else if (baselineMinutes >= 1_400) {
+            establishedFloor = 1_350;
+        } else if (baselineMinutes >= 1_000) {
+            establishedFloor = 1_100;
+        } else {
             return minutes;
         }
-        int establishedFloor = 1_600;
         if (establishedFloor <= minutes) {
             return minutes;
         }
@@ -242,7 +256,7 @@ public class MinutesPredictor {
                 ExplanationDirection.POSITIVE,
                 PredictionMath.bd(8),
                 "Club-changers with ≥"
-                        + ESTABLISHED_STARTER_MINUTES
+                        + baselineMinutes
                         + " recent minutes rarely drop below ~"
                         + establishedFloor
                         + " in the next season."
@@ -287,14 +301,16 @@ public class MinutesPredictor {
             if (starterProfile || substantialStarterShare || recentWorkload >= 1_200) {
                 // Meaningful prior into an open shirt → project as #1.
                 baseline = Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
-            } else if (depth.starterSlotVacated()) {
-                // Thin prior into a vacated shirt still often becomes the default starter.
+            } else if (depth.starterSlotVacated() || incumbentMinutes == 0) {
+                // Thin prior into a vacated shirt, or into a club with no prior GK (promotions /
+                // empty history), still often becomes the default starter.
                 baseline = Math.max(recentWorkload, 2_200);
             } else {
                 baseline = Math.max(recentWorkload, GK_BENCH_MINUTES);
             }
             factors.add(gkRoleFactor(
-                    starterProfile || substantialStarterShare || depth.starterSlotVacated() || recentWorkload >= 1_200
+                    starterProfile || substantialStarterShare || depth.starterSlotVacated()
+                            || incumbentMinutes == 0 || recentWorkload >= 1_200
                             ? ExplanationDirection.POSITIVE
                             : ExplanationDirection.NEUTRAL,
                     starterProfile || substantialStarterShare || recentWorkload >= 1_200 ? 24 : 14,
@@ -303,7 +319,7 @@ public class MinutesPredictor {
                             + " min) "
                             + (starterProfile || substantialStarterShare || recentWorkload >= 1_200
                                     ? "is first-choice / high-share level"
-                                    : depth.starterSlotVacated()
+                                    : depth.starterSlotVacated() || incumbentMinutes == 0
                                             ? "is modest, but the starting shirt is vacant"
                                             : "is a rotation share")
                             + "; projecting accordingly."
@@ -315,7 +331,9 @@ public class MinutesPredictor {
                             + " (top rival GK minutes: "
                             + incumbentMinutes
                             + ")"
-                            + (depth.starterSlotVacated() ? " after the previous starter's exit" : "")
+                            + (depth.starterSlotVacated()
+                                    ? " after the previous starter's exit"
+                                    : incumbentMinutes == 0 ? " — no prior keeper on the books" : "")
                             + ", so the shirt is there to be taken."
             ));
         } else {
@@ -607,10 +625,18 @@ public class MinutesPredictor {
             SquadDepthAnalyzer.Assessment depth,
             List<ExplanationFactor> factors
     ) {
-        double multiplier = opennessMultiplier(depth.openness());
+        double multiplier = opennessMultiplier(depth.openness(), depth.preciseRoles());
         multiplier *= crowdingMultiplier(depth.crowding());
-        // Established arrivals: competition floor 0.50 (Rule C) — softens near-zero haircuts.
-        double minMult = baselineMinutes >= ESTABLISHED_STARTER_MINUTES ? 0.50 : MIN_COMPETITION_MULTIPLIER;
+        // Established / near-established arrivals: raise the competition floor so exact 1-slot
+        // roles (RB/LB) cannot collapse a useful signing toward zero behind one incumbent.
+        double minMult = MIN_COMPETITION_MULTIPLIER;
+        if (baselineMinutes >= ESTABLISHED_STARTER_MINUTES) {
+            minMult = 0.50;
+        } else if (baselineMinutes >= 1_000 && depth.preciseRoles()) {
+            minMult = 0.48;
+        } else if (baselineMinutes >= 1_000) {
+            minMult = 0.40;
+        }
         multiplier = PredictionMath.clamp(multiplier, minMult, MAX_COMPETITION_MULTIPLIER);
 
         factors.add(competitionFactor(context, depth, multiplier));
@@ -624,14 +650,17 @@ public class MinutesPredictor {
         return multiplier;
     }
 
-    private double opennessMultiplier(double openness) {
+    private double opennessMultiplier(double openness, boolean preciseRoles) {
         if (openness >= 1.0) {
             return 1.05;
         }
         if (openness > 0) {
             return 0.78 + (0.27 * openness);
         }
-        return Math.max(0.30, 0.78 / (1.0 + (1.10 * -openness)));
+        // Exact 1-slot roles stack two bodies often; keep a higher floor than coarse line fights.
+        double floor = preciseRoles ? 0.42 : 0.30;
+        double steepness = preciseRoles ? 0.85 : 1.10;
+        return Math.max(floor, 0.78 / (1.0 + (steepness * -openness)));
     }
 
     /**

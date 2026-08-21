@@ -23,7 +23,7 @@ public class HeuristicPredictionEngine implements PredictionEngine {
 
     @Override
     public String modelVersion() {
-        return PredictionRun.MODEL_VERSION_V0_6;
+        return PredictionRun.MODEL_VERSION_V0_9;
     }
 
     @Override

@@ -44,6 +44,24 @@ public class PredictionRun extends IdentityEntity {
      */
     public static final String MODEL_VERSION_V0_6 = "v0.6-heuristic";
 
+    /**
+     * Exact-role competition gate trusts lateral enrichment (RB/LB/CAM/…) without requiring a large
+     * share of the whole outfield — PulseLive/FBref correctly leave many players as CB/CM/ST.
+     */
+    public static final String MODEL_VERSION_V0_7 = "v0.7-heuristic";
+
+    /**
+     * Free-agent / release vacancy coverage for GK (and outfield) plus a higher settled-#1 bar so
+     * declining keepers do not falsely bench starter-level arrivals.
+     */
+    public static final String MODEL_VERSION_V0_8 = "v0.8-heuristic";
+
+    /**
+     * Coarse subject roles stay on line competition (fixes CB-tagged full-backs), softer exact-slot
+     * floors for flanks, open-shirt GK path when no prior keeper exists, and wider arrival floors.
+     */
+    public static final String MODEL_VERSION_V0_9 = "v0.9-heuristic";
+
     @Column(name = "model_version", nullable = false, length = 40)
     private String modelVersion;
 

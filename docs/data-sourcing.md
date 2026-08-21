@@ -88,16 +88,31 @@ Do not invent a shots→xG proxy without labelling it as non-xG.
 
 ## Pitch roles (precise positions)
 
-FBref **season** squad tables usually only expose `GK` / `DF` / `MF` / `FW`, which ingest maps to coarse `GK` / `CB` / `CM` / `ST`. Pitch lineup placement needs lateral roles (`RB` / `LB` / `RW` / `LW` / …).
+FBref **season** squad tables usually only expose `GK` / `DF` / `MF` / `FW`, which ingest maps to coarse `GK` / `CB` / `CM` / `ST`. Pitch lineup placement and exact-role squad competition need lateral roles (`RB` / `LB` / `RW` / `LW` / …).
 
-**Source of truth for backfill:** FBref **match** player summary / lineup tables (via `soccerdata.FBref.read_player_match_stats`), which publish fine position codes. Aggregate minutes by player–club–position and keep the dominant role.
+**Preferred ENG path (fast):** Premier League PulseLive season staff (`footballapi.pulselive.com`) publishes detailed `positionInfo` per club-season in one request per team — no per-match crawl.
 
 ```bash
-python3 scripts/enrich_positions_from_fbref_lineups.py --seasons 2024/25 --leagues ENG-Premier League --dry-run
-python3 scripts/enrich_positions_from_fbref_lineups.py --seasons 2024/25
+python3 scripts/enrich_positions_from_premierleague.py --seasons 2024/25 2025/26 --dry-run
+python3 scripts/enrich_positions_from_premierleague.py --seasons 2024/25 2025/26
 ```
 
+The script maps PulseLive long club names (`West Ham United`, `Nottingham Forest`, …) onto Kleos short names via `CLUB_ALIAS_GROUPS`. Without those aliases, entire clubs silently skip enrichment. Coarse PulseLive labels (`Defender`, `Winger`, multi-side) are left unchanged.
+
+**Cross-league path (accurate, slow):** FBref **match** player summary tables via `soccerdata`. Cold scrapes use headless Chrome and Sports-Reference’s ~10 req/min cap — often **3–5 minutes per match** on first download. Cached HTML under `~/soccerdata/data/FBref` makes re-runs fast. Use for ESP/GER/ITA/FRA (ENG prefers PulseLive above).
+
+```bash
+# Stratified sample (default): cover every club with fewer matches; apply in batches; reuse cache first.
+python3 scripts/enrich_positions_from_fbref_lineups.py --seasons 2024/25 --leagues ESP-La\ Liga --max-matches 40
+# Resume / extend after a partial run (already-cached matches are near-instant):
+python3 scripts/enrich_positions_from_fbref_lineups.py --seasons 2024/25 --leagues ESP-La\ Liga --max-matches 80 --batch-size 5
+```
+
+There is no safe way to “speed past” FBref’s rate limit without a licensed feed; the real multi-league speedup is a PulseLive-style staff API or paid positions dump per league.
+
 Understat season `position` strings (`D M`, `F M S`) are too coarse for left/right placement — do not use them as the primary role source. Keep coarse fallbacks only when match minutes are unavailable; the UI shows a “role precision unavailable” state in that case.
+
+**Not used:** Transfermarkt scrapes (disallowed). Paid bulk APIs (foot.io / API-Football) are optional later if we need multi-league speed with a licensed key.
 
 ## Transfers
 

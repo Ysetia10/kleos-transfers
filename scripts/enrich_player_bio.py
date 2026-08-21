@@ -180,6 +180,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="only upgrade full DOB (implies --skip-height --skip-foot --skip-fbref)",
     )
+    parser.add_argument(
+        "--stubs-only",
+        action="store_true",
+        help="only YEAR-precision wiki stubs (1999-07-01); allow DOB replace without year match",
+    )
     parser.add_argument("--workers", type=int, default=8, help="concurrent workers for foot + PUTs")
     parser.add_argument("--batch-size", type=int, default=SPARQL_BATCH_SIZE, help="SPARQL names per query")
     parser.add_argument("--dry-run", action="store_true")
@@ -570,10 +575,50 @@ SELECT ?name ?item ?born ?countryLabel WHERE {{
     return hits
 
 
-def score_dob_hit(player: dict, hit: WikiDobHit) -> int:
-    """Require exact birth-year match with stored FBref year to avoid namesakes."""
+def is_wiki_stub(player: dict) -> bool:
+    """Players created by ensure_wiki_transfer_players.py (placeholder DOB)."""
+    return (
+        player.get("dateOfBirthPrecision") == "YEAR"
+        and str(player.get("dateOfBirth") or "").startswith("1999-07")
+    )
+
+
+def nationality_from_country_label(label: str) -> str | None:
+    blob = fold_text(label or "")
+    if not blob:
+        return None
+    best: str | None = None
+    best_len = 0
+    for code, hints in COUNTRY_HINTS.items():
+        for hint in hints:
+            h = fold_text(hint)
+            if h and h in blob and len(h) >= best_len:
+                best = code
+                best_len = len(h)
+    return best
+
+
+def score_dob_hit(player: dict, hit: WikiDobHit, *, stubs_mode: bool = False) -> int:
+    """Require exact birth-year match with stored FBref year to avoid namesakes.
+
+    Stub players use a placeholder 1999 year — score by citizenship / uniqueness instead.
+    """
     py = birth_year(player)
     hit_year = int(hit.birth_date[0:4])
+    if stubs_mode or is_wiki_stub(player):
+        if not (1985 <= hit_year <= 2010):
+            return -100
+        score = 35
+        if country_matches(hit.country, player.get("nationality")):
+            score += 45
+        elif hit.country:
+            # Citizenship known but differs from provisional club-country nationality.
+            mapped = nationality_from_country_label(hit.country)
+            if mapped:
+                score += 25
+            else:
+                score -= 5
+        return score
     if py is None or hit_year != py:
         return -100
     score = 50
@@ -584,7 +629,12 @@ def score_dob_hit(player: dict, hit: WikiDobHit) -> int:
     return score
 
 
-def match_dob(player: dict, hits_by_name: dict[str, list[WikiDobHit]]) -> str | None:
+def match_dob(
+    player: dict,
+    hits_by_name: dict[str, list[WikiDobHit]],
+    *,
+    stubs_mode: bool = False,
+) -> tuple[str, str | None] | None:
     hits: list[WikiDobHit] = []
     for variant in name_label_variants(player["fullName"]):
         hits.extend(hits_by_name.get(variant) or [])
@@ -593,17 +643,30 @@ def match_dob(player: dict, hits_by_name: dict[str, list[WikiDobHit]]) -> str | 
     deduped: dict[str, WikiDobHit] = {}
     for hit in hits:
         deduped.setdefault(hit.qid or f"{hit.name}:{hit.birth_date}", hit)
-    ranked = sorted(deduped.values(), key=lambda hit: score_dob_hit(player, hit), reverse=True)
+    ranked = sorted(
+        deduped.values(),
+        key=lambda hit: score_dob_hit(player, hit, stubs_mode=stubs_mode),
+        reverse=True,
+    )
     best = ranked[0]
-    best_score = score_dob_hit(player, best)
-    if best_score < 50:
+    best_score = score_dob_hit(player, best, stubs_mode=stubs_mode)
+    threshold = 60 if (stubs_mode or is_wiki_stub(player)) else 50
+    if best_score < threshold:
         return None
-    if len(ranked) > 1 and score_dob_hit(player, ranked[1]) == best_score:
-        # Ambiguous same-year namesakes — skip.
-        if ranked[0].birth_date != ranked[1].birth_date or ranked[0].qid != ranked[1].qid:
-            if not country_matches(best.country, player.get("nationality")):
+    if stubs_mode or is_wiki_stub(player):
+        # Require a clear winner when year is not an anchor.
+        if len(ranked) > 1:
+            second = score_dob_hit(player, ranked[1], stubs_mode=True)
+            if second >= best_score - 10 and best.birth_date != ranked[1].birth_date:
                 return None
-    return best.birth_date
+    nat = nationality_from_country_label(best.country) if best.country else None
+    if not (stubs_mode or is_wiki_stub(player)):
+        if len(ranked) > 1 and score_dob_hit(player, ranked[1]) == best_score:
+            # Ambiguous same-year namesakes — skip unless citizenship anchors.
+            if ranked[0].birth_date != ranked[1].birth_date or ranked[0].qid != ranked[1].qid:
+                if not country_matches(best.country, player.get("nationality")):
+                    return None
+    return best.birth_date, nat
 
 
 def title_matches_player(name: str, title: str) -> bool:
@@ -796,6 +859,7 @@ def put_player_update(
     *,
     date_of_birth: str | None = None,
     date_of_birth_precision: str | None = None,
+    nationality: str | None = None,
 ) -> None:
     payload = {
         "fullName": player["fullName"],
@@ -803,7 +867,7 @@ def put_player_update(
         "dateOfBirthPrecision": date_of_birth_precision
         or player.get("dateOfBirthPrecision")
         or "YEAR",
-        "nationality": player["nationality"],
+        "nationality": nationality or player["nationality"],
         "heightCm": height if height is not None else player.get("heightCm"),
         "preferredFoot": foot if foot is not None else player.get("preferredFoot"),
         "primaryPosition": player["primaryPosition"],
@@ -813,7 +877,7 @@ def put_player_update(
     if dry_run:
         log(
             f"  dry-run PUT {path} dob={payload['dateOfBirth']} "
-            f"prec={payload['dateOfBirthPrecision']} "
+            f"prec={payload['dateOfBirthPrecision']} nat={payload['nationality']} "
             f"height={payload['heightCm']} foot={payload['preferredFoot']}"
         )
         return
@@ -872,6 +936,7 @@ def enrich_one(
     dry_run: bool,
     height_hint: int | None,
     dob_hint: str | None,
+    nationality_hint: str | None,
     index: int,
     total: int,
 ) -> str:
@@ -881,6 +946,7 @@ def enrich_one(
         foot = None if include_existing else player.get("preferredFoot")
         notes: list[str] = []
         new_dob = None
+        new_nat = None
 
         if height is None and not skip_height and height_hint is not None:
             height = height_hint
@@ -893,6 +959,9 @@ def enrich_one(
         ):
             new_dob = dob_hint
             notes.append(f"dob {new_dob}")
+        if nationality_hint and nationality_hint != player.get("nationality"):
+            new_nat = nationality_hint
+            notes.append(f"nat {new_nat}")
 
         want_height = height is None and not skip_height
         want_foot = foot is None and not skip_foot
@@ -921,7 +990,8 @@ def enrich_one(
             or player.get("dateOfBirthPrecision") != "DAY"
             or player.get("dateOfBirth") != new_dob
         )
-        if not changed_height and not changed_foot and not changed_dob:
+        changed_nat = new_nat is not None
+        if not changed_height and not changed_foot and not changed_dob and not changed_nat:
             log(f"[{index}/{total}] skip {label}")
             return "skipped"
 
@@ -933,6 +1003,7 @@ def enrich_one(
             dry_run,
             date_of_birth=new_dob if changed_dob else None,
             date_of_birth_precision="DAY" if changed_dob else None,
+            nationality=new_nat if changed_nat else None,
         )
         detail = ", ".join(notes) if notes else "updated"
         log(f"[{index}/{total}] ok {label} · {detail}")
@@ -949,6 +1020,9 @@ def main() -> None:
         args.skip_foot = True
         args.skip_fbref = True
         args.skip_dob = False
+    if args.stubs_only:
+        args.skip_fbref = True
+        args.skip_dob = False
     include_existing = args.include_existing
     workers = max(1, args.workers)
     batch_size = max(5, args.batch_size)
@@ -961,13 +1035,15 @@ def main() -> None:
             player, include_existing, args.skip_height, args.skip_foot, args.skip_dob
         )
     ]
+    if args.stubs_only:
+        candidates = [player for player in candidates if is_wiki_stub(player)]
     selected = candidates[args.offset :]
     if args.limit > 0:
         selected = selected[: args.limit]
 
     log(
         f"Enriching {len(selected)} players "
-        f"(workers={workers}, skip_fbref={args.skip_fbref}, "
+        f"(workers={workers}, stubs_only={args.stubs_only}, skip_fbref={args.skip_fbref}, "
         f"skip_height={args.skip_height}, skip_foot={args.skip_foot}, "
         f"skip_dob={args.skip_dob}, dry_run={args.dry_run})"
     )
@@ -993,6 +1069,7 @@ def main() -> None:
         log(f"Matched heights for {len(height_hints)}/{len(need_height)} players")
 
     dob_hints: dict[str, str] = {}
+    nat_hints: dict[str, str] = {}
     if not args.skip_dob:
         need_dob = [
             player
@@ -1007,9 +1084,12 @@ def main() -> None:
             fetch_fn=sparql_dob_hits,
         )
         for player in need_dob:
-            matched = match_dob(player, hits_by_name)
+            matched = match_dob(player, hits_by_name, stubs_mode=args.stubs_only)
             if matched is not None:
-                dob_hints[player["id"]] = matched
+                dob, nat = matched
+                dob_hints[player["id"]] = dob
+                if nat:
+                    nat_hints[player["id"]] = nat
         log(f"Matched full DOBs for {len(dob_hints)}/{len(need_dob)} players")
 
     updated = 0
@@ -1028,6 +1108,7 @@ def main() -> None:
             dry_run=args.dry_run,
             height_hint=height_hints.get(player["id"]),
             dob_hint=dob_hints.get(player["id"]),
+            nationality_hint=nat_hints.get(player["id"]),
             index=index,
             total=len(selected),
         )

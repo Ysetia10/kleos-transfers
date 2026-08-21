@@ -23,6 +23,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -535,6 +536,12 @@ def fetch_all(api: str, path: str, size: int = 200) -> list[dict[str, Any]]:
     return rows
 
 
+def fold_name(value: str) -> str:
+    folded = unicodedata.normalize("NFKD", value)
+    ascii_only = "".join(ch for ch in folded if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", "", ascii_only.lower())
+
+
 def build_player_index(api: str) -> dict[str, str]:
     index: dict[str, str] = {}
     last_name_counts: dict[str, int] = {}
@@ -542,6 +549,7 @@ def build_player_index(api: str) -> dict[str, str]:
     for player in fetch_all(api, "/api/v1/players", size=500):
         full = player["fullName"].lower().strip()
         index[full] = player["id"]
+        index[fold_name(player["fullName"])] = player["id"]
         parts = full.split()
         if len(parts) >= 2:
             ln = parts[-1]
@@ -559,11 +567,13 @@ def build_club_index(api: str) -> dict[str, str]:
         name = club["name"].lower().strip()
         index[name] = club["id"]
         index[re.sub(r"[^a-z0-9]+", "", name)] = club["id"]
+        index[fold_name(club["name"])] = club["id"]
     for alias, canonical in CLUB_ALIASES.items():
-        cid = index.get(canonical.lower())
+        cid = index.get(canonical.lower()) or index.get(fold_name(canonical))
         if cid:
             index[alias] = cid
             index[re.sub(r"[^a-z0-9]+", "", alias)] = cid
+            index[fold_name(alias)] = cid
     return index
 
 
@@ -571,17 +581,24 @@ def search_player(name: str, index: dict[str, str]) -> str | None:
     key = name.lower().strip()
     if key in index:
         return index[key]
+    folded = fold_name(name)
+    if folded in index:
+        return index[folded]
     parts = key.split()
     if len(parts) >= 2:
         ln = index.get(f"ln:{parts[-1]}")
         if ln:
             return ln
-    # substring contains
-    for full, pid in index.items():
-        if full.startswith("ln"):
-            continue
-        if key in full or full in key:
-            return pid
+    # Prefer exact-ish contains only for longer names to avoid "son" collisions.
+    if len(folded) >= 8:
+        for full, pid in index.items():
+            if full.startswith("ln"):
+                continue
+            if fold_name(full) == folded:
+                return pid
+            f2 = fold_name(full) if not full.isalnum() else full
+            if len(f2) >= 8 and (folded in f2 or f2 in folded):
+                return pid
     return None
 
 
@@ -592,14 +609,24 @@ def search_club(name: str | None, index: dict[str, str]) -> str | None:
     if query in index:
         return index[query]
     compact = re.sub(r"[^a-z0-9]+", "", query)
+    folded = fold_name(query)
     if compact in index:
         return index[compact]
+    if folded in index:
+        return index[folded]
+    # Substring match only when the shorter token is long enough (avoids Angers ⊂ QPR).
+    best: tuple[int, str] | None = None
     for key, cid in index.items():
-        if key.startswith("ln"):
+        if key.startswith("ln") or len(key) < 5:
             continue
-        if query in key or key in query:
+        if compact == key or folded == key:
             return cid
-    return None
+        shorter, longer = (compact, key) if len(compact) <= len(key) else (key, compact)
+        if len(shorter) >= 8 and shorter in longer:
+            score = len(shorter)
+            if best is None or score > best[0]:
+                best = (score, cid)
+    return best[1] if best else None
 
 
 def main() -> int:

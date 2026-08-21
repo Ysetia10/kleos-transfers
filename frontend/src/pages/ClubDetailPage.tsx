@@ -117,8 +117,8 @@ export function ClubDetailPage() {
               {Number.isFinite(club.fitIndex) ? Math.round(club.fitIndex) : '—'}
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
-              Absolute club environment score (not relative to a selected player). Recruitment
-              signal: {club.recruitmentSignal}.
+              Club environment score from system, tempo, and youth minutes. Recruitment signal:{' '}
+              {club.recruitmentSignal}.
             </Typography>
             <Box
               sx={{
@@ -162,7 +162,7 @@ export function ClubDetailPage() {
           </SurfaceCard>
           <SurfaceCard>
             <Typography color="primary.main" variant="caption">
-              Manager context
+              Manager
             </Typography>
             <Typography sx={{ mt: 1 }} variant="h3">
               {club.currentManagerName ? (
@@ -171,19 +171,25 @@ export function ClubDetailPage() {
                   {club.currentManagerFirstSeasonAtClub ? <NewBadge /> : null}
                 </>
               ) : (
-                'Manager unavailable'
+                'No manager on file'
               )}
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
-              {club.currentManagerSeasonLabel
-                ? `Latest appointment · ${club.currentManagerSeasonLabel}. Stored tactics when curated; otherwise BALANCED + league-default tempo.`
-                : 'No ManagerSeason row for this club yet — import appointments to enrich fit signals.'}
+              {club.currentManagerName
+                ? club.currentManagerFirstSeasonAtClub
+                  ? `First season at ${club.name}${
+                      club.currentManagerSeasonLabel ? ` · ${club.currentManagerSeasonLabel}` : ''
+                    }.`
+                  : `At ${club.name} since ${
+                      club.currentManagerSinceSeasonLabel ?? club.currentManagerSeasonLabel ?? '—'
+                    }.`
+                : 'Import manager appointments to populate this club’s coaching context.'}
             </Typography>
           </SurfaceCard>
           <SurfaceCard>
-            <Typography variant="h4">Test a player in this system</Typography>
+            <Typography variant="h4">Test a player here</Typography>
             <Typography color="text.secondary" sx={{ mt: 1, mb: 2 }} variant="body2">
-              Run a what-if arrival with squad competition and league context from the simulator.
+              Project how a player would fare in this squad and league context.
             </Typography>
             <Button
               component={RouterLink}

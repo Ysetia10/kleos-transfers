@@ -30,7 +30,7 @@ export const components: Components<Theme> = {
     styleOverrides: {
       root: ({ theme }) => ({
         backgroundColor:
-          theme.palette.mode === 'dark' ? 'rgba(11, 14, 20, 0.88)' : 'rgba(244, 246, 248, 0.88)',
+          theme.palette.mode === 'dark' ? 'rgba(11, 14, 20, 0.88)' : 'rgba(255, 255, 255, 0.92)',
         backdropFilter: 'blur(14px)',
         borderBottom: `1px solid ${theme.palette.divider}`,
         color: theme.palette.text.primary,

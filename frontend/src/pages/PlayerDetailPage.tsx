@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { ScenarioComparisonSection } from '@/components/player/ScenarioComparisonSection'
+import { InjuryHistorySection } from '@/components/player/InjuryHistorySection'
 import { TransferBadge } from '@/components/transfer/TransferBadge'
 import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -64,16 +65,7 @@ export function PlayerDetailPage() {
         }
         eyebrow="Player workspace"
         leading={<IdentityMedia imageUrl={player.photoUrl} label={player.fullName} size={72} />}
-        title={
-          player.latestTransfer ? (
-            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-              <span>{player.fullName}</span>
-              <TransferBadge transfer={player.latestTransfer} />
-            </Box>
-          ) : (
-            player.fullName
-          )
-        }
+        title={player.fullName}
       />
 
       <Box
@@ -118,13 +110,7 @@ export function PlayerDetailPage() {
               Latest club
             </Typography>
             <Typography sx={{ mt: 1 }} variant="h3">
-              {player.latestClubName && player.latestTransfer ? (
-                <TransferBadge transfer={player.latestTransfer}>
-                  {player.latestClubName}
-                </TransferBadge>
-              ) : (
-                (player.latestClubName ?? 'Unattached / unknown')
-              )}
+              {player.latestClubName ?? 'Unattached / unknown'}
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
               {player.latestTransfer
@@ -159,6 +145,8 @@ export function PlayerDetailPage() {
           </SurfaceCard>
         </Stack>
       </Box>
+
+      <InjuryHistorySection playerId={player.id} />
 
       <ScenarioComparisonSection playerId={player.id} />
     </Stack>

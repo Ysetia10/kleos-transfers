@@ -40,4 +40,8 @@ export const queryKeys = {
     list: (page: number, size: number, status = '', seasonId = '') =>
       ['transfers', 'list', page, size, status, seasonId] as const,
   },
+  injuries: {
+    byPlayer: (playerId: string, page = 0, size = 20) =>
+      ['injuries', 'player', playerId, page, size] as const,
+  },
 } as const

@@ -1,5 +1,6 @@
 export type PreferredFoot = 'LEFT' | 'RIGHT' | 'BOTH'
 export type DateOfBirthPrecision = 'DAY' | 'YEAR'
+export type InjurySeverity = 'MINOR' | 'MODERATE' | 'SEVERE'
 export type Position =
   | 'GK'
   | 'RB'
@@ -93,6 +94,7 @@ export interface Club {
   currentManagerId: string | null
   currentManagerName: string | null
   currentManagerSeasonLabel: string | null
+  currentManagerSinceSeasonLabel: string | null
   currentManagerFirstSeasonAtClub: boolean | null
   tacticalSystem: TacticalSystem | null
   tempo: TempoProfile | null
@@ -109,6 +111,20 @@ export interface Season {
   label: string
   startDate: string
   endDate: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Injury {
+  id: string
+  playerId: string
+  playerName: string
+  injuryType: string
+  severity: InjurySeverity
+  startDate: string
+  endDate: string | null
+  daysOut: number | null
+  ongoing: boolean
   createdAt: string
   updatedAt: string
 }

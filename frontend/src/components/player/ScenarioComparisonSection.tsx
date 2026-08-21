@@ -24,7 +24,7 @@ type ScenarioComparisonSectionProps = {
   playerId: string
 }
 
-/** Latest prediction per target club, newest first — for side-by-side compare. */
+/** Newest prediction first; keep one row per destination club. */
 function latestPerClub(predictions: Prediction[]): Prediction[] {
   const seen = new Set<string>()
   const unique: Prediction[] = []
@@ -46,7 +46,8 @@ export function ScenarioComparisonSection({ playerId }: ScenarioComparisonSectio
   })
 
   const scenarios = query.data?.content ?? []
-  const comparable = latestPerClub(scenarios).slice(0, 4)
+  const byClub = latestPerClub(scenarios)
+  const comparable = byClub.slice(0, 4)
 
   return (
     <Stack spacing={2}>
@@ -162,7 +163,7 @@ export function ScenarioComparisonSection({ playerId }: ScenarioComparisonSectio
           </SurfaceCard>
         ) : null}
 
-        {scenarios.length > 0 ? (
+        {byClub.length > 0 ? (
           <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
             <Table size="small">
               <TableHead>
@@ -175,7 +176,7 @@ export function ScenarioComparisonSection({ playerId }: ScenarioComparisonSectio
                 </TableRow>
               </TableHead>
               <TableBody>
-                {scenarios.map((prediction) => (
+                {byClub.map((prediction) => (
                   <TableRow hover key={prediction.id}>
                     <TableCell>
                       <MuiLink

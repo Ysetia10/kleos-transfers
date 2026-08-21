@@ -1,4 +1,4 @@
-import { Box, Button, Stack, Typography } from '@mui/material'
+import { Box, Button, Link as MuiLink, Stack, Typography } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -12,7 +12,7 @@ import { CompatibilityBreakdownChips } from '@/components/prediction/Compatibili
 import { ExplanationList } from '@/components/prediction/ExplanationList'
 import { MetricGrid } from '@/components/prediction/MetricGrid'
 import { ScoreMeter } from '@/components/prediction/ScoreMeter'
-import { homePredictPath } from '@/constants/routes'
+import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { getClubSquad } from '@/services/club/squadApi'
 import { getPrediction } from '@/services/prediction/predictionApi'
@@ -44,6 +44,8 @@ export function PredictionResultPage() {
   }
 
   const confidence = Number(prediction.confidenceScore)
+  const injuryFactor = prediction.explanations.find((item) => item.factorCode === 'INJURY_BURDEN')
+  const injuryIsNegative = injuryFactor?.direction === 'NEGATIVE'
 
   return (
     <Stack spacing={4}>
@@ -78,12 +80,40 @@ export function PredictionResultPage() {
               Player
             </Typography>
             <Typography sx={{ mt: 1 }} variant="h3">
-              {prediction.playerName}
+              <MuiLink
+                component={RouterLink}
+                to={routes.playerDetail(prediction.playerId)}
+                underline="hover"
+                color="inherit"
+              >
+                {prediction.playerName}
+              </MuiLink>
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
               Target · {prediction.targetClubName}
             </Typography>
           </SurfaceCard>
+          {injuryFactor ? (
+            <SurfaceCard accent={injuryIsNegative ? 'default' : 'positive'}>
+              <Typography color="text.secondary" variant="caption">
+                Availability signal
+              </Typography>
+              <Typography sx={{ mt: 1 }} variant="h4">
+                {injuryIsNegative ? 'Recent injury burden' : 'Clean availability window'}
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
+                {injuryFactor.detail}
+              </Typography>
+              <Button
+                component={RouterLink}
+                sx={{ mt: 2 }}
+                to={routes.playerDetail(prediction.playerId)}
+                variant="outlined"
+              >
+                View injury history
+              </Button>
+            </SurfaceCard>
+          ) : null}
           <SurfaceCard accent="positive">
             <Stack spacing={2}>
               <ScoreMeter label="Confidence" value={confidence} />

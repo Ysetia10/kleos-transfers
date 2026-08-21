@@ -30,6 +30,9 @@ import {
 } from '@/services/stats/statsApi'
 import { formatNumber } from '@/utils/format'
 
+/** Top-five leagues only — order matches product USP. */
+const LEAGUE_ORDER = ['ENG', 'ESP', 'GER', 'ITA', 'FRA'] as const
+
 function InfoIcon() {
   return (
     <svg fill="none" height="18" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg">
@@ -80,21 +83,22 @@ function MaeInfoButton() {
   )
 }
 
-function MetricLine({ label, block }: { label: string; block: MetricBlock | null | undefined }) {
-  if (!block?.n || !block.minutes || !block.goals || !block.assists) {
-    return (
-      <Typography color="text.secondary" variant="body2">
-        {label}: no evaluations yet
-      </Typography>
-    )
+function seasonRangeLabel(seasons: string[] | undefined): string {
+  if (!seasons?.length) {
+    return 'past seasons'
   }
-  return (
-    <Typography variant="body2">
-      {label}: minutes MAE {formatNumber(block.minutes.mae, 0)} · goals MAE{' '}
-      {formatNumber(block.goals.mae, 1)} · assists MAE {formatNumber(block.assists.mae, 1)} (n=
-      {block.n})
-    </Typography>
-  )
+  const first = seasons[0].replace('/', '–')
+  const last = seasons[seasons.length - 1].replace('/', '–')
+  if (first === last) {
+    return first
+  }
+  // e.g. 2017–18 … 2025–26 → "2017–2026" style short range for copy
+  const startYear = seasons[0].split('/')[0]
+  const endYear = seasons[seasons.length - 1].split('/')[1]
+  if (startYear && endYear) {
+    return `${startYear}–20${endYear}`
+  }
+  return `${first}–${last}`
 }
 
 function SamplesTable({ samples }: { samples: AccuracySample[] }) {
@@ -157,24 +161,148 @@ function SamplesTable({ samples }: { samples: AccuracySample[] }) {
   )
 }
 
-function LeagueCard({
+function OverallMetricBar({ metrics }: { metrics: MetricBlock }) {
+  if (!metrics.n || !metrics.minutes || !metrics.goals || !metrics.assists) {
+    return (
+      <Typography color="text.secondary" variant="body2">
+        No aggregate evaluations yet.
+      </Typography>
+    )
+  }
+
+  return (
+    <Box
+      sx={{
+        alignItems: { xs: 'flex-start', md: 'center' },
+        backgroundColor: 'primary.main',
+        borderRadius: 2,
+        color: 'primary.contrastText',
+        display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
+        gap: { xs: 2, md: 3 },
+        justifyContent: 'space-between',
+        px: { xs: 2.5, md: 3 },
+        py: { xs: 2, md: 2.25 },
+      }}
+    >
+      <Stack spacing={0.25} sx={{ minWidth: { md: 160 } }}>
+        <Typography sx={{ color: 'inherit', opacity: 0.85 }} variant="caption">
+          Overall metric
+        </Typography>
+        <Typography sx={{ color: 'inherit', fontWeight: 500 }} variant="body2">
+          Aggregate performance
+        </Typography>
+      </Stack>
+
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: { xs: 2, md: 4 },
+          flexGrow: 1,
+          justifyContent: { md: 'center' },
+        }}
+      >
+        <Typography sx={{ color: 'inherit', fontWeight: 500 }} variant="body2">
+          Minutes MAE: {formatNumber(metrics.minutes.mae, 0)}
+        </Typography>
+        <Typography sx={{ color: 'inherit', fontWeight: 500 }} variant="body2">
+          Goals MAE: {formatNumber(metrics.goals.mae, 1)}
+        </Typography>
+        <Typography sx={{ color: 'inherit', fontWeight: 500 }} variant="body2">
+          Assists MAE: {formatNumber(metrics.assists.mae, 1)}
+        </Typography>
+      </Box>
+
+      <Typography
+        sx={{ color: 'inherit', fontStyle: 'italic', opacity: 0.85, whiteSpace: 'nowrap' }}
+        variant="body2"
+      >
+        n = {formatNumber(metrics.n, 0)} observations
+      </Typography>
+    </Box>
+  )
+}
+
+function LeagueBenchmarkCard({
   league,
   onShowDetails,
 }: {
   league: LeagueAccuracy
   onShowDetails: () => void
 }) {
+  const metrics = league.metrics
+
   return (
-    <SurfaceCard>
-      <Stack spacing={1.5}>
-        <Typography color="primary.main" variant="caption">
+    <SurfaceCard
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1.5,
+        height: '100%',
+        p: 2,
+        borderRadius: 2,
+        boxShadow: 'none',
+      }}
+    >
+      <Stack direction="row" sx={{ alignItems: 'baseline', justifyContent: 'space-between', gap: 1 }}>
+        <Typography sx={{ fontWeight: 500 }} variant="subtitle1">
           {league.leagueName}
         </Typography>
-        <MetricLine label="Accuracy" block={league.metrics} />
-        <Button onClick={onShowDetails} size="small" sx={{ alignSelf: 'flex-start' }} variant="outlined">
-          Show all details
-        </Button>
+        <Typography color="text.secondary" variant="secondary">
+          n={metrics?.n ? formatNumber(metrics.n, 0) : '—'}
+        </Typography>
       </Stack>
+
+      {metrics?.minutes && metrics.goals && metrics.assists ? (
+        <Stack spacing={1}>
+          {(
+            [
+              ['Min MAE', formatNumber(metrics.minutes.mae, 0)],
+              ['Goal MAE', formatNumber(metrics.goals.mae, 1)],
+              ['Asst MAE', formatNumber(metrics.assists.mae, 1)],
+            ] as const
+          ).map(([label, value]) => (
+            <Stack
+              direction="row"
+              key={label}
+              sx={{ alignItems: 'baseline', justifyContent: 'space-between', gap: 1 }}
+            >
+              <Typography color="text.secondary" sx={{ fontWeight: 400 }} variant="secondary">
+                {label}
+              </Typography>
+              <Typography
+                color="text.primary"
+                sx={{ fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}
+                variant="body1"
+              >
+                {value}
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+      ) : (
+        <Typography color="text.secondary" variant="body2">
+          No evaluations yet
+        </Typography>
+      )}
+
+      <Button
+        onClick={onShowDetails}
+        size="small"
+        sx={{
+          alignSelf: 'flex-start',
+          color: 'primary.main',
+          fontWeight: 500,
+          mt: 'auto',
+          px: 0,
+          minWidth: 0,
+          '&:hover': { backgroundColor: 'transparent', textDecoration: 'underline' },
+        }}
+        variant="text"
+      >
+        View detailed analysis →
+      </Button>
     </SurfaceCard>
   )
 }
@@ -192,6 +320,8 @@ function LeagueDetailsDialog({
     return null
   }
 
+  const metrics = league.metrics
+
   return (
     <Dialog fullWidth maxWidth="lg" onClose={onClose} open={open}>
       <DialogTitle>{league.leagueName} — backtest details</DialogTitle>
@@ -201,7 +331,17 @@ function LeagueDetailsDialog({
             <Typography color="primary.main" variant="caption">
               Accuracy
             </Typography>
-            <MetricLine label={league.leagueName} block={league.metrics} />
+            {metrics?.n && metrics.minutes && metrics.goals && metrics.assists ? (
+              <Typography variant="body2">
+                {league.leagueName}: minutes MAE {formatNumber(metrics.minutes.mae, 0)} · goals MAE{' '}
+                {formatNumber(metrics.goals.mae, 1)} · assists MAE{' '}
+                {formatNumber(metrics.assists.mae, 1)} (n={metrics.n})
+              </Typography>
+            ) : (
+              <Typography color="text.secondary" variant="body2">
+                No evaluations yet
+              </Typography>
+            )}
           </SurfaceCard>
           <Typography variant="subtitle2">
             Transfers in the backtest sample ({league.samples?.length ?? 0})
@@ -230,10 +370,8 @@ export function ModelAccuracySection() {
     if (!data) {
       return []
     }
-    const order = ['ENG', 'ESP', 'GER', 'ITA', 'FRA']
-    return Object.values(data.byLeague ?? {})
-      .filter((row) => row.metrics?.n > 0)
-      .sort((a, b) => order.indexOf(a.countryCode) - order.indexOf(b.countryCode))
+    return LEAGUE_ORDER.map((code) => data.byLeague?.[code])
+      .filter((row): row is LeagueAccuracy => Boolean(row && row.metrics?.n > 0))
   }, [query.data])
 
   if (query.isLoading) {
@@ -256,24 +394,19 @@ export function ModelAccuracySection() {
   }
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2.5}>
       <Box>
-        <Stack alignItems="center" direction="row" spacing={0.5}>
-          <Typography variant="h5">Model accuracy by league</Typography>
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+          <Typography variant="h5">Model Benchmarking</Typography>
           <MaeInfoButton />
         </Stack>
-        <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
-          How the model performed on real club-changers in {data.seasons?.join(', ') || 'past seasons'} —
-          predicted next-club minutes, goals, and assists vs actual outcomes (n={data.metrics?.n ?? 0}).
+        <Typography color="text.secondary" sx={{ mt: 0.75, maxWidth: 820 }} variant="body2">
+          Projected vs. actual MAE across the top five leagues, {seasonRangeLabel(data.seasons)}{' '}
+          (n={formatNumber(data.metrics?.n ?? 0, 0)}).
         </Typography>
       </Box>
 
-      <SurfaceCard accent="info">
-        <Typography color="primary.main" variant="caption">
-          Overall
-        </Typography>
-        <MetricLine label="All leagues" block={data.metrics} />
-      </SurfaceCard>
+      <OverallMetricBar metrics={data.metrics} />
 
       <Box
         sx={{
@@ -281,13 +414,13 @@ export function ModelAccuracySection() {
           gap: 2,
           gridTemplateColumns: {
             xs: '1fr',
-            md: 'repeat(2, minmax(0, 1fr))',
-            lg: 'repeat(3, minmax(0, 1fr))',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            lg: 'repeat(5, minmax(0, 1fr))',
           },
         }}
       >
         {leagues.map((league) => (
-          <LeagueCard
+          <LeagueBenchmarkCard
             key={league.countryCode}
             league={league}
             onShowDetails={() => setSelectedLeague(league)}

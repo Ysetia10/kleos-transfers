@@ -1,4 +1,4 @@
-import { Button, Dialog, DialogContent, DialogTitle, Stack, Typography } from '@mui/material'
+import { Box, Button, Dialog, DialogContent, DialogTitle, Stack, Typography } from '@mui/material'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -13,38 +13,73 @@ export function HomePage() {
   const [simulatorOpen, setSimulatorOpen] = useState(false)
 
   return (
-    <Stack spacing={4}>
-      <PageHeader
-        description="Pick a player and a destination club to project next season’s minutes, goals, and assists — using the club’s latest completed squad plus confirmed transfer updates."
-        eyebrow="Prediction"
-        title="Prediction"
-      />
-
-      <SurfaceCard>
-        <PredictionForm
-          key={`${playerId ?? ''}:${clubId ?? ''}:upcoming`}
-          initialClubId={clubId}
-          initialPlayerId={playerId}
-          seasonMode="upcoming"
+    <Stack spacing={{ xs: 4, md: 5 }}>
+      <Stack spacing={2.5}>
+        <PageHeader
+          description="Select a professional athlete and target club to generate data-driven performance forecasts for the upcoming season."
+          descriptionSx={{ whiteSpace: { xs: 'normal', md: 'nowrap' } }}
+          eyebrow="Analysis engine"
+          title="Player Projections"
         />
-      </SurfaceCard>
+
+        <SurfaceCard
+          sx={{
+            p: { xs: 2.5, md: 3 },
+            borderRadius: 2,
+            boxShadow: 'none',
+          }}
+        >
+          <PredictionForm
+            key={`${playerId ?? ''}:${clubId ?? ''}:upcoming`}
+            initialClubId={clubId}
+            initialPlayerId={playerId}
+            seasonMode="upcoming"
+          />
+        </SurfaceCard>
+      </Stack>
 
       <ModelAccuracySection />
 
-      <Stack spacing={1.5}>
-        <Typography variant="h5">Simulator</Typography>
-        <Typography color="text.secondary" variant="body2">
-          Run the same engine on a completed season to compare predicted minutes and output with what
-          actually happened.
-        </Typography>
+      <Box
+        sx={{
+          alignItems: { xs: 'stretch', md: 'center' },
+          backgroundColor: '#0F172A',
+          borderRadius: 2,
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 2.5,
+          justifyContent: 'space-between',
+          px: { xs: 2.5, md: 3.5 },
+          py: { xs: 3, md: 3.5 },
+        }}
+      >
+        <Stack spacing={0.75} sx={{ maxWidth: 640 }}>
+          <Typography sx={{ color: '#F8FAFC', fontWeight: 500 }} variant="h5">
+            System Simulator
+          </Typography>
+          <Typography sx={{ color: 'rgba(248, 250, 252, 0.72)' }} variant="body2">
+            Validate the engine by running historical predictions on past completed seasons and
+            comparing them against finalized data.
+          </Typography>
+        </Stack>
         <Button
           onClick={() => setSimulatorOpen(true)}
-          sx={{ alignSelf: { sm: 'flex-start' } }}
+          sx={{
+            alignSelf: { xs: 'stretch', md: 'center' },
+            borderColor: 'rgba(248, 250, 252, 0.35)',
+            color: '#F8FAFC',
+            flexShrink: 0,
+            px: 2.5,
+            '&:hover': {
+              borderColor: '#F8FAFC',
+              backgroundColor: 'rgba(248, 250, 252, 0.06)',
+            },
+          }}
           variant="outlined"
         >
-          Predict for previous seasons
+          Run Historical Validation
         </Button>
-      </Stack>
+      </Box>
 
       <Dialog
         fullWidth

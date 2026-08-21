@@ -14,7 +14,7 @@ export const palettes: Record<ApplicationThemeMode, PaletteOptions> = {
     warning: { main: '#D97706', contrastText: '#FFFFFF' },
     error: { main: '#DC2626', contrastText: '#FFFFFF' },
     info: { main: '#2563EB', contrastText: '#FFFFFF' },
-    background: { default: '#F4F6F8', paper: '#FFFFFF' },
+    background: { default: '#FFFFFF', paper: '#FFFFFF' },
     text: { primary: '#0F172A', secondary: '#475569' },
     divider: '#E2E8F0',
     pitch: {

@@ -96,12 +96,17 @@ export function ExplanationList({ explanations }: ExplanationListProps) {
               <Typography sx={{ fontWeight: 500 }} variant="subtitle2">
                 {item.label}
               </Typography>
-              <Chip
-                color={directionColor[item.direction]}
-                label={item.direction.toLowerCase()}
-                size="small"
-                variant="outlined"
-              />
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                {item.factorCode === 'INJURY_BURDEN' ? (
+                  <Chip label="availability" size="small" variant="outlined" />
+                ) : null}
+                <Chip
+                  color={directionColor[item.direction]}
+                  label={item.direction.toLowerCase()}
+                  size="small"
+                  variant="outlined"
+                />
+              </Stack>
             </Stack>
             <Typography color="text.secondary" variant="body2">
               {item.detail}

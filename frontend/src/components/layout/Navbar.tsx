@@ -42,7 +42,15 @@ export function Navbar() {
             to={routes.home}
           >
             <BrandMark animated size={30} />
-            <Typography sx={{ fontWeight: 500, letterSpacing: '-0.02em' }} variant="h4">
+            <Typography
+              sx={{
+                fontWeight: 500,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                fontSize: '0.95rem',
+              }}
+              variant="h4"
+            >
               Kleos
             </Typography>
           </Box>
@@ -53,9 +61,8 @@ export function Navbar() {
             sx={{
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
-              gap: 0.25,
-              flexGrow: 1,
-              justifyContent: 'center',
+              gap: 0.5,
+              ml: 1,
             }}
           >
             {navigationItems.map(({ label, to }) => (
@@ -65,12 +72,16 @@ export function Navbar() {
                 key={to}
                 sx={(theme) => ({
                   color: theme.palette.text.secondary,
-                  px: 1.5,
+                  borderRadius: 1,
+                  fontWeight: 500,
+                  px: 1.75,
+                  py: 0.75,
+                  minWidth: 0,
                   '&.active': {
-                    color: theme.palette.text.primary,
+                    color: theme.palette.primary.main,
                     backgroundColor:
                       theme.palette.mode === 'dark'
-                        ? 'rgba(59, 130, 246, 0.14)'
+                        ? 'rgba(59, 130, 246, 0.16)'
                         : 'rgba(37, 99, 235, 0.1)',
                   },
                 })}

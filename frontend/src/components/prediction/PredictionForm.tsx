@@ -191,8 +191,8 @@ export function PredictionForm({
             xs: '1fr',
             md:
               seasonMode === 'historical'
-                ? 'minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 0.9fr) auto'
-                : 'minmax(0, 1.3fr) minmax(0, 1.2fr) auto',
+                ? 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.85fr) minmax(225px, auto)'
+                : 'minmax(0, 1fr) minmax(0, 1fr) minmax(225px, auto)',
           },
           alignItems: 'start',
         }}
@@ -221,9 +221,25 @@ export function PredictionForm({
                 <TextField
                   {...params}
                   error={!!errors.playerId}
-                  helperText={errors.playerId?.message ?? 'Search all players'}
-                  label="Player"
+                  helperText={errors.playerId?.message}
+                  label={seasonMode === 'upcoming' ? 'Athlete selection' : 'Player'}
                   required
+                  slotProps={{
+                    ...params.slotProps,
+                    inputLabel: {
+                      ...params.slotProps?.inputLabel,
+                      ...(seasonMode === 'upcoming'
+                        ? {
+                            sx: {
+                              fontSize: '0.7rem',
+                              fontWeight: 500,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                            },
+                          }
+                        : {}),
+                    },
+                  }}
                 />
               )}
               renderOption={(props, option) => (
@@ -267,9 +283,25 @@ export function PredictionForm({
                 <TextField
                   {...params}
                   error={!!errors.targetClubId}
-                  helperText={errors.targetClubId?.message ?? 'Search all clubs'}
-                  label="Target club"
+                  helperText={errors.targetClubId?.message}
+                  label={seasonMode === 'upcoming' ? 'Destination club' : 'Target club'}
                   required
+                  slotProps={{
+                    ...params.slotProps,
+                    inputLabel: {
+                      ...params.slotProps?.inputLabel,
+                      ...(seasonMode === 'upcoming'
+                        ? {
+                            sx: {
+                              fontSize: '0.7rem',
+                              fontWeight: 500,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                            },
+                          }
+                        : {}),
+                    },
+                  }}
                 />
               )}
               renderOption={(props, option) => (
@@ -325,19 +357,56 @@ export function PredictionForm({
 
         <Button
           disabled={mutation.isPending}
-          sx={{ height: 56, px: 3, whiteSpace: 'nowrap' }}
+          size="large"
+          sx={{
+            height: 56,
+            width: { md: 225 },
+            minWidth: { xs: '100%', md: 225 },
+            px: 3.5,
+            whiteSpace: 'nowrap',
+            fontWeight: 500,
+            fontSize: '0.95rem',
+            boxShadow: (theme) => `0 8px 20px ${theme.palette.pitch.mist}`,
+            '&:hover': {
+              boxShadow: (theme) => `0 10px 24px ${theme.palette.pitch.mist}`,
+            },
+          }}
           type="submit"
           variant="contained"
         >
-          {mutation.isPending ? 'Running…' : 'Run prediction'}
+          {mutation.isPending
+            ? 'Running…'
+            : seasonMode === 'upcoming'
+              ? '→ Run Prediction'
+              : 'Run prediction'}
         </Button>
       </Box>
 
       {seasonMode === 'upcoming' && selectedSeason ? (
-        <Typography color="text.secondary" variant="body2">
-          Runs for {selectedSeason.label}. Squad context uses the club’s latest completed roster
-          {priorSeason ? ` (${priorSeason.label})` : ''} with confirmed outs removed and confirmed
-          / announced signings added.
+        <Typography
+          color="text.secondary"
+          component="p"
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1,
+            m: 0,
+            '&::before': {
+              content: '""',
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              bgcolor: 'primary.main',
+              flexShrink: 0,
+              // Center on the first text line (body2 line-height ≈ 1.45)
+              mt: 'calc((1.45em - 6px) / 2)',
+            },
+          }}
+          variant="body2"
+        >
+          Projection period: {selectedSeason.label}. Context based on latest
+          {priorSeason ? ` ${priorSeason.label}` : ''} completed roster including verified transfer
+          activity.
         </Typography>
       ) : null}
 

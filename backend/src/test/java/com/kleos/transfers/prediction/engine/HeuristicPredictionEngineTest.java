@@ -68,7 +68,7 @@ class HeuristicPredictionEngineTest {
 
         EngineResult result = engine.predict(context);
 
-        assertThat(engine.modelVersion()).isEqualTo(PredictionRun.MODEL_VERSION_V0_3);
+        assertThat(engine.modelVersion()).isEqualTo(PredictionRun.MODEL_VERSION_V0_12);
         assertThat(result.predictedMinutes()).isBetween(0, MinutesPredictor.MAX_MINUTES);
         assertThat(result.predictedMinutesLow()).isBetween(0, result.predictedMinutes());
         assertThat(result.predictedMinutesHigh()).isBetween(result.predictedMinutes(), MinutesPredictor.MAX_MINUTES);

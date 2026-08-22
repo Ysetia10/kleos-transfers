@@ -529,6 +529,84 @@ class MinutesPredictorTest {
     }
 
     @Test
+    void contestsEliteKeeperPairProjectsStarterShareNotBackup() {
+        Club target = club("Arsenal", "ENG");
+        Season priorSeason = season("2017/18", LocalDate.of(2017, 7, 1), LocalDate.of(2018, 6, 30));
+        Season targetSeason = season("2018/19", LocalDate.of(2018, 7, 1), LocalDate.of(2019, 6, 30));
+
+        Player keeper = player(LocalDate.of(1992, 3, 20), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                keeper,
+                club("Leverkusen", "GER"),
+                priorSeason,
+                34,
+                2_970,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                keeper,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(gkSquadMate(target, priorSeason, 3_039)),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        // Leno/Cech pattern: both ~3k minutes, narrow edge — not a ~500' backup projection.
+        assertThat(result.minutes()).isGreaterThan(2_400);
+        assertThat(result.minutes()).isLessThan(3_200);
+    }
+
+    @Test
+    void capsVeteranIntoVacatedShirtBelowFullStarterLock() {
+        Club target = club("Roma", "ITA");
+        Season priorSeason = season("2017/18", LocalDate.of(2017, 7, 1), LocalDate.of(2018, 6, 30));
+        Season targetSeason = season("2018/19", LocalDate.of(2018, 7, 1), LocalDate.of(2019, 6, 30));
+
+        Player veteran = player(LocalDate.of(1982, 7, 8), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                veteran,
+                club("Benevento", "ITA"),
+                priorSeason,
+                38,
+                2_970,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        PlayerSeason departingStarter = gkSquadMate(target, priorSeason, 3_330);
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                veteran,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(departingStarter, gkSquadMate(target, priorSeason, 90)),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty(),
+                List.of(departingStarter),
+                List.of()
+        ));
+
+        assertThat(result.minutes()).isLessThan(2_800);
+        assertThat(result.minutes()).isGreaterThan(1_800);
+    }
+
+    @Test
     void givesStarterMinutesWhenPriorNumberOneDepartsEvenIfBackupRemains() {
         Club target = club("Arsenal", "ENG");
         Season priorSeason = season("2025/26", LocalDate.of(2025, 7, 1), LocalDate.of(2026, 6, 30));
@@ -569,6 +647,190 @@ class MinutesPredictorTest {
         assertThat(result.minutes()).isGreaterThan(2_800);
         assertThat(result.factors()).extracting(ExplanationFactor::code)
                 .contains(FactorCodes.SQUAD_COMPETITION);
+    }
+
+    @Test
+    void projectsFullStarterWhenEliteNumberOneVacatesDespiteThinPrior() {
+        Club target = club("Bournemouth", "ENG");
+        Season priorSeason = season("2016/17", LocalDate.of(2016, 7, 1), LocalDate.of(2017, 6, 30));
+        Season targetSeason = season("2017/18", LocalDate.of(2017, 7, 1), LocalDate.of(2018, 6, 30));
+
+        Player arrival = player(LocalDate.of(1987, 6, 20), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                arrival,
+                club("Chelsea", "ENG"),
+                priorSeason,
+                2,
+                180,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        PlayerSeason departingStarter = gkSquadMate(target, priorSeason, 3_150, LocalDate.of(1980, 2, 20));
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                arrival,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(departingStarter, gkSquadMate(target, priorSeason, 180)),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty(),
+                List.of(departingStarter),
+                List.of()
+        ));
+
+        assertThat(result.minutes()).isGreaterThan(3_000);
+    }
+
+    @Test
+    void projectsStarterWhenNoPriorGkDataAtPromotedClub() {
+        Club target = club("Brighton", "ENG");
+        Season priorSeason = season("2016/17", LocalDate.of(2016, 7, 1), LocalDate.of(2017, 6, 30));
+        Season targetSeason = season("2017/18", LocalDate.of(2017, 7, 1), LocalDate.of(2018, 6, 30));
+
+        Player arrival = player(LocalDate.of(1992, 4, 8), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                arrival,
+                club("Valencia", "ESP"),
+                priorSeason,
+                2,
+                180,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                arrival,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        assertThat(result.minutes()).isGreaterThan(3_000);
+    }
+
+    @Test
+    void splitsSeasonWhenIncumbentLoggedReducedStarterMinutes() {
+        Club target = club("Juventus", "ITA");
+        Season priorSeason = season("2016/17", LocalDate.of(2016, 7, 1), LocalDate.of(2017, 6, 30));
+        Season targetSeason = season("2017/18", LocalDate.of(2017, 7, 1), LocalDate.of(2018, 6, 30));
+
+        Player arrival = player(LocalDate.of(1990, 4, 18), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                arrival,
+                club("Arsenal", "ENG"),
+                priorSeason,
+                38,
+                3_420,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                arrival,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(gkSquadMate(target, priorSeason, 1_862, LocalDate.of(1977, 9, 28))),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        assertThat(result.minutes()).isBetween(1_400, 1_800);
+        assertThat(result.minutes()).isLessThan(2_500);
+    }
+
+    @Test
+    void displacesAgingIncumbentForPrimeArrival() {
+        Club target = club("Marseille", "FRA");
+        Season priorSeason = season("2016/17", LocalDate.of(2016, 7, 1), LocalDate.of(2017, 6, 30));
+        Season targetSeason = season("2017/18", LocalDate.of(2017, 7, 1), LocalDate.of(2018, 6, 30));
+
+        Player arrival = player(LocalDate.of(1985, 3, 28), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                arrival,
+                club("Crystal Palace", "ENG"),
+                priorSeason,
+                9,
+                810,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                arrival,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(gkSquadMate(target, priorSeason, 3_420, LocalDate.of(1982, 11, 4))),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        assertThat(result.minutes()).isBetween(2_500, 2_950);
+    }
+
+    @Test
+    void capsTakeoverWhenAgingLegendIncumbentStillLoggedHeavyMinutes() {
+        Club target = club("Juventus", "ITA");
+        Season priorSeason = season("2016/17", LocalDate.of(2016, 7, 1), LocalDate.of(2017, 6, 30));
+        Season targetSeason = season("2017/18", LocalDate.of(2017, 7, 1), LocalDate.of(2018, 6, 30));
+
+        Player arrival = player(LocalDate.of(1990, 4, 18), Position.GK);
+        PlayerSeason history = new PlayerSeason(
+                arrival,
+                club("Arsenal", "ENG"),
+                priorSeason,
+                38,
+                3_420,
+                0,
+                0,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Position.GK
+        );
+
+        MinutesPredictor.Result result = predictor.predict(new PredictionContext(
+                arrival,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(gkSquadMate(target, priorSeason, 2_655, LocalDate.of(1977, 9, 28))),
+                List.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        assertThat(result.minutes()).isBetween(1_400, 1_750);
     }
 
     @Test
@@ -671,7 +933,11 @@ class MinutesPredictorTest {
     }
 
     private PlayerSeason gkSquadMate(Club club, Season season, int minutes) {
-        Player rival = player(LocalDate.of(1994, 5, 5), Position.GK);
+        return gkSquadMate(club, season, minutes, LocalDate.of(1994, 5, 5));
+    }
+
+    private PlayerSeason gkSquadMate(Club club, Season season, int minutes, LocalDate dob) {
+        Player rival = player(dob, Position.GK);
         return new PlayerSeason(
                 rival,
                 club,

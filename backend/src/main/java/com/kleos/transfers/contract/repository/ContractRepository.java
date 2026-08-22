@@ -20,4 +20,7 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     List<Contract> findAllByUniquenessKeyIn(@Param("keys") Collection<String> keys);
 
     List<Contract> findByPlayerIdOrderByEndDateDesc(UUID playerId);
+
+    @Query("select c from Contract c where c.club.id = :clubId and c.player.id in :playerIds")
+    List<Contract> findByClubIdAndPlayerIdIn(@Param("clubId") UUID clubId, @Param("playerIds") Collection<UUID> playerIds);
 }

@@ -6,6 +6,7 @@ import com.kleos.transfers.domain.Position;
 import com.kleos.transfers.injury.entity.Injury;
 import com.kleos.transfers.playerseason.entity.PlayerSeason;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -36,6 +37,18 @@ public class MinutesPredictor {
     static final int GK_SOFT_INCUMBENT_CEILING = 2_700;
     /** League minutes a settled backup keeper typically picks up through rotation and injury. */
     static final int GK_BENCH_MINUTES = 500;
+    /** Minutes when two first-choice-calibre keepers contest the gloves (neither is a pure #2). */
+    static final int GK_CONTESTED_MINUTES = 2_200;
+    /** Cap for veteran arrivals into a vacated shirt who usually rotate rather than lock 38 games. */
+    static final int GK_VETERAN_OPEN_SHIRT_CAP = 2_350;
+    /** Edge band below takeover threshold where elite arrivals still earn a large share (Leno/Cech). */
+    static final int GK_CLOSE_CONTEST_EDGE = -200;
+    /** Incumbent minutes in the 1500–2399 band — reduced starter, not an open shirt (Buffon/Szczęsny). */
+    static final double GK_SOFT_INCUMBENT_SPLIT = 0.58;
+    /** Rotation-level arrival inheriting a vacated #1 below elite thresholds (Adler/Lössl). */
+    static final double GK_ROTATION_VACATED_RECENT_FACTOR = 0.70;
+    static final double GK_ROTATION_VACATED_LEAVER_FACTOR = 0.55;
+    static final int GK_AGING_INCUMBENT_START_AGE = 34;
     static final int REPLACEMENT_BASELINE_MINUTES = 1_500;
     static final double REPLACEMENT_FLOOR_MULTIPLIER = 0.92;
     static final double MIN_COMPETITION_MULTIPLIER = 0.30;
@@ -284,9 +297,19 @@ public class MinutesPredictor {
                 .max(Comparator.comparingInt(SquadDepthAnalyzer.Contender::minutes))
                 .orElse(null);
         int incumbentMinutes = incumbent == null ? 0 : incumbent.minutes();
+        int incumbentAge = incumbentAgeAtSeasonStart(context, incumbent);
+        int leaverMinutes = depth.topDeparture().map(SquadDepthAnalyzer.Contender::minutes).orElse(0);
+
         boolean starterProfile = recentWorkload >= GK_STARTER_MINUTES;
         boolean substantialStarterShare = recentWorkload >= GK_INCUMBENT_MINUTES;
-        boolean shirtOpen = incumbentMinutes < GK_INCUMBENT_MINUTES || depth.starterSlotVacated();
+        boolean shirtOpen = depth.starterSlotVacated()
+                || incumbentMinutes == 0
+                || incumbentMinutes < SquadDepthAnalyzer.VACATED_STARTER_MINUTES;
+        boolean softIncumbentBlock = !shirtOpen
+                && incumbentMinutes >= SquadDepthAnalyzer.VACATED_STARTER_MINUTES
+                && incumbentMinutes < GK_INCUMBENT_MINUTES;
+        boolean majorLeaverVacated = depth.starterSlotVacated()
+                && leaverMinutes >= GK_INCUMBENT_MINUTES;
         int starterCeiling = (int) Math.round(Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES) * 0.90);
 
         int baseline;
@@ -298,31 +321,32 @@ public class MinutesPredictor {
                     "No prior GK seasons; using a neutral rotation baseline of " + DEFAULT_MINUTES + " minutes."
             ));
         } else if (shirtOpen) {
-            if (starterProfile || substantialStarterShare || recentWorkload >= 1_200) {
-                // Meaningful prior into an open shirt → project as #1.
-                baseline = Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
-            } else if (depth.starterSlotVacated() || incumbentMinutes == 0) {
-                // Thin prior into a vacated shirt, or into a club with no prior GK (promotions /
-                // empty history), still often becomes the default starter.
-                baseline = Math.max(recentWorkload, 2_200);
-            } else {
-                baseline = Math.max(recentWorkload, GK_BENCH_MINUTES);
-            }
+            baseline = openGoalkeeperShirtBaseline(
+                    context,
+                    depth,
+                    recentWorkload,
+                    incumbentMinutes,
+                    leaverMinutes,
+                    majorLeaverVacated,
+                    starterProfile,
+                    substantialStarterShare
+            );
             factors.add(gkRoleFactor(
-                    starterProfile || substantialStarterShare || depth.starterSlotVacated()
-                            || incumbentMinutes == 0 || recentWorkload >= 1_200
-                            ? ExplanationDirection.POSITIVE
-                            : ExplanationDirection.NEUTRAL,
+                    openShirtRoleDirection(
+                            starterProfile,
+                            substantialStarterShare,
+                            depth,
+                            incumbentMinutes,
+                            recentWorkload
+                    ),
                     starterProfile || substantialStarterShare || recentWorkload >= 1_200 ? 24 : 14,
-                    "Recent workload ("
-                            + recentWorkload
-                            + " min) "
-                            + (starterProfile || substantialStarterShare || recentWorkload >= 1_200
-                                    ? "is first-choice / high-share level"
-                                    : depth.starterSlotVacated() || incumbentMinutes == 0
-                                            ? "is modest, but the starting shirt is vacant"
-                                            : "is a rotation share")
-                            + "; projecting accordingly."
+                    openShirtRoleDetail(
+                            recentWorkload,
+                            starterProfile,
+                            substantialStarterShare,
+                            depth,
+                            incumbentMinutes
+                    )
             ));
             factors.add(gkCompetitionFactor(
                     ExplanationDirection.POSITIVE,
@@ -336,14 +360,53 @@ public class MinutesPredictor {
                                     : incumbentMinutes == 0 ? " — no prior keeper on the books" : "")
                             + ", so the shirt is there to be taken."
             ));
+        } else if (softIncumbentBlock) {
+            baseline = softIncumbentGoalkeeperBaseline(recentWorkload, incumbentMinutes);
+            factors.add(gkRoleFactor(
+                    starterProfile ? ExplanationDirection.POSITIVE : ExplanationDirection.NEUTRAL,
+                    16,
+                    "Recent workload ("
+                            + recentWorkload
+                            + " min) meets a reduced incumbent ("
+                            + incumbentMinutes
+                            + " min), projecting a shared season rather than a full takeover."
+            ));
+            factors.add(gkCompetitionFactor(
+                    ExplanationDirection.NEUTRAL,
+                    "Incumbent GK logged "
+                            + incumbentMinutes
+                            + " minutes last season — below a locked #1 band, so minutes are split rather than"
+                            + " handed to the arrival wholesale."
+            ));
         } else {
-            // Rule 1: settled #1 stays — takeover with a clear edge (softer vs borderline incumbents).
             int edge = recentWorkload - incumbentMinutes;
             int neededEdge = incumbentMinutes <= GK_SOFT_INCUMBENT_CEILING && starterProfile
                     ? GK_SOFT_TAKEOVER_EDGE
                     : GK_TAKEOVER_EDGE;
             if (edge >= neededEdge) {
-                baseline = starterCeiling;
+                if (incumbentAge >= 38 && incumbentMinutes >= GK_INCUMBENT_MINUTES) {
+                    double legendSplit = incumbentAge >= 40 ? 0.48 : 0.52;
+                    int blended = (recentWorkload + incumbentMinutes) / 2;
+                    baseline = (int) Math.round(blended * legendSplit);
+                } else {
+                    baseline = starterCeiling;
+                }
+            } else if (recentWorkload >= GK_INCUMBENT_MINUTES
+                    && incumbentMinutes >= GK_SOFT_INCUMBENT_CEILING
+                    && edge >= GK_CLOSE_CONTEST_EDGE) {
+                int blended = (recentWorkload + incumbentMinutes) / 2;
+                baseline = Math.max(GK_CONTESTED_MINUTES, (int) Math.round(blended * 0.87));
+            } else if (incumbentAge >= GK_AGING_INCUMBENT_START_AGE
+                    && recentWorkload >= 600
+                    && edge < neededEdge
+                    && incumbentMinutes >= GK_INCUMBENT_MINUTES) {
+                double displacementFactor = agingIncumbentDisplacementFactor(incumbentAge);
+                baseline = Math.max(
+                        recentWorkload,
+                        (int) Math.round(incumbentMinutes * displacementFactor)
+                );
+            } else if (starterProfile && incumbentMinutes >= GK_INCUMBENT_MINUTES && edge >= -500) {
+                baseline = Math.max(GK_BENCH_MINUTES, (int) Math.round(recentWorkload * 0.72));
             } else {
                 baseline = GK_BENCH_MINUTES;
             }
@@ -371,7 +434,7 @@ public class MinutesPredictor {
         ));
 
         double ageMultiplier = goalkeeperAgeMultiplier(context.ageAtSeasonStart(), factors);
-        double injuryMultiplier = injuryMultiplier(context, factors);
+        double injuryMultiplier = goalkeeperInjuryMultiplier(context, factors, baseline);
 
         int minutes = PredictionMath.clamp(
                 (int) Math.round(baseline * ageMultiplier * injuryMultiplier),
@@ -379,6 +442,164 @@ public class MinutesPredictor {
                 MAX_MINUTES
         );
         return new Result(minutes, minutes, minutes, factors);
+    }
+
+    /**
+     * Open-shirt baseline: vacated #1, no GK on the books, or only a sub-1500 incumbent.
+     */
+    private int openGoalkeeperShirtBaseline(
+            PredictionContext context,
+            SquadDepthAnalyzer.Assessment depth,
+            int recentWorkload,
+            int incumbentMinutes,
+            int leaverMinutes,
+            boolean majorLeaverVacated,
+            boolean starterProfile,
+            boolean substantialStarterShare
+    ) {
+        if (majorLeaverVacated || incumbentMinutes == 0) {
+            if (depth.starterSlotVacated()
+                    && context.ageAtSeasonStart() >= 35
+                    && recentWorkload >= GK_STARTER_MINUTES) {
+                return Math.min(
+                        (int) Math.round(recentWorkload * 0.72),
+                        GK_VETERAN_OPEN_SHIRT_CAP
+                );
+            }
+            if (majorLeaverVacated && leaverMinutes >= GK_INCUMBENT_MINUTES) {
+                if (starterProfile || substantialStarterShare) {
+                    return Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
+                }
+                if (recentWorkload >= 1_200) {
+                    int inherited = (int) Math.round(
+                            Math.max(
+                                    recentWorkload * GK_ROTATION_VACATED_RECENT_FACTOR,
+                                    leaverMinutes * GK_ROTATION_VACATED_LEAVER_FACTOR
+                            )
+                    );
+                    return Math.max(GK_BENCH_MINUTES, inherited);
+                }
+                // Thin prior but a settled #1 left — still often inherits the gloves (Begović/Boruc).
+                return Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
+            }
+            if (incumbentMinutes == 0) {
+                // Promoted club / missing prior roster — default #1 path (Ryan/Brighton).
+                return Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
+            }
+            if (starterProfile || substantialStarterShare) {
+                return Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
+            }
+            if (recentWorkload >= 1_200) {
+                int inherited = (int) Math.round(
+                        Math.max(
+                                recentWorkload * GK_ROTATION_VACATED_RECENT_FACTOR,
+                                leaverMinutes * GK_ROTATION_VACATED_LEAVER_FACTOR
+                        )
+                );
+                return Math.max(GK_BENCH_MINUTES, inherited);
+            }
+            if (depth.starterSlotVacated() || incumbentMinutes == 0) {
+                return Math.max(recentWorkload, 2_200);
+            }
+            return Math.max(recentWorkload, GK_BENCH_MINUTES);
+        }
+        if (starterProfile || substantialStarterShare || recentWorkload >= 1_200) {
+            if (context.ageAtSeasonStart() >= 35) {
+                return Math.min(
+                        (int) Math.round(recentWorkload * 0.72),
+                        GK_VETERAN_OPEN_SHIRT_CAP
+                );
+            }
+            return Math.max(recentWorkload, GK_DEFAULT_STARTER_MINUTES);
+        }
+        if (depth.starterSlotVacated() || incumbentMinutes == 0) {
+            return Math.max(recentWorkload, 2_200);
+        }
+        return Math.max(recentWorkload, GK_BENCH_MINUTES);
+    }
+
+    private int softIncumbentGoalkeeperBaseline(int recentWorkload, int incumbentMinutes) {
+        if (recentWorkload >= GK_STARTER_MINUTES) {
+            int blended = (recentWorkload + incumbentMinutes) / 2;
+            return (int) Math.round(blended * GK_SOFT_INCUMBENT_SPLIT);
+        }
+        if (recentWorkload >= 1_200) {
+            int blended = (recentWorkload + incumbentMinutes) / 2;
+            return Math.max(GK_BENCH_MINUTES, (int) Math.round(blended * 0.68));
+        }
+        return GK_BENCH_MINUTES;
+    }
+
+    private static ExplanationDirection openShirtRoleDirection(
+            boolean starterProfile,
+            boolean substantialStarterShare,
+            SquadDepthAnalyzer.Assessment depth,
+            int incumbentMinutes,
+            int recentWorkload
+    ) {
+        if (starterProfile || substantialStarterShare || recentWorkload >= 1_200) {
+            return ExplanationDirection.POSITIVE;
+        }
+        if (depth.starterSlotVacated() || incumbentMinutes == 0) {
+            return ExplanationDirection.POSITIVE;
+        }
+        return ExplanationDirection.NEUTRAL;
+    }
+
+    private static String openShirtRoleDetail(
+            int recentWorkload,
+            boolean starterProfile,
+            boolean substantialStarterShare,
+            SquadDepthAnalyzer.Assessment depth,
+            int incumbentMinutes
+    ) {
+        return "Recent workload ("
+                + recentWorkload
+                + " min) "
+                + (starterProfile || substantialStarterShare || recentWorkload >= 1_200
+                        ? "is first-choice / high-share level"
+                        : depth.starterSlotVacated() || incumbentMinutes == 0
+                                ? "is modest, but the starting shirt is vacant"
+                                : "is a rotation share")
+                + "; projecting accordingly.";
+    }
+
+    private int incumbentAgeAtSeasonStart(PredictionContext context, SquadDepthAnalyzer.Contender incumbent) {
+        if (incumbent == null) {
+            return 0;
+        }
+        for (PlayerSeason row : context.targetClubSquad()) {
+            if (row.getPlayer().getFullName().equals(incumbent.name())) {
+                return Period.between(row.getPlayer().getDateOfBirth(), context.season().getStartDate()).getYears();
+            }
+        }
+        return 0;
+    }
+
+    private static double agingIncumbentDisplacementFactor(int incumbentAge) {
+        if (incumbentAge >= 37) {
+            return 0.70;
+        }
+        if (incumbentAge >= 35) {
+            return 0.74;
+        }
+        return 0.77;
+    }
+
+    /**
+     * Backup projections should not inherit the outfield "healthy squad" +5% bump — GKs on ~500'
+     * baselines are already conservative.
+     */
+    private double goalkeeperInjuryMultiplier(
+            PredictionContext context,
+            List<ExplanationFactor> factors,
+            int baseline
+    ) {
+        double multiplier = injuryMultiplier(context, factors);
+        if (baseline <= GK_BENCH_MINUTES + 200) {
+            return Math.min(multiplier, 1.0);
+        }
+        return multiplier;
     }
 
     private String describeGoalkeeperContest(
@@ -392,6 +613,12 @@ public class MinutesPredictor {
         if (edge >= neededEdge) {
             return "Played " + edge + " more minutes than " + name + " (" + incumbentMinutes
                     + " min), so he is favoured to take the gloves.";
+        }
+        if (edge >= GK_CLOSE_CONTEST_EDGE && recentWorkload >= GK_INCUMBENT_MINUTES) {
+            return "First-choice keeper " + name + " (" + incumbentMinutes
+                    + " min) is staying, but the arrival's workload ("
+                    + recentWorkload
+                    + " min) is close enough to project a contested starter share rather than a pure backup.";
         }
         return "First-choice keeper " + name + " (" + incumbentMinutes
                 + " min) is staying, so an arrival on " + recentWorkload

@@ -92,7 +92,9 @@ public class PredictionContextLoader {
                 SQUAD_WINDOW_STATUSES
         );
 
-        List<PlayerSeason> departing = departingSquadMembers(window, seasonId, targetClubId, playerId, squad);
+        List<PlayerSeason> departing = departingSquadMembers(
+                window, seasonId, targetClubId, playerId, squad, priorSeason, asOf
+        );
 
         return new PredictionContext(
                 player,
@@ -115,14 +117,18 @@ public class PredictionContextLoader {
      * slot the club now has to fill.
      *
      * <p>Detects outs via {@code fromClub} on the club window <em>and</em> any season transfer for a
-     * prior-squad player whose destination is not this club (covers null/mis-tagged {@code fromClub}).
+     * <p>Also covers free-agent / retirement exits ({@code toClub} null), and inferred contracts
+     * that ended well before the prior season finished (mid-tenure departures without a clean
+     * transfer {@code fromClub}).
      */
     private List<PlayerSeason> departingSquadMembers(
             List<Transfer> clubWindow,
             UUID seasonId,
             UUID targetClubId,
             UUID subjectId,
-            List<PlayerSeason> squad
+            List<PlayerSeason> squad,
+            Optional<Season> priorSeason,
+            LocalDate seasonStart
     ) {
         Set<UUID> leaving = new HashSet<>();
         for (Transfer transfer : clubWindow) {
@@ -142,6 +148,16 @@ public class PredictionContextLoader {
             )) {
                 if (isDepartureFromClub(transfer, targetClubId)) {
                     leaving.add(transfer.getPlayer().getId());
+                } else if (isFreeExitFromClub(transfer, targetClubId)) {
+                    leaving.add(transfer.getPlayer().getId());
+                }
+            }
+
+            LocalDate priorEnd = priorSeason.map(Season::getEndDate).orElse(seasonStart);
+            LocalDate earlyExitCutoff = priorEnd.minusDays(45);
+            for (Contract contract : contractRepository.findByClubIdAndPlayerIdIn(targetClubId, squadIds)) {
+                if (contract.getEndDate().isBefore(earlyExitCutoff)) {
+                    leaving.add(contract.getPlayer().getId());
                 }
             }
         }
@@ -161,6 +177,14 @@ public class PredictionContextLoader {
         }
         // Prior-squad player arriving elsewhere this window — treat as leaving even if fromClub is null.
         return transfer.getToClub() != null && !targetClubId.equals(transfer.getToClub().getId());
+    }
+
+    /** Retirement / free release with no destination club recorded. */
+    private static boolean isFreeExitFromClub(Transfer transfer, UUID targetClubId) {
+        if (transfer.getToClub() != null) {
+            return false;
+        }
+        return transfer.getFromClub() == null || targetClubId.equals(transfer.getFromClub().getId());
     }
 
     /**

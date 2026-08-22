@@ -62,6 +62,18 @@ public class PredictionRun extends IdentityEntity {
      */
     public static final String MODEL_VERSION_V0_9 = "v0.9-heuristic";
 
+    /**
+     * GK contested-starter tier + veteran open-shirt caps on top of {@link #MODEL_VERSION_V0_9}.
+     */
+    public static final String MODEL_VERSION_V0_10 = "v0.10-heuristic";
+    public static final String MODEL_VERSION_V0_11 = "v0.11-heuristic";
+
+    /**
+     * Implicit vacated shirts: free exits, early inferred contract ends, and GK pathway refinements
+     * on top of {@link #MODEL_VERSION_V0_11}.
+     */
+    public static final String MODEL_VERSION_V0_12 = "v0.12-heuristic";
+
     @Column(name = "model_version", nullable = false, length = 40)
     private String modelVersion;
 

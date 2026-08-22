@@ -37,7 +37,7 @@ COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 SPORTSDB_SEARCH = "https://www.thesportsdb.com/api/v1/json/3/searchteams.php"
 USER_AGENT = "KleosTransfersBot/0.1 (https://github.com/Ysetia10/kleos-transfers; research media enricher)"
-REQUEST_GAP_SEC = 0.25
+REQUEST_GAP_SEC = 0.25  # overridden by --request-gap
 
 _request_lock = threading.Lock()
 _next_request_ok = 0.0
@@ -200,6 +200,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--workers", type=int, default=6, help="concurrent resolvers (shared throttle)")
     parser.add_argument(
+        "--request-gap",
+        type=float,
+        default=REQUEST_GAP_SEC,
+        help="min seconds between starting Wikimedia API calls (default: 0.25)",
+    )
+    parser.add_argument(
         "--stats",
         action="store_true",
         help="print photo/crest coverage from the API and exit (no enrich)",
@@ -207,7 +213,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def http_json(url: str, method: str = "GET", payload: dict | None = None) -> dict:
+def http_json(
+    url: str,
+    method: str = "GET",
+    payload: dict | None = None,
+    *,
+    retries: int = 6,
+) -> dict:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     headers = {
         "Accept": "application/json",
@@ -217,16 +229,26 @@ def http_json(url: str, method: str = "GET", payload: dict | None = None) -> dic
         headers["Content-Type"] = "application/json"
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
     last_error: Exception | None = None
-    for attempt in range(3):
+    for attempt in range(retries + 1):
         try:
             with urllib.request.urlopen(request, timeout=45) as response:
                 body = response.read()
                 return json.loads(body) if body else {}
         except urllib.error.HTTPError as error:
-            detail = error.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"{method} {url} -> HTTP {error.code}: {detail}") from error
+            if error.code not in {429, 503} or attempt >= retries:
+                detail = error.read().decode("utf-8", errors="replace")
+                raise RuntimeError(f"{method} {url} -> HTTP {error.code}: {detail}") from error
+            retry_after = error.headers.get("Retry-After")
+            try:
+                delay = float(retry_after) if retry_after else min(90.0, 2.0**attempt)
+            except ValueError:
+                delay = min(90.0, 2.0**attempt)
+            log(f"  HTTP {error.code}; backing off {delay:.1f}s")
+            time.sleep(delay)
         except Exception as error:  # noqa: BLE001 - retry transient network/SSL failures
             last_error = error
+            if attempt >= retries:
+                break
             time.sleep(0.8 * (attempt + 1))
     raise RuntimeError(f"{method} {url} failed after retries: {last_error}") from last_error
 
@@ -251,14 +273,15 @@ def log(message: str) -> None:
         print(message, flush=True)
 
 
-def throttle_request() -> None:
+def throttle_request(gap_sec: float | None = None) -> None:
     global _next_request_ok
+    gap = REQUEST_GAP_SEC if gap_sec is None else gap_sec
     with _request_lock:
         now = time.monotonic()
         wait = _next_request_ok - now
         if wait > 0:
             time.sleep(wait)
-        _next_request_ok = time.monotonic() + REQUEST_GAP_SEC
+        _next_request_ok = time.monotonic() + gap
 
 
 def wiki_get(params: dict, api: str = WIKI_API) -> dict:
@@ -989,6 +1012,8 @@ def print_coverage_stats(api_url: str, resource: str) -> None:
 
 def main() -> None:
     args = parse_args()
+    global REQUEST_GAP_SEC
+    REQUEST_GAP_SEC = max(0.05, args.request_gap)
     if args.stats:
         print_coverage_stats(args.api_url, args.resource)
         return
@@ -1002,7 +1027,7 @@ def main() -> None:
     if args.limit > 0:
         selected = selected[: args.limit]
 
-    log(f"Enriching {len(selected)} {args.resource} (workers={workers}, dry_run={args.dry_run})")
+    log(f"Enriching {len(selected)} {args.resource} (workers={workers}, gap={REQUEST_GAP_SEC}s, dry_run={args.dry_run})")
     resolved = 0
     skipped = 0
     failed = 0

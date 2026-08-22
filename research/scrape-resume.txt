@@ -1,0 +1,28 @@
+Kleos scrape resume — updated 2026-08-22
+==========================================
+
+COMPLETED
+- FBref ESP La Liga 2024/25: 100 matches (stratified sample)
+- FBref GER Bundesliga 2024/25: 40-match pilot
+- FBref ITA Serie A + FRA Ligue 1 2024/25: running (see /tmp/kleos-fbref-ita-fra.log)
+- Wikidata preferred foot batch (799 players with foot)
+- Injury inference (356 spells)
+- Inferred contracts (~10,641 rows)
+- Model v0.12-heuristic (GK minutes + implicit vacated shirts)
+
+DATA COVERAGE (approx)
+- Players: 8,657 | photos: 5,485 | preferred foot: 799
+- Lateral roles 2024/25: ENG 206, ESP 184, GER 128, ITA/FRA pilots in progress
+
+DEPRIORITIZED (low ROI)
+- Bulk photo re-run (~3,172 missing, mostly no Wikimedia image)
+- Bulk wiki foot scrape
+
+NEXT (when ITA/FRA finish)
+- Re-run validation after position enrichment
+- ENG PulseLive 2025/26 if not already done
+- Understat xG/xA backfill (issue #37 area)
+
+LOGS
+- /tmp/kleos-fbref-resume.log (ESP+GER)
+- /tmp/kleos-fbref-ita-fra.log (ITA+FRA)

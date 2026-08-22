@@ -45,7 +45,7 @@ Prefer clubs first. Missing media stays null; the UI falls back to initials. Pol
 Fills missing `heightCm` / `preferredFoot` on player identities:
 
 - **Height:** Wikidata `P2048` (name search + nationality filter)
-- **Preferred foot:** Wikipedia article/infobox (`left-footed` / `right-footed`), then optional FBref profile (`Footed:`)
+- **Preferred foot:** batched Wikidata `P8006` (default via `--foot-only`); optional Wikipedia infobox or FBref profile via `--foot-source wiki,fbref`
 
 ```bash
 python3 scripts/enrich_player_bio.py --dry-run --limit 20

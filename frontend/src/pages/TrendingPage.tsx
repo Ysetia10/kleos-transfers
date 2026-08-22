@@ -315,7 +315,6 @@ export function TrendingPage() {
                   <TableCell>From</TableCell>
                   <TableCell>To</TableCell>
                   <TableCell>Season</TableCell>
-                  <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -333,7 +332,6 @@ export function TrendingPage() {
                     <TableCell>{transfer.fromClubName ?? '—'}</TableCell>
                     <TableCell>{transfer.toClubName ?? '—'}</TableCell>
                     <TableCell>{transfer.seasonLabel}</TableCell>
-                    <TableCell>{transfer.status}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

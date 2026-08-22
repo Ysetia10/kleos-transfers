@@ -4,16 +4,19 @@
 Height: batched Wikidata SPARQL (P2048), matched by name + birth year + nationality.
 DOB: Wikidata P569 with day precision; only applied when the year matches the
 stored FBref birth year (avoids namesake mix-ups). Sets dateOfBirthPrecision=DAY.
-Preferred foot: Wikipedia article/infobox phrasing; optional FBref profile fallback.
+Preferred foot: batched Wikidata SPARQL (P8006 footedness), then optional Wikipedia /
+FBref fallbacks via ``--foot-source``.
 
 Usage:
   python3 scripts/enrich_player_bio.py --dry-run --limit 20
   python3 scripts/enrich_player_bio.py --skip-fbref --workers 8
   # full dates only (year-precision rows → day when Wikidata agrees on year)
   python3 scripts/enrich_player_bio.py --dob-only --workers 8
+  # preferred foot only — Wikidata batch (no Wikipedia throttle)
+  python3 scripts/enrich_player_bio.py --foot-only --workers 8
 
-Requires network + running API. Heights/DOB use concurrent SPARQL batches; foot uses
-concurrent Wikipedia lookups behind a shared throttle.
+Requires network + running API. Heights/DOB/foot use concurrent SPARQL batches; Wikipedia
+foot is optional behind ``--foot-source wiki``.
 """
 
 from __future__ import annotations
@@ -160,6 +163,24 @@ class WikiDobHit:
     qid: str
 
 
+@dataclass
+class WikiFootHit:
+    name: str
+    foot: str  # LEFT | RIGHT | BOTH
+    country: str
+    birth_year: int | None
+    qid: str
+
+
+def parse_foot_sources(raw: str) -> set[str]:
+    allowed = {"wikidata", "wiki", "fbref"}
+    parts = {part.strip().lower() for part in raw.split(",") if part.strip()}
+    unknown = parts - allowed
+    if unknown:
+        raise ValueError(f"Unknown foot sources: {sorted(unknown)} (allowed: {sorted(allowed)})")
+    return parts or {"wikidata"}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--api-url", default=API_DEFAULT)
@@ -181,11 +202,27 @@ def parse_args() -> argparse.Namespace:
         help="only upgrade full DOB (implies --skip-height --skip-foot --skip-fbref)",
     )
     parser.add_argument(
+        "--foot-only",
+        action="store_true",
+        help="only resolve preferred foot (implies --skip-height --skip-dob --skip-fbref)",
+    )
+    parser.add_argument(
+        "--foot-source",
+        default="wikidata",
+        help="comma-separated foot sources: wikidata, wiki, fbref (default: wikidata)",
+    )
+    parser.add_argument(
         "--stubs-only",
         action="store_true",
         help="only YEAR-precision wiki stubs (1999-07-01); allow DOB replace without year match",
     )
     parser.add_argument("--workers", type=int, default=8, help="concurrent workers for foot + PUTs")
+    parser.add_argument(
+        "--wiki-gap",
+        type=float,
+        default=WIKI_GAP_SEC,
+        help="min seconds between starting Wikipedia/Wikidata calls (default: 0.35)",
+    )
     parser.add_argument("--batch-size", type=int, default=SPARQL_BATCH_SIZE, help="SPARQL names per query")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
@@ -328,11 +365,11 @@ def parse_preferred_foot(raw: str | None) -> str | None:
     if not raw:
         return None
     text = fold_text(re.sub(r"<[^>]+>", " ", raw))
-    if re.search(r"\bboth[\s-]?footed\b", text) or re.search(r"\btwo[\s-]?footed\b", text):
+    if re.search(r"\bboth[\s-]?foot", text) or re.search(r"\btwo[\s-]?foot", text):
         return "BOTH"
-    if re.search(r"\bleft[\s-]?footed\b", text) or re.search(r"\bfooted:\s*left\b", text):
+    if re.search(r"\bleft[\s-]?foot", text) or re.search(r"\bfooted:\s*left\b", text):
         return "LEFT"
-    if re.search(r"\bright[\s-]?footed\b", text) or re.search(r"\bfooted:\s*right\b", text):
+    if re.search(r"\bright[\s-]?foot", text) or re.search(r"\bfooted:\s*right\b", text):
         return "RIGHT"
     compact = text.strip()
     if compact in {"left", "l"}:
@@ -573,6 +610,94 @@ SELECT ?name ?item ?born ?countryLabel WHERE {{
             )
         )
     return hits
+
+
+def sparql_foot_hits(names: list[str]) -> list[WikiFootHit]:
+    """Batch-resolve footballer preferred foot (Wikidata P8006)."""
+    if not names:
+        return []
+    labels: list[str] = []
+    seen: set[str] = set()
+    for name in names:
+        for variant in name_label_variants(name):
+            cleaned = variant.replace('"', "")
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                labels.append(cleaned)
+    values = " ".join(f'"{label}"@en' for label in labels)
+    query = f"""
+SELECT ?name ?item ?footLabel ?countryLabel ?born WHERE {{
+  VALUES ?name {{ {values} }}
+  ?item rdfs:label|skos:altLabel ?name .
+  ?item wdt:P106 wd:Q937857 .
+  ?item wdt:P8006 ?foot .
+  ?foot rdfs:label ?footLabel .
+  FILTER(LANG(?footLabel)="en")
+  OPTIONAL {{ ?item wdt:P27 ?country . }}
+  OPTIONAL {{ ?item wdt:P569 ?born . }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+}}
+"""
+    payload = sparql_json(query)
+    hits: list[WikiFootHit] = []
+    for row in (payload.get("results") or {}).get("bindings") or []:
+        name = (row.get("name") or {}).get("value")
+        foot_label = (row.get("footLabel") or {}).get("value") or ""
+        foot = parse_preferred_foot(foot_label)
+        if not name or not foot:
+            continue
+        born = (row.get("born") or {}).get("value") or ""
+        byear = None
+        year_match = re.search(r"(\d{4})", born)
+        if year_match:
+            byear = int(year_match.group(1))
+        qid = ((row.get("item") or {}).get("value") or "").rsplit("/", 1)[-1]
+        hits.append(
+            WikiFootHit(
+                name=name,
+                foot=foot,
+                country=(row.get("countryLabel") or {}).get("value") or "",
+                birth_year=byear,
+                qid=qid,
+            )
+        )
+    return hits
+
+
+def score_foot_hit(player: dict, hit: WikiFootHit) -> int:
+    score = 0
+    py = birth_year(player)
+    if py is not None and hit.birth_year is not None:
+        if py == hit.birth_year:
+            score += 50
+        elif abs(py - hit.birth_year) <= 1:
+            score += 20
+        else:
+            score -= 40
+    if country_matches(hit.country, player.get("nationality")):
+        score += 30
+    elif hit.country:
+        score -= 5
+    return score
+
+
+def match_foot(player: dict, hits_by_name: dict[str, list[WikiFootHit]]) -> str | None:
+    hits: list[WikiFootHit] = []
+    for variant in name_label_variants(player["fullName"]):
+        hits.extend(hits_by_name.get(variant) or [])
+    if not hits:
+        return None
+    deduped: dict[str, WikiFootHit] = {}
+    for hit in hits:
+        deduped.setdefault(hit.qid or f"{hit.name}:{hit.foot}", hit)
+    ranked = sorted(deduped.values(), key=lambda hit: score_foot_hit(player, hit), reverse=True)
+    best = ranked[0]
+    best_score = score_foot_hit(player, best)
+    if best_score < 0:
+        return None
+    if best_score < 20 and len(ranked) > 1:
+        return None
+    return best.foot
 
 
 def is_wiki_stub(player: dict) -> bool:
@@ -935,8 +1060,10 @@ def enrich_one(
     skip_dob: bool,
     dry_run: bool,
     height_hint: int | None,
+    foot_hint: str | None,
     dob_hint: str | None,
     nationality_hint: str | None,
+    foot_sources: set[str],
     index: int,
     total: int,
 ) -> str:
@@ -952,6 +1079,10 @@ def enrich_one(
             height = height_hint
             notes.append(f"height {height}cm(sparql)")
 
+        if foot is None and not skip_foot and foot_hint is not None:
+            foot = foot_hint
+            notes.append(f"foot {foot}(sparql)")
+
         if (
             not skip_dob
             and dob_hint
@@ -964,22 +1095,28 @@ def enrich_one(
             notes.append(f"nat {new_nat}")
 
         want_height = height is None and not skip_height
-        want_foot = foot is None and not skip_foot
-        if want_height or want_foot:
-            wiki_height, wiki_foot = resolve_wikipedia_bio(player, want_height=want_height, want_foot=want_foot)
+        want_wiki_foot = foot is None and not skip_foot and "wiki" in foot_sources
+        if want_height or want_wiki_foot:
+            wiki_height, wiki_foot = resolve_wikipedia_bio(
+                player, want_height=want_height, want_foot=want_wiki_foot
+            )
             if height is None and wiki_height is not None:
                 height = wiki_height
                 notes.append(f"height {height}cm(wiki)")
             if foot is None and wiki_foot is not None:
                 foot = wiki_foot
-                notes.append(f"foot {foot}")
+                notes.append(f"foot {foot}(wiki)")
 
-        if (foot is None or height is None) and not skip_fbref:
+        want_fbref = not skip_fbref and (
+            (height is None and not skip_height)
+            or (foot is None and not skip_foot and "fbref" in foot_sources)
+        )
+        if want_fbref:
             fb_height, fb_foot = resolve_fbref_profile(player)
             if height is None and fb_height is not None:
                 height = fb_height
                 notes.append(f"height {height}cm(fbref)")
-            if foot is None and fb_foot is not None:
+            if foot is None and fb_foot is not None and "fbref" in foot_sources:
                 foot = fb_foot
                 notes.append(f"foot {foot}(fbref)")
 
@@ -1015,11 +1152,21 @@ def enrich_one(
 
 def main() -> None:
     args = parse_args()
+    global WIKI_GAP_SEC
+    WIKI_GAP_SEC = max(0.05, args.wiki_gap)
     if args.dob_only:
         args.skip_height = True
         args.skip_foot = True
         args.skip_fbref = True
         args.skip_dob = False
+    if args.foot_only:
+        args.skip_height = True
+        args.skip_dob = True
+        args.skip_fbref = True
+        args.skip_foot = False
+    foot_sources = parse_foot_sources(args.foot_source)
+    if args.skip_foot:
+        foot_sources = set()
     if args.stubs_only:
         args.skip_fbref = True
         args.skip_dob = False
@@ -1043,8 +1190,8 @@ def main() -> None:
 
     log(
         f"Enriching {len(selected)} players "
-        f"(workers={workers}, stubs_only={args.stubs_only}, skip_fbref={args.skip_fbref}, "
-        f"skip_height={args.skip_height}, skip_foot={args.skip_foot}, "
+        f"(workers={workers}, stubs_only={args.stubs_only}, wiki_gap={WIKI_GAP_SEC}s, skip_fbref={args.skip_fbref}, "
+        f"skip_height={args.skip_height}, skip_foot={args.skip_foot}, foot_source={','.join(sorted(foot_sources)) or 'none'}, "
         f"skip_dob={args.skip_dob}, dry_run={args.dry_run})"
     )
 
@@ -1067,6 +1214,26 @@ def main() -> None:
             if matched is not None:
                 height_hints[player["id"]] = matched
         log(f"Matched heights for {len(height_hints)}/{len(need_height)} players")
+
+    foot_hints: dict[str, str] = {}
+    if not args.skip_foot and "wikidata" in foot_sources:
+        need_foot = [
+            player
+            for player in selected
+            if include_existing or player.get("preferredFoot") is None
+        ]
+        hits_by_name = fetch_batched_hits(
+            [player["fullName"] for player in need_foot],
+            batch_size=batch_size,
+            workers=min(workers, 4),
+            kind="foot",
+            fetch_fn=sparql_foot_hits,
+        )
+        for player in need_foot:
+            matched = match_foot(player, hits_by_name)
+            if matched is not None:
+                foot_hints[player["id"]] = matched
+        log(f"Matched feet for {len(foot_hints)}/{len(need_foot)} players (Wikidata P8006)")
 
     dob_hints: dict[str, str] = {}
     nat_hints: dict[str, str] = {}
@@ -1107,8 +1274,10 @@ def main() -> None:
             skip_dob=args.skip_dob,
             dry_run=args.dry_run,
             height_hint=height_hints.get(player["id"]),
+            foot_hint=foot_hints.get(player["id"]),
             dob_hint=dob_hints.get(player["id"]),
             nationality_hint=nat_hints.get(player["id"]),
+            foot_sources=foot_sources,
             index=index,
             total=len(selected),
         )

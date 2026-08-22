@@ -25,22 +25,11 @@ import { routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
 import { createPrediction } from '@/services/prediction/predictionApi'
 import { listSeasons } from '@/services/season/seasonApi'
-import {
-  listTransfers,
-  type Transfer,
-  type TransferStatus,
-} from '@/services/transfer/transferApi'
+import { listTransfers, type Transfer } from '@/services/transfer/transferApi'
 import { formatDate, formatEur } from '@/utils/format'
 import { userFacingErrorMessage } from '@/utils/userFacingError'
 
 const PAGE_SIZE = 20
-
-const STATUS_OPTIONS: ReadonlyArray<{ value: '' | TransferStatus; label: string }> = [
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'ANNOUNCED', label: 'Announced' },
-  { value: 'RUMOURED', label: 'Rumoured' },
-  { value: '', label: 'All statuses' },
-]
 
 function isUpcomingSeason(endDate: string, today = new Date()): boolean {
   return new Date(`${endDate}T23:59:59`) >= today
@@ -49,7 +38,6 @@ function isUpcomingSeason(endDate: string, today = new Date()): boolean {
 export function TransfersPage() {
   const navigate = useNavigate()
   const [page, setPage] = useState(0)
-  const [status, setStatus] = useState<'' | TransferStatus>('COMPLETED')
   const [seasonId, setSeasonId] = useState('')
   const [pendingId, setPendingId] = useState<string | null>(null)
 
@@ -72,12 +60,12 @@ export function TransfersPage() {
 
   useEffect(() => {
     setPage(0)
-  }, [status, seasonId])
+  }, [seasonId])
 
   const transfersQuery = useQuery({
-    queryKey: queryKeys.transfers.list(page, PAGE_SIZE, status, seasonId),
-    queryFn: () =>
-      listTransfers(page, PAGE_SIZE, status || undefined, seasonId || undefined),
+    // All rows in Kleos are COMPLETED (wiki / season-inferred). No rumoured feed yet.
+    queryKey: queryKeys.transfers.list(page, PAGE_SIZE, '', seasonId),
+    queryFn: () => listTransfers(page, PAGE_SIZE, undefined, seasonId || undefined),
     enabled: !!seasonId || seasonsQuery.isSuccess,
   })
 
@@ -127,21 +115,6 @@ export function TransfersPage() {
             ))}
           </Select>
         </FormControl>
-        <FormControl sx={{ minWidth: 220 }}>
-          <InputLabel id="transfer-status-label">Status</InputLabel>
-          <Select
-            label="Status"
-            labelId="transfer-status-label"
-            onChange={(event) => setStatus(event.target.value as '' | TransferStatus)}
-            value={status}
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <MenuItem key={option.label} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
       </Stack>
 
       {predictMutation.isError ? (
@@ -187,7 +160,7 @@ export function TransfersPage() {
                         {transfer.playerName}
                       </MuiLink>
                       <Typography color="text.secondary" component="div" variant="caption">
-                        {formatDate(transfer.transferDate)} · {transfer.status}
+                        {formatDate(transfer.transferDate)}
                       </Typography>
                     </TableCell>
                     <TableCell>

@@ -2,6 +2,7 @@ package com.kleos.transfers.club.service;
 
 import com.kleos.transfers.club.dto.ClubResponse;
 import com.kleos.transfers.club.dto.CreateClubRequest;
+import com.kleos.transfers.club.dto.LikelyLineupResponse;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.common.bulk.BulkImportResponse;
 import com.kleos.transfers.common.dto.UpdateIdentityMediaRequest;
@@ -32,4 +33,7 @@ public interface ClubService {
 
     /** Player-seasons for a club in one season (squad context for simulator / prediction). */
     List<PlayerSeasonResponse> findSquad(UUID clubId, UUID seasonId);
+
+    /** Inferred starting XI from squad minutes and enriched positions. */
+    LikelyLineupResponse findLikelyLineup(UUID clubId, UUID seasonId);
 }

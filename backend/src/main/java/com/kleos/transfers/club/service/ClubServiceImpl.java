@@ -4,8 +4,10 @@ import com.kleos.transfers.club.dto.ClubResponse;
 import com.kleos.transfers.club.dto.ClubSquadSeasonStatsView;
 import com.kleos.transfers.club.dto.CreateClubRequest;
 import com.kleos.transfers.club.dto.CurrentManagerView;
+import com.kleos.transfers.club.dto.LikelyLineupResponse;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.entity.Club;
+import com.kleos.transfers.club.lineup.LikelyLineupAnalyzer;
 import com.kleos.transfers.club.mapper.ClubMapper;
 import com.kleos.transfers.club.repository.ClubRepository;
 import com.kleos.transfers.common.bulk.BulkImportResponse;
@@ -71,6 +73,7 @@ public class ClubServiceImpl implements ClubService {
     private final ManagerSeasonRepository managerSeasonRepository;
     private final TransferRepository transferRepository;
     private final TransferMapper transferMapper;
+    private final LikelyLineupAnalyzer likelyLineupAnalyzer;
 
     private static final List<TransferStatus> SQUAD_PROJECTION_STATUSES = List.of(
             TransferStatus.COMPLETED,
@@ -155,6 +158,11 @@ public class ClubServiceImpl implements ClubService {
         }
 
         return projectSquadFromPriorSeason(club, season);
+    }
+
+    @Override
+    public LikelyLineupResponse findLikelyLineup(UUID clubId, UUID seasonId) {
+        return likelyLineupAnalyzer.analyze(findSquad(clubId, seasonId));
     }
 
     /**

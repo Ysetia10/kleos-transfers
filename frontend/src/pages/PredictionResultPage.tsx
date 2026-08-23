@@ -179,7 +179,11 @@ export function PredictionResultPage() {
           Minutes reflect the prior campaign until {prediction.seasonLabel} actuals exist.
         </Typography>
         {!squadQuery.isLoading && !squadQuery.isError ? (
-          <PitchLineup squad={squadQuery.data} />
+          <PitchLineup
+            clubId={prediction.targetClubId}
+            seasonId={prediction.seasonId}
+            squad={squadQuery.data}
+          />
         ) : null}
         <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
           <SquadTable

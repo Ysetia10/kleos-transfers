@@ -212,7 +212,7 @@ export function ClubDetailPage() {
             </Typography>
           ) : null}
           {!squadQuery.isLoading && !squadQuery.isError ? (
-            <PitchLineup squad={squadQuery.data} />
+            <PitchLineup clubId={id} seasonId={seasonId} squad={squadQuery.data} />
           ) : null}
           <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
             <SquadTable

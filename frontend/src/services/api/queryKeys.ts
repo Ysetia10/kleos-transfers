@@ -21,6 +21,8 @@ export const queryKeys = {
     detail: (id: string) => ['clubs', 'detail', id] as const,
     squad: (clubId: string, seasonId: string, priorSeasonId = '') =>
       ['clubs', 'squad', clubId, seasonId, priorSeasonId] as const,
+    likelyLineup: (clubId: string, seasonId: string) =>
+      ['clubs', 'likely-lineup', clubId, seasonId] as const,
   },
   seasons: {
     list: (page: number, size: number) => ['seasons', 'list', page, size] as const,

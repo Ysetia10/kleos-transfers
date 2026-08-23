@@ -1,25 +1,67 @@
 import { Box, Stack, Typography } from '@mui/material'
+import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink } from 'react-router-dom'
 import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { routes } from '@/constants/routes'
+import { queryKeys } from '@/services/api/queryKeys'
+import { getLikelyLineup } from '@/services/club/likelyLineupApi'
+import type { LikelyLineupPlacement } from '@/services/club/likelyLineupApi'
 import type { PlayerSeason } from '@/types/domain'
 import {
   buildPitchLineup,
   shortDisplayName,
+  type PitchPlacement,
+  type PitchSlotId,
 } from '@/utils/pitchLineup'
 
 type PitchLineupProps = {
-  squad: PlayerSeason[] | undefined
+  clubId?: string
+  seasonId?: string
+  squad?: PlayerSeason[]
   title?: string
 }
 
-export function PitchLineup({ squad, title = 'Starting XI by minutes' }: PitchLineupProps) {
-  if (!squad?.length) {
-    return null
+function formatMinutes(minutes: number): string {
+  if (minutes >= 1000) {
+    return `${(minutes / 1000).toFixed(1).replace(/\.0$/, '')}k`
   }
+  return String(minutes)
+}
 
-  const lineup = buildPitchLineup(squad)
-  if (!lineup) {
+function placementFromApi(row: LikelyLineupPlacement): PitchPlacement {
+  return {
+    slot: {
+      id: row.slotId as PitchSlotId,
+      x: row.x,
+      y: row.y,
+    },
+    player: row.player,
+    likelyStarter: row.likelyStarter,
+  }
+}
+
+export function PitchLineup({
+  clubId,
+  seasonId,
+  squad,
+  title = 'Likely XI',
+}: PitchLineupProps) {
+  const apiQuery = useQuery({
+    queryKey: queryKeys.clubs.likelyLineup(clubId ?? '', seasonId ?? ''),
+    queryFn: () => getLikelyLineup(clubId!, seasonId!),
+    enabled: !!clubId && !!seasonId,
+  })
+
+  const clientLineup = squad?.length ? buildPitchLineup(squad) : null
+  const apiReady =
+    apiQuery.data?.rolePrecisionAvailable && apiQuery.data.placements.length >= 11
+
+  const formation = apiReady ? apiQuery.data!.formation : clientLineup?.formation
+  const placements: PitchPlacement[] = apiReady
+    ? apiQuery.data!.placements.map(placementFromApi)
+    : clientLineup?.placements ?? []
+
+  if (!formation || placements.length < 11) {
     return null
   }
 
@@ -32,7 +74,7 @@ export function PitchLineup({ squad, title = 'Starting XI by minutes' }: PitchLi
       >
         <Typography variant="h4">{title}</Typography>
         <Typography color="text.secondary" variant="caption">
-          Formation {lineup.formation} · photo + name
+          Formation {formation} · inferred from minutes · photo + name
         </Typography>
       </Stack>
       <Box
@@ -90,9 +132,9 @@ export function PitchLineup({ squad, title = 'Starting XI by minutes' }: PitchLi
           }}
         />
 
-        {lineup.placements.map(({ slot, player }) => (
+        {placements.map(({ slot, player, likelyStarter = true }) => (
           <Box
-            key={slot.id}
+            key={`${slot.id}-${player.playerId}`}
             component={RouterLink}
             to={routes.playerDetail(player.playerId)}
             sx={{
@@ -105,9 +147,10 @@ export function PitchLineup({ squad, title = 'Starting XI by minutes' }: PitchLi
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 0.5,
+              gap: 0.25,
               width: 72,
               zIndex: 1,
+              opacity: likelyStarter ? 1 : 0.72,
             }}
           >
             <IdentityMedia
@@ -126,6 +169,17 @@ export function PitchLineup({ squad, title = 'Starting XI by minutes' }: PitchLi
               }}
             >
               {shortDisplayName(player.playerName)}
+            </Typography>
+            <Typography
+              sx={{
+                color: 'rgba(255,255,255,0.88)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.55)',
+                lineHeight: 1.1,
+                textAlign: 'center',
+                fontSize: 10,
+              }}
+            >
+              {formatMinutes(player.minutesPlayed)} min
             </Typography>
           </Box>
         ))}

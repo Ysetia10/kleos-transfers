@@ -2,6 +2,7 @@ package com.kleos.transfers.club.controller;
 
 import com.kleos.transfers.club.dto.ClubResponse;
 import com.kleos.transfers.club.dto.CreateClubRequest;
+import com.kleos.transfers.club.dto.LikelyLineupResponse;
 import com.kleos.transfers.club.dto.UpdateClubRequest;
 import com.kleos.transfers.club.service.ClubService;
 import com.kleos.transfers.common.bulk.BulkImportRequest;
@@ -69,6 +70,14 @@ public class ClubController {
             @RequestParam UUID seasonId
     ) {
         return ResponseEntity.ok(clubService.findSquad(id, seasonId));
+    }
+
+    @GetMapping("/{id}/likely-xi")
+    public ResponseEntity<LikelyLineupResponse> findLikelyLineup(
+            @PathVariable UUID id,
+            @RequestParam UUID seasonId
+    ) {
+        return ResponseEntity.ok(clubService.findLikelyLineup(id, seasonId));
     }
 
     @PutMapping("/{id}")

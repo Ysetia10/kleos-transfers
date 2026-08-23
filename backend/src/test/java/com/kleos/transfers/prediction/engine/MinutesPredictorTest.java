@@ -479,6 +479,66 @@ class MinutesPredictorTest {
     }
 
     @Test
+    void ignoresInferredGapsWhenConfirmedSpellExists() {
+        Player player = player(LocalDate.of(1996, 5, 1));
+        Club target = club("Arsenal", "ENG");
+        Season targetSeason = season("2024/25", LocalDate.of(2024, 7, 1), LocalDate.of(2025, 6, 30));
+        PlayerSeason history = new PlayerSeason(
+                player,
+                target,
+                season("2023/24", LocalDate.of(2023, 7, 1), LocalDate.of(2024, 6, 30)),
+                30,
+                2_800,
+                5,
+                4,
+                new BigDecimal("3.0"),
+                new BigDecimal("2.0"),
+                Position.CB
+        );
+        Injury inferred = new Injury(
+                player,
+                "Inferred availability gap",
+                InjurySeverity.SEVERE,
+                LocalDate.of(2024, 8, 30),
+                LocalDate.of(2025, 2, 1)
+        );
+        Injury confirmed = new Injury(
+                player,
+                "Hamstring injury",
+                InjurySeverity.MODERATE,
+                LocalDate.of(2024, 9, 14),
+                LocalDate.of(2025, 2, 1)
+        );
+
+        MinutesPredictor.Result both = predictor.predict(new PredictionContext(
+                player,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(),
+                List.of(inferred, confirmed),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+        MinutesPredictor.Result confirmedOnly = predictor.predict(new PredictionContext(
+                player,
+                target,
+                targetSeason,
+                List.of(history),
+                List.of(),
+                List.of(confirmed),
+                List.of(),
+                Optional.empty(),
+                Optional.of(history),
+                Optional.empty()
+        ));
+
+        assertThat(both.minutes()).isEqualTo(confirmedOnly.minutes());
+    }
+
+    @Test
     void benchesArrivingKeeperWhenTheNumberOneStays() {
         Club target = club("Chelsea", "ENG");
         Season priorSeason = season("2025/26", LocalDate.of(2025, 7, 1), LocalDate.of(2026, 6, 30));

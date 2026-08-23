@@ -29,6 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("csv_file", help="path to injuries CSV")
     parser.add_argument("--api-url", default="http://localhost:8080")
     parser.add_argument("--batch-size", type=int, default=200)
+    parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
 
@@ -107,6 +108,9 @@ def main() -> None:
         )
 
     print(f"Prepared {len(items)} injuries ({skipped} skipped)")
+    if args.dry_run:
+        print("Dry run — no API writes")
+        return
     for i in range(0, len(items), args.batch_size):
         chunk = items[i : i + args.batch_size]
         result = api_json(args.api_url, "POST", "/api/v1/injuries/bulk", {"items": chunk})

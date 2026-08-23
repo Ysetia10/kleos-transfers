@@ -54,6 +54,10 @@ public class MinutesPredictor {
     static final double MIN_COMPETITION_MULTIPLIER = 0.30;
     static final double MAX_COMPETITION_MULTIPLIER = 1.12;
 
+    private static final String INFERRED_INJURY_NORMALIZED = "inferred availability gap";
+    /** When only inferred gaps exist, apply a softer haircut than for confirmed spells. */
+    private static final double INFERRED_ONLY_PENALTY_SCALE = 0.55;
+
     public record Result(int minutes, int minutesLow, int minutesHigh, List<ExplanationFactor> factors) {
     }
 
@@ -762,7 +766,9 @@ public class MinutesPredictor {
     }
 
     private double injuryMultiplier(PredictionContext context, List<ExplanationFactor> factors) {
-        List<Injury> injuries = context.recentInjuries();
+        List<Injury> rawInjuries = context.recentInjuries();
+        boolean inferredOnly = rawInjuries.stream().allMatch(this::isInferredAvailabilityGap);
+        List<Injury> injuries = injuriesForMultiplier(rawInjuries);
         if (injuries.isEmpty()) {
             factors.add(new ExplanationFactor(
                     FactorCodes.INJURY_BURDEN,
@@ -825,6 +831,9 @@ public class MinutesPredictor {
         }
         multiplier -= Math.min(0.22, weightedDays / 500.0);
         multiplier = Math.max(0.55, multiplier);
+        if (inferredOnly) {
+            multiplier = 1.0 - (1.0 - multiplier) * INFERRED_ONLY_PENALTY_SCALE;
+        }
 
         factors.add(new ExplanationFactor(
                 FactorCodes.INJURY_BURDEN,
@@ -840,6 +849,23 @@ public class MinutesPredictor {
                         + "."
         ));
         return multiplier;
+    }
+
+    private List<Injury> injuriesForMultiplier(List<Injury> injuries) {
+        if (injuries.isEmpty()) {
+            return injuries;
+        }
+        boolean hasConfirmed = injuries.stream().anyMatch(injury -> !isInferredAvailabilityGap(injury));
+        if (!hasConfirmed) {
+            return injuries;
+        }
+        return injuries.stream()
+                .filter(injury -> !isInferredAvailabilityGap(injury))
+                .toList();
+    }
+
+    private boolean isInferredAvailabilityGap(Injury injury) {
+        return INFERRED_INJURY_NORMALIZED.equals(injury.getInjuryTypeNormalized());
     }
 
     /**

@@ -1,0 +1,17 @@
+playerFullName,injuryType,severity,startDate,endDate,playerId,source
+Rodri,ACL rupture,SEVERE,2024-09-22,2025-04-06,04debf3f-96e7-4978-a294-e7bd44f89f09,Man City / league reports 2024-25
+Jarrad Branthwaite,Hamstring injury,MODERATE,2024-09-14,2025-02-01,c1cc6ddf-5264-43d8-87a1-c85537c63f05,Everton statements 2024-25
+Noussair Mazraoui,Hamstring strain,MODERATE,2024-11-08,2025-01-20,62a823aa-8fc5-45ba-a973-8c3c5560ded1,Bayern / Man U reports 2024-25
+Ademola Lookman,Hamstring injury,MODERATE,2024-10-26,2025-01-10,bbca6ab5-4c19-49ec-ab72-2f1d8eefa2a5,Atalanta reports 2024-25
+Fabian Schär,Hamstring injury,MODERATE,2024-11-02,2025-02-01,77400bc0-0e89-4ce5-8782-18cb31e3252a,Newcastle reports 2024-25
+Artem Dovbyk,Muscle injury,MODERATE,2024-12-20,2025-03-01,b50e7d59-00ba-4216-a626-cc1400d6a1d7,Roma reports 2024-25
+Chris Wood,Knee injury,MODERATE,2025-01-18,2025-04-01,30b2af5f-e873-4496-a720-a08f4101ade0,Nottingham Forest 2024-25
+Virgil van Dijk,Knee injury,SEVERE,2020-10-17,2021-02-20,011a3607-4ec1-43b9-b22b-547048df86bd,Liverpool 2020-21
+Kevin De Bruyne,Knee injury,SEVERE,2018-08-18,2019-02-10,ec1f410d-6b5f-4cf0-a7e8-329afe22847a,Man City 2018-19
+Mohamed Salah,Hamstring strain,MODERATE,2024-11-23,2024-12-15,a38900ce-7250-4bb2-b363-bb3bf37672af,Liverpool 2024-25
+Erling Haaland,Ankle injury,MODERATE,2024-12-08,2025-01-15,8dce93ca-b053-4e18-a6e3-31399385a2a5,Man City 2024-25
+Bukayo Saka,Hamstring injury,MODERATE,2024-10-05,2024-11-10,8fe90c05-28cf-45b1-8ea1-1a5554405be0,Arsenal 2024-25
+William Saliba,Hamstring injury,MODERATE,2024-08-17,2024-09-28,c958a776-5c9f-472e-8b46-a19ff97fb20a,Arsenal 2024-25
+Martin Ødegaard,Ankle injury,MODERATE,2024-09-14,2024-10-26,afb3330c-d13b-4a9b-88c5-b5bdf1a06865,Arsenal 2024-25
+Declan Rice,Toe injury,MINOR,2024-11-02,2024-11-23,dcaa3ff6-53d6-4cfe-9919-52aa2f270184,Arsenal 2024-25
+Trent Alexander-Arnold,Hamstring injury,MODERATE,2024-10-19,2024-11-30,0eadf8d4-fa9f-4005-a660-926b7455923d,Liverpool 2024-25

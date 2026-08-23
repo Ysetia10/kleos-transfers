@@ -149,6 +149,31 @@ const STARTER_FLOOR = 900
 /** Share of the best minute-total in a side/role band required to count as a regular starter. */
 const STARTER_SHARE = 0.45
 
+const FORMATION_TIE_BREAK: FormationId[] = ['4-3-3', '4-2-3-1', '3-4-3', '3-5-2']
+const FORMATION_MINUTE_TOLERANCE = 0.92
+
+function isArrival(player: PlayerSeason): boolean {
+  return player.inboundTransfer != null
+}
+
+function incumbentSquad(squad: PlayerSeason[]): PlayerSeason[] {
+  return squad.filter((row) => !isArrival(row))
+}
+
+function hasBothFlankStarters(squad: PlayerSeason[]): boolean {
+  return hasFlankStarter(squad, 'LEFT') && hasFlankStarter(squad, 'RIGHT')
+}
+
+function hasFlankStarter(squad: PlayerSeason[], flank: SideBand): boolean {
+  return squad.some(
+    (row) => sideBand(row.primaryPosition) === flank && isLikelyStarter(row, squad)
+  )
+}
+
+function isBackFourFormation(id: FormationId): boolean {
+  return id === '4-3-3' || id === '4-2-3-1'
+}
+
 type SideBand = 'GK' | 'CB' | 'LEFT' | 'RIGHT' | 'MID' | 'ATTACK'
 
 const SIDE_BAND: Record<Position, SideBand> = {
@@ -199,11 +224,44 @@ export function hasRolePrecision(squad: PlayerSeason[]): boolean {
   return lateral >= 3 && distinct.size >= 5
 }
 
+function isWideDefenderSlot(slotId: PitchSlotId): boolean {
+  return slotId === 'LB' || slotId === 'RB' || slotId === 'LWB' || slotId === 'RWB'
+}
+
+function hasFlankPositionStarter(squad: PlayerSeason[], slotId: PitchSlotId): boolean {
+  if (slotId === 'LB' || slotId === 'LWB') {
+    return squad.some(
+      (row) =>
+        (row.primaryPosition === 'LB' ||
+          row.primaryPosition === 'LWB' ||
+          row.primaryPosition === 'LM') &&
+        isLikelyStarter(row, squad)
+    )
+  }
+  if (slotId === 'RB' || slotId === 'RWB') {
+    return squad.some(
+      (row) =>
+        (row.primaryPosition === 'RB' ||
+          row.primaryPosition === 'RWB' ||
+          row.primaryPosition === 'RM') &&
+        isLikelyStarter(row, squad)
+    )
+  }
+  return false
+}
+
 function scoreForSlot(player: PlayerSeason, slotId: PitchSlotId, squad: PlayerSeason[]): number {
   const prefs = SLOT_PREFERENCE[slotId]
-  const rank = prefs.indexOf(player.primaryPosition)
+  let rank = prefs.indexOf(player.primaryPosition)
   if (rank === -1) {
-    return -1
+    if (player.primaryPosition === 'CB' && isWideDefenderSlot(slotId)) {
+      if (hasFlankPositionStarter(squad, slotId)) {
+        return -1
+      }
+      rank = prefs.length
+    } else {
+      return -1
+    }
   }
   const roleFit = 1000 - rank * 40
   const minuteWeight = Math.min(player.minutesPlayed, 3600) / 3600
@@ -215,9 +273,134 @@ function scoreForSlot(player: PlayerSeason, slotId: PitchSlotId, squad: PlayerSe
   return roleFit + minuteWeight * 600
 }
 
+function pickFormation(squad: PlayerSeason[]): FormationId {
+  const requireBackFour = hasBothFlankStarters(squad)
+  const candidates: { id: FormationId; totalMinutes: number; starterCount: number }[] = []
+  let bestMinutes = -1
+
+  for (const [id, slots] of Object.entries(FORMATIONS) as [FormationId, PitchSlot[]][]) {
+    if (requireBackFour && !isBackFourFormation(id)) {
+      continue
+    }
+    const { placements, totalMinutes } = assignFormation(slots, squad)
+    if (placements.length < 11) {
+      continue
+    }
+    bestMinutes = Math.max(bestMinutes, totalMinutes)
+    const starterCount = placements.filter((row) => isLikelyStarter(row.player, squad)).length
+    candidates.push({ id, totalMinutes, starterCount })
+  }
+
+  if (candidates.length === 0) {
+    return '4-3-3'
+  }
+
+  const minuteThreshold = Math.round(bestMinutes * FORMATION_MINUTE_TOLERANCE)
+  return candidates
+    .filter((row) => row.totalMinutes >= minuteThreshold)
+    .sort((a, b) => {
+      if (b.totalMinutes !== a.totalMinutes) {
+        return b.totalMinutes - a.totalMinutes
+      }
+      if (b.starterCount !== a.starterCount) {
+        return b.starterCount - a.starterCount
+      }
+      return FORMATION_TIE_BREAK.indexOf(a.id) - FORMATION_TIE_BREAK.indexOf(b.id)
+    })[0].id
+}
+
+function resolvePlayerForSlot(
+  priorPlayer: PlayerSeason,
+  slotId: PitchSlotId,
+  projected: PlayerSeason[],
+  arrivals: PlayerSeason[],
+  incumbents: PlayerSeason[],
+  priorSquad: PlayerSeason[],
+  used: Set<string>
+): PlayerSeason | null {
+  const incumbent = projected.find((row) => row.playerId === priorPlayer.playerId)
+  if (incumbent && !isArrival(incumbent) && !used.has(incumbent.playerId)) {
+    return incumbent
+  }
+  return (
+    findReplacement(slotId, arrivals, priorSquad, used)
+    ?? findReplacement(slotId, incumbents, priorSquad, used)
+  )
+}
+
+function findReplacement(
+  slotId: PitchSlotId,
+  candidates: PlayerSeason[],
+  priorSquad: PlayerSeason[],
+  used: Set<string>
+): PlayerSeason | null {
+  let best: PlayerSeason | null = null
+  let bestScore = -1
+  for (const candidate of candidates) {
+    if (used.has(candidate.playerId)) {
+      continue
+    }
+    const score = scoreForSlot(candidate, slotId, priorSquad)
+    if (score > bestScore) {
+      bestScore = score
+      best = candidate
+    }
+  }
+  return best
+}
+
+function buildContinuityLineup(
+  priorSquad: PlayerSeason[],
+  projectedSquad: PlayerSeason[]
+): { formation: FormationId; placements: PitchPlacement[] } | null {
+  if (!hasRolePrecision(priorSquad)) {
+    return null
+  }
+
+  const formation = pickFormation(priorSquad)
+  const slots = FORMATIONS[formation]
+  const { placements: baseline } = assignFormation(slots, topPool(priorSquad), priorSquad)
+  if (baseline.length < 11) {
+    return null
+  }
+
+  const arrivals = projectedSquad.filter(isArrival)
+  const incumbents = incumbentSquad(projectedSquad)
+  const used = new Set<string>()
+  const placements: PitchPlacement[] = []
+
+  for (const baselineSlot of baseline) {
+    const chosen = resolvePlayerForSlot(
+      baselineSlot.player,
+      baselineSlot.slot.id,
+      projectedSquad,
+      arrivals,
+      incumbents,
+      priorSquad,
+      used
+    )
+    if (!chosen) {
+      return null
+    }
+    used.add(chosen.playerId)
+    placements.push({
+      slot: baselineSlot.slot,
+      player: chosen,
+      likelyStarter: isLikelyStarter(chosen, incumbents.length ? incumbents : priorSquad),
+    })
+  }
+
+  return { formation, placements }
+}
+
+function topPool(squad: PlayerSeason[]): PlayerSeason[] {
+  return [...squad].sort((a, b) => b.minutesPlayed - a.minutesPlayed).slice(0, 20)
+}
+
 function assignFormation(
   slots: PitchSlot[],
-  squad: PlayerSeason[]
+  squad: PlayerSeason[],
+  minuteReference: PlayerSeason[] = squad
 ): { placements: PitchPlacement[]; totalMinutes: number } {
   const remaining = [...squad].sort((a, b) => b.minutesPlayed - a.minutesPlayed)
   const placements: PitchPlacement[] = []
@@ -226,7 +409,7 @@ function assignFormation(
     let bestIndex = -1
     let bestScore = -1
     for (let i = 0; i < remaining.length; i += 1) {
-      const score = scoreForSlot(remaining[i], slot.id, squad)
+      const score = scoreForSlot(remaining[i], slot.id, minuteReference)
       if (score > bestScore) {
         bestScore = score
         bestIndex = i
@@ -248,51 +431,17 @@ function assignFormation(
   return { placements, totalMinutes }
 }
 
-function pickFormation(squad: PlayerSeason[]): FormationId {
-  let bestId: FormationId = '4-3-3'
-  let bestMinutes = -1
-  let bestFit = -1
-
-  for (const [id, slots] of Object.entries(FORMATIONS) as [FormationId, PitchSlot[]][]) {
-    const { placements, totalMinutes } = assignFormation(slots, squad)
-    if (placements.length < 11) {
-      continue
-    }
-    const starterCount = placements.filter((row) => isLikelyStarter(row.player, squad)).length
-    // Prefer formations that maximise starter minutes, then count of true starters.
-    if (totalMinutes > bestMinutes || (totalMinutes === bestMinutes && starterCount > bestFit)) {
-      bestMinutes = totalMinutes
-      bestFit = starterCount
-      bestId = id
-    }
-  }
-
-  return bestId
-}
-
 /**
- * Build a likely starting XI from season minutes and enriched positions.
- * Picks the formation (4-3-3, 4-2-3-1, 3-4-3, 3-5-2) that maximises starter-minute
- * coverage — e.g. three ~3k CBs + one 2.5k RB and a 500-min LB → back three + RB (3-4-3).
- * Returns null when role precision is insufficient.
+ * Build a likely starting XI from last season's minutes at the club, then apply transfer
+ * continuity on the projected squad. New signings never drive formation selection.
  */
 export function buildPitchLineup(squad: PlayerSeason[]): {
   formation: FormationId
   placements: PitchPlacement[]
 } | null {
-  if (!hasRolePrecision(squad)) {
-    return null
-  }
-
-  const pool = [...squad].sort((a, b) => b.minutesPlayed - a.minutesPlayed).slice(0, 20)
-  const formation = pickFormation(pool)
-  const slots = FORMATIONS[formation]
-  const { placements } = assignFormation(slots, pool)
-
-  if (placements.length < 11) {
-    return null
-  }
-  return { formation, placements }
+  const incumbents = incumbentSquad(squad)
+  const baseline = incumbents.length ? incumbents : squad
+  return buildContinuityLineup(baseline, squad)
 }
 
 export function shortDisplayName(fullName: string): string {

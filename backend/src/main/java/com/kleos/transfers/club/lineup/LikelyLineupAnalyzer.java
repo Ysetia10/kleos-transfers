@@ -8,20 +8,26 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /**
- * Infers a likely starting XI from squad minutes and precise positions — same heuristics as the
- * product pitch UI (formation pick + starter-minute thresholds).
+ * Infers a likely starting XI from last season's minutes at the club, then applies transfer
+ * continuity: keep the prior XI when nobody left; swap in recruits for departed slots; otherwise
+ * promote the next incumbent by minutes. New signings never drive formation selection.
  */
 @Component
 public class LikelyLineupAnalyzer {
 
     static final int STARTER_FLOOR = 900;
     static final double STARTER_SHARE = 0.45;
+    private static final double FORMATION_MINUTE_TOLERANCE = 0.92;
 
     enum FormationId {
         FOUR_THREE_THREE("4-3-3"),
@@ -34,6 +40,10 @@ public class LikelyLineupAnalyzer {
         FormationId(String label) {
             this.label = label;
         }
+
+        boolean isBackFour() {
+            return this == FOUR_THREE_THREE || this == FOUR_TWO_THREE_ONE;
+        }
     }
 
     enum PitchSlotId {
@@ -45,6 +55,13 @@ public class LikelyLineupAnalyzer {
     enum SideBand {
         GK, CB, LEFT, RIGHT, MID, ATTACK
     }
+
+    private static final List<FormationId> FORMATION_TIE_BREAK = List.of(
+            FormationId.FOUR_THREE_THREE,
+            FormationId.FOUR_TWO_THREE_ONE,
+            FormationId.THREE_FOUR_THREE,
+            FormationId.THREE_FIVE_TWO
+    );
 
     private static final Map<FormationId, List<PitchSlot>> FORMATIONS = Map.of(
             FormationId.FOUR_THREE_THREE, List.of(
@@ -110,25 +127,123 @@ public class LikelyLineupAnalyzer {
     private static final Map<PitchSlotId, List<Position>> SLOT_PREFERENCE = slotPreferences();
 
     public LikelyLineupResponse analyze(List<PlayerSeasonResponse> squad) {
-        if (!hasRolePrecision(squad)) {
+        return analyze(squad, squad);
+    }
+
+    /**
+     * @param priorSquad last season's roster at the club (minutes + positions for XI baseline)
+     * @param projectedSquad working squad for the requested season (outs removed, ins added)
+     */
+    public LikelyLineupResponse analyze(
+            List<PlayerSeasonResponse> priorSquad,
+            List<PlayerSeasonResponse> projectedSquad
+    ) {
+        if (!hasRolePrecision(priorSquad)) {
             return new LikelyLineupResponse(null, false, List.of());
         }
 
-        List<PlayerSeasonResponse> pool = squad.stream()
+        FormationId formation = pickFormation(priorSquad);
+        List<PitchSlot> slots = FORMATIONS.get(formation);
+        AssignmentResult baseline = assignFormation(slots, topPool(priorSquad), priorSquad);
+
+        if (baseline.placements().size() < 11) {
+            return new LikelyLineupResponse(null, true, List.of());
+        }
+
+        List<PlayerSeasonResponse> arrivals = projectedSquad.stream()
+                .filter(LikelyLineupAnalyzer::isArrival)
+                .toList();
+        List<PlayerSeasonResponse> incumbentsInProjected = projectedSquad.stream()
+                .filter(row -> !isArrival(row))
+                .toList();
+        Map<UUID, PlayerSeasonResponse> projectedByPlayerId = projectedSquad.stream()
+                .collect(Collectors.toMap(PlayerSeasonResponse::playerId, Function.identity(), (a, b) -> a));
+
+        Set<UUID> used = new HashSet<>();
+        List<LikelyLineupPlacementResponse> placements = new ArrayList<>();
+        List<PlayerSeasonResponse> starterReference = incumbentsInProjected.isEmpty()
+                ? priorSquad
+                : incumbentsInProjected;
+
+        for (LikelyLineupPlacementResponse baselineSlot : baseline.placements()) {
+            PitchSlotId slotId = PitchSlotId.valueOf(baselineSlot.slotId());
+            PlayerSeasonResponse priorPlayer = baselineSlot.player();
+            PlayerSeasonResponse chosen = resolvePlayerForSlot(
+                    priorPlayer,
+                    slotId,
+                    projectedByPlayerId,
+                    arrivals,
+                    incumbentsInProjected,
+                    priorSquad,
+                    used
+            );
+            if (chosen == null) {
+                return new LikelyLineupResponse(null, true, List.of());
+            }
+            used.add(chosen.playerId());
+            placements.add(new LikelyLineupPlacementResponse(
+                    baselineSlot.slotId(),
+                    baselineSlot.x(),
+                    baselineSlot.y(),
+                    chosen,
+                    isLikelyStarter(chosen, starterReference)
+            ));
+        }
+
+        return new LikelyLineupResponse(formation.label, true, placements);
+    }
+
+    private static PlayerSeasonResponse resolvePlayerForSlot(
+            PlayerSeasonResponse priorPlayer,
+            PitchSlotId slotId,
+            Map<UUID, PlayerSeasonResponse> projectedByPlayerId,
+            List<PlayerSeasonResponse> arrivals,
+            List<PlayerSeasonResponse> incumbentsInProjected,
+            List<PlayerSeasonResponse> priorSquad,
+            Set<UUID> used
+    ) {
+        PlayerSeasonResponse incumbent = projectedByPlayerId.get(priorPlayer.playerId());
+        if (incumbent != null && !isArrival(incumbent) && !used.contains(incumbent.playerId())) {
+            return incumbent;
+        }
+        PlayerSeasonResponse recruit = findReplacement(slotId, arrivals, priorSquad, used);
+        if (recruit != null) {
+            return recruit;
+        }
+        return findReplacement(slotId, incumbentsInProjected, priorSquad, used);
+    }
+
+    private static PlayerSeasonResponse findReplacement(
+            PitchSlotId slotId,
+            List<PlayerSeasonResponse> candidates,
+            List<PlayerSeasonResponse> priorSquad,
+            Set<UUID> used
+    ) {
+        PlayerSeasonResponse best = null;
+        double bestScore = -1;
+        for (PlayerSeasonResponse candidate : candidates) {
+            if (used.contains(candidate.playerId())) {
+                continue;
+            }
+            double score = scoreForSlot(candidate, slotId, priorSquad);
+            if (score > bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    static boolean isArrival(PlayerSeasonResponse row) {
+        return row.inboundTransfer() != null;
+    }
+
+    private static List<PlayerSeasonResponse> topPool(List<PlayerSeasonResponse> squad) {
+        return squad.stream()
                 .sorted(Comparator.comparingInt((PlayerSeasonResponse row) ->
                         row.minutesPlayed() == null ? 0 : row.minutesPlayed()).reversed())
                 .limit(20)
                 .toList();
-
-        FormationId formation = pickFormation(pool, squad);
-        List<PitchSlot> slots = FORMATIONS.get(formation);
-        AssignmentResult assignment = assignFormation(slots, pool, squad);
-
-        if (assignment.placements().size() < 11) {
-            return new LikelyLineupResponse(null, true, List.of());
-        }
-
-        return new LikelyLineupResponse(formation.label, true, assignment.placements());
     }
 
     private static PitchSlot slot(PitchSlotId id, double x, double y) {
@@ -181,6 +296,16 @@ public class LikelyLineupAnalyzer {
         return lateral >= 3 && distinct >= 5;
     }
 
+    static boolean hasBothFlankStarters(List<PlayerSeasonResponse> squad) {
+        return hasFlankStarter(squad, SideBand.LEFT) && hasFlankStarter(squad, SideBand.RIGHT);
+    }
+
+    private static boolean hasFlankStarter(List<PlayerSeasonResponse> squad, SideBand flank) {
+        return squad.stream()
+                .filter(row -> sideBand(row.primaryPosition()) == flank)
+                .anyMatch(row -> isLikelyStarter(row, squad));
+    }
+
     static SideBand sideBand(Position position) {
         if (position == null) {
             return SideBand.MID;
@@ -218,6 +343,25 @@ public class LikelyLineupAnalyzer {
         return minutes >= starterMinutesThreshold(player, squad);
     }
 
+    private static boolean hasFlankPositionStarter(List<PlayerSeasonResponse> squad, PitchSlotId slotId) {
+        switch (slotId) {
+            case LB, LWB:
+                return squad.stream()
+                        .filter(row -> row.primaryPosition() == Position.LB
+                                || row.primaryPosition() == Position.LWB
+                                || row.primaryPosition() == Position.LM)
+                        .anyMatch(row -> isLikelyStarter(row, squad));
+            case RB, RWB:
+                return squad.stream()
+                        .filter(row -> row.primaryPosition() == Position.RB
+                                || row.primaryPosition() == Position.RWB
+                                || row.primaryPosition() == Position.RM)
+                        .anyMatch(row -> isLikelyStarter(row, squad));
+            default:
+                return false;
+        }
+    }
+
     private static double scoreForSlot(
             PlayerSeasonResponse player,
             PitchSlotId slotId,
@@ -229,7 +373,14 @@ public class LikelyLineupAnalyzer {
         }
         int rank = prefs.indexOf(player.primaryPosition());
         if (rank == -1) {
-            return -1;
+            if (player.primaryPosition() == Position.CB && isWideDefenderSlot(slotId)) {
+                if (hasFlankPositionStarter(squad, slotId)) {
+                    return -1;
+                }
+                rank = prefs.size();
+            } else {
+                return -1;
+            }
         }
         int minutes = player.minutesPlayed() == null ? 0 : player.minutesPlayed();
         double roleFit = 1000 - rank * 40;
@@ -241,7 +392,14 @@ public class LikelyLineupAnalyzer {
         return roleFit + minuteWeight * 600;
     }
 
+    private static boolean isWideDefenderSlot(PitchSlotId slotId) {
+        return slotId == PitchSlotId.LB || slotId == PitchSlotId.RB
+                || slotId == PitchSlotId.LWB || slotId == PitchSlotId.RWB;
+    }
+
     record AssignmentResult(List<LikelyLineupPlacementResponse> placements, int totalMinutes) {}
+
+    record FormationCandidate(FormationId id, int totalMinutes, int starterCount) {}
 
     private static AssignmentResult assignFormation(
             List<PitchSlot> slots,
@@ -285,27 +443,39 @@ public class LikelyLineupAnalyzer {
         return new AssignmentResult(placements, totalMinutes);
     }
 
-    private static FormationId pickFormation(List<PlayerSeasonResponse> pool, List<PlayerSeasonResponse> squad) {
-        FormationId bestId = FormationId.FOUR_THREE_THREE;
+    private static FormationId pickFormation(List<PlayerSeasonResponse> squad) {
+        boolean requireBackFour = hasBothFlankStarters(squad);
+        List<FormationCandidate> results = new ArrayList<>();
         int bestMinutes = -1;
-        int bestStarterCount = -1;
 
         for (FormationId id : FormationId.values()) {
-            AssignmentResult result = assignFormation(FORMATIONS.get(id), pool, squad);
+            if (requireBackFour && !id.isBackFour()) {
+                continue;
+            }
+            AssignmentResult result = assignFormation(FORMATIONS.get(id), topPool(squad), squad);
             if (result.placements().size() < 11) {
                 continue;
             }
+            bestMinutes = Math.max(bestMinutes, result.totalMinutes());
             int starterCount = result.placements().stream()
                     .filter(row -> isLikelyStarter(row.player(), squad))
                     .mapToInt(row -> 1)
                     .sum();
-            if (result.totalMinutes() > bestMinutes
-                    || (result.totalMinutes() == bestMinutes && starterCount > bestStarterCount)) {
-                bestMinutes = result.totalMinutes();
-                bestStarterCount = starterCount;
-                bestId = id;
-            }
+            results.add(new FormationCandidate(id, result.totalMinutes(), starterCount));
         }
-        return bestId;
+
+        if (results.isEmpty()) {
+            return FormationId.FOUR_THREE_THREE;
+        }
+
+        int minuteThreshold = (int) Math.round(bestMinutes * FORMATION_MINUTE_TOLERANCE);
+        return results.stream()
+                .filter(row -> row.totalMinutes() >= minuteThreshold)
+                .max(Comparator
+                        .comparingInt(FormationCandidate::totalMinutes)
+                        .thenComparingInt(FormationCandidate::starterCount)
+                        .thenComparing(row -> -FORMATION_TIE_BREAK.indexOf(row.id())))
+                .map(FormationCandidate::id)
+                .orElse(FormationId.FOUR_THREE_THREE);
     }
 }

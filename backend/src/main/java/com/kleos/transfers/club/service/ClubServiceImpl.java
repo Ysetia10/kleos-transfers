@@ -162,7 +162,24 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     public LikelyLineupResponse findLikelyLineup(UUID clubId, UUID seasonId) {
-        return likelyLineupAnalyzer.analyze(findSquad(clubId, seasonId));
+        Club club = findClub(clubId);
+        Season season = seasonRepository.findById(seasonId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Season", seasonId));
+        List<PlayerSeasonResponse> projected = findSquad(clubId, seasonId);
+        List<PlayerSeasonResponse> prior = loadPriorSeasonSquad(club, season);
+        if (prior.isEmpty()) {
+            prior = projected;
+        }
+        return likelyLineupAnalyzer.analyze(prior, projected);
+    }
+
+    private List<PlayerSeasonResponse> loadPriorSeasonSquad(Club club, Season season) {
+        return seasonRepository.findFirstByStartDateLessThanOrderByStartDateDesc(season.getStartDate())
+                .map(prior -> sortMappedSquad(playerSeasonRepository.findByClubIdAndSeasonId(club.getId(), prior.getId())
+                        .stream()
+                        .map(playerSeasonMapper::toResponse)
+                        .toList()))
+                .orElse(List.of());
     }
 
     /**

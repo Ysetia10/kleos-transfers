@@ -1,0 +1,26 @@
+# Render Blueprint — Spring Boot API + external Supabase Postgres
+# Docs: docs/deployment.md
+#
+# After connect: set secrets in Render dashboard (never commit):
+#   DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD, CORS_ALLOWED_ORIGINS
+
+services:
+  - type: web
+    name: kleos-transfers-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false

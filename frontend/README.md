@@ -21,11 +21,13 @@ npm run build
 npm run lint
 ```
 
-Copy `.env.example` to `.env` and set:
+Copy `.env.example` to `.env.local` for local development:
 
 ```bash
 VITE_API_BASE_URL=http://localhost:8080
 ```
+
+**Production (Vercel):** set `VITE_API_BASE_URL` to your Render API URL in the Vercel dashboard — see `../docs/deployment.md`. Do not commit production URLs or use `localhost` in deployed builds.
 
 Open the app at `http://localhost:5173` or `http://127.0.0.1:5173` — both are allowed by the API CORS defaults.
 

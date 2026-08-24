@@ -106,5 +106,5 @@ jobs:
         run: npm ci
       - name: Typecheck and lint
         run: |
-          npm run build
+          VITE_API_BASE_URL=http://localhost:8080 npm run build
           npm run lint

@@ -15,11 +15,11 @@ COMPLETED
 - Model v0.12-heuristic (GK minutes + implicit vacated shirts)
 - Likely XI continuity (prior season + transfer swaps)
 
-IN PROGRESS
-- FBref full-league 2024/25: GER + ITA + FRA + ESP (see /tmp/kleos-fbref-full-2024-25.log)
+STOPPED (2026-08-24 — poor ROI after ~22h, batch 22/62 GER only; CAPTCHA/headless stalls)
+- FBref full-league 2024/25 crawl cancelled; pilot coverage retained (see DATA COVERAGE below)
 
-DATA COVERAGE (2024/25 lateral roles)
-- ENG 206 | ESP 184 | GER 128 | ITA 188 | FRA 187
+DATA COVERAGE (2024/25 lateral roles — post partial GER crawl)
+- ENG 206 | ESP 218 | GER 179 | ITA 205 | FRA 201
 
 OPEN (#63)
 - Expand clinical spells beyond starter CSV (~494 targets exported to research/injuries/targets.csv)

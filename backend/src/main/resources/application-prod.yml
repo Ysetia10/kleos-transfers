@@ -1,0 +1,20 @@
+# Active when SPRING_PROFILES_ACTIVE=prod (Render, etc.)
+
+server:
+  # Render injects PORT; fall back to SERVER_PORT then 8080.
+  port: ${PORT:${SERVER_PORT:8080}}
+
+spring:
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.kleos.transfers: INFO
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

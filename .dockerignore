@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.vscode
+**/node_modules
+frontend/dist
+**/build
+!backend/gradle/wrapper/gradle-wrapper.jar
+.env
+.env.*
+research/
+scripts/
+analytics/
+*.md
+!backend/README.md

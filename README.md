@@ -113,18 +113,22 @@ For hand-authored identity patches:
 
 See [`scripts/README.md`](scripts/README.md) for column formats and options.
 
+### Production deployment
+
+Free-tier hosting: **Vercel** (UI) + **Render** (API) + **Supabase** (Postgres). Full steps: [`docs/deployment.md`](docs/deployment.md).
+
 ### Frontend
 
 Requires Node.js 20+.
 
 ```bash
 cd frontend
-cp .env.example .env
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-The Vite app serves at `http://localhost:5173` (or `http://127.0.0.1:5173`) and expects the API at `http://localhost:8080`. Backend CORS allows both Vite hosts by default.
+The Vite app serves at `http://localhost:5173` (or `http://127.0.0.1:5173`). Set `VITE_API_BASE_URL=http://localhost:8080` in `.env.local` for local API calls. Production uses `VITE_API_BASE_URL` on Vercel (see `docs/deployment.md`) — never hardcode localhost in source.
 
 ## Contributing
 

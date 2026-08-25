@@ -41,6 +41,14 @@ jobs:
         run: |
           set -euo pipefail
           UI="${PROD_UI_BASE:-https://kleos-transfer.vercel.app}"
-          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "${UI}/")
-          echo "UI HTTP ${code}"
-          test "${code}" = "200"
+          # Brief retries: Vercel can return 404 briefly during alias swaps.
+          for i in 1 2 3 4 5; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "${UI}/" || echo "000")
+            echo "UI HTTP ${code} (attempt ${i})"
+            if [ "${code}" = "200" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Frontend did not return HTTP 200" >&2
+          exit 1

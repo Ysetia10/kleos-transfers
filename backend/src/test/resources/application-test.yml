@@ -19,3 +19,6 @@ kleos:
     version: 0.1.0
   cors:
     allowed-origins: http://localhost:5173,http://127.0.0.1:5173
+  rate-limit:
+    enabled: false
+    requests-per-minute: 60

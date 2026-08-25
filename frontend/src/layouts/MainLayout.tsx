@@ -1,5 +1,6 @@
 import { Box, Container } from '@mui/material'
 import { Outlet } from 'react-router-dom'
+import { ApiWakeBanner } from '@/components/layout/ApiWakeBanner'
 import { Footer } from '@/components/layout/Footer'
 import { Navbar } from '@/components/layout/Navbar'
 
@@ -14,6 +15,7 @@ export function MainLayout() {
       }}
     >
       <Navbar />
+      <ApiWakeBanner />
       <Box sx={{ flexGrow: 1 }}>
         <Container
           component="main"

@@ -3,6 +3,10 @@
 #
 # After connect: set secrets in Render dashboard (never commit):
 #   DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD, CORS_ALLOWED_ORIGINS
+#
+# Supabase: use Session pooler host (IPv4), not db.<ref>.supabase.co (often IPv6-only).
+#   DATABASE_URL=jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
+#   DATABASE_USERNAME=postgres.<project-ref>
 
 services:
   - type: web

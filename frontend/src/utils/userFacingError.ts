@@ -15,11 +15,14 @@ export function userFacingErrorMessage(error: unknown): string {
     if (error.status === 409) {
       return 'That conflicts with something already saved.'
     }
+    if (error.status === 429) {
+      return 'Too many requests. Wait a moment and try again.'
+    }
     if (error.status === 400 || error.status === 422) {
       return "We couldn't use those details. Please review and try again."
     }
     if (error.status === 0) {
-      return "We couldn't connect right now. Try again in a moment."
+      return "We couldn't connect right now. The API may be starting up — try again in a moment."
     }
     if (error.status >= 500) {
       return "We couldn't load this right now. Try again in a moment."

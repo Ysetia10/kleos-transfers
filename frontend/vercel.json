@@ -1,6 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
+  "build": {
+    "env": {
+      "VITE_API_BASE_URL": "https://kleos-transfers-api.onrender.com"
+    }
+  },
   "rewrites": [
     {
       "source": "/((?!assets/).*)",

@@ -189,10 +189,11 @@ export function PredictionForm({
           gap: 2,
           gridTemplateColumns: {
             xs: '1fr',
-            md:
+            md: 'minmax(0, 1fr) minmax(0, 1fr)',
+            lg:
               seasonMode === 'historical'
-                ? 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.85fr) minmax(225px, auto)'
-                : 'minmax(0, 1fr) minmax(0, 1fr) minmax(225px, auto)',
+                ? 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.85fr) minmax(200px, auto)'
+                : 'minmax(0, 1fr) minmax(0, 1fr) minmax(200px, auto)',
           },
           alignItems: 'start',
         }}
@@ -360,8 +361,9 @@ export function PredictionForm({
           size="large"
           sx={{
             height: 56,
-            width: { md: 225 },
-            minWidth: { xs: '100%', md: 225 },
+            width: { xs: '100%', lg: 225 },
+            minWidth: { xs: '100%', lg: 225 },
+            gridColumn: { xs: '1', md: '1 / -1', lg: 'auto' },
             px: 3.5,
             whiteSpace: 'nowrap',
             fontWeight: 500,

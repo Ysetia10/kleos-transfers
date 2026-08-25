@@ -13,6 +13,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink } from 'react-router-dom'
 import { QueryState } from '@/components/common/QueryState'
+import { ScrollableTable } from '@/components/common/ScrollableTable'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -88,7 +89,8 @@ export function ScenarioComparisonSection({ playerId }: ScenarioComparisonSectio
               gridTemplateColumns: {
                 xs: '1fr',
                 sm: `repeat(${Math.min(comparable.length, 2)}, minmax(0, 1fr))`,
-                md: `repeat(${comparable.length}, minmax(0, 1fr))`,
+                md: `repeat(${Math.min(comparable.length, 2)}, minmax(0, 1fr))`,
+                lg: `repeat(${Math.min(comparable.length, 3)}, minmax(0, 1fr))`,
               },
             }}
           >
@@ -110,7 +112,11 @@ export function ScenarioComparisonSection({ playerId }: ScenarioComparisonSectio
                 >
                   <Metric
                     label="Minutes"
-                    value={`${formatNumber(prediction.predictedMinutes)} (${formatNumber(prediction.predictedMinutesLow)}–${formatNumber(prediction.predictedMinutesHigh)})`}
+                    value={formatNumber(prediction.predictedMinutes)}
+                  />
+                  <Metric
+                    label="Range"
+                    value={`${formatNumber(prediction.predictedMinutesLow)}–${formatNumber(prediction.predictedMinutesHigh)}`}
                   />
                   <Metric
                     label="Fit"
@@ -165,42 +171,45 @@ export function ScenarioComparisonSection({ playerId }: ScenarioComparisonSectio
 
         {byClub.length > 0 ? (
           <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Club</TableCell>
-                  <TableCell>Season</TableCell>
-                  <TableCell align="right">Minutes</TableCell>
-                  <TableCell align="right">Fit</TableCell>
-                  <TableCell align="right">Confidence</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {byClub.map((prediction) => (
-                  <TableRow hover key={prediction.id}>
-                    <TableCell>
-                      <MuiLink
-                        component={RouterLink}
-                        to={routes.predictionDetail(prediction.id)}
-                        underline="hover"
-                      >
-                        {prediction.targetClubName}
-                      </MuiLink>
-                    </TableCell>
-                    <TableCell>{prediction.seasonLabel}</TableCell>
-                    <TableCell align="right">
-                      {formatNumber(prediction.predictedMinutes)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatNumber(Number(prediction.compatibilityScore), 0)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatNumber(Number(prediction.confidenceScore), 0)}
-                    </TableCell>
+            <ScrollableTable minWidth={480}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Club</TableCell>
+                    <TableCell>Season</TableCell>
+                    <TableCell align="right">Minutes</TableCell>
+                    <TableCell align="right">Fit</TableCell>
+                    <TableCell align="right">Confidence</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {byClub.map((prediction) => (
+                    <TableRow hover key={prediction.id}>
+                      <TableCell>
+                        <MuiLink
+                          component={RouterLink}
+                          sx={{ overflowWrap: 'anywhere' }}
+                          to={routes.predictionDetail(prediction.id)}
+                          underline="hover"
+                        >
+                          {prediction.targetClubName}
+                        </MuiLink>
+                      </TableCell>
+                      <TableCell>{prediction.seasonLabel}</TableCell>
+                      <TableCell align="right">
+                        {formatNumber(prediction.predictedMinutes)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumber(Number(prediction.compatibilityScore), 0)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumber(Number(prediction.confidenceScore), 0)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollableTable>
           </SurfaceCard>
         ) : null}
       </QueryState>

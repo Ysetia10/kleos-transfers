@@ -21,6 +21,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { PageHeader } from '@/components/common/PageHeader'
 import { QueryState } from '@/components/common/QueryState'
+import { ScrollableTable } from '@/components/common/ScrollableTable'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -156,73 +157,83 @@ export function PlayersPage() {
           isLoading={playersQuery.isLoading}
           onRetry={() => void playersQuery.refetch()}
         >
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Player</TableCell>
-                <TableCell>Current club</TableCell>
-                <TableCell>Age</TableCell>
-                <TableCell>Nationality</TableCell>
-                <TableCell align="right">Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {playersQuery.data?.content.map((player) => (
-                <TableRow hover key={player.id}>
-                  <TableCell>
-                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                      <IdentityMedia
-                        imageUrl={player.photoUrl}
-                        label={player.fullName}
-                        size={36}
-                      />
-                      <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+          <ScrollableTable minWidth={640}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Player</TableCell>
+                  <TableCell>Current club</TableCell>
+                  <TableCell>Age</TableCell>
+                  <TableCell>Nationality</TableCell>
+                  <TableCell align="right">Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {playersQuery.data?.content.map((player) => (
+                  <TableRow hover key={player.id}>
+                    <TableCell>
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                        <IdentityMedia
+                          imageUrl={player.photoUrl}
+                          label={player.fullName}
+                          size={36}
+                        />
+                        <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                          <MuiLink
+                            component={RouterLink}
+                            sx={{ overflowWrap: 'anywhere' }}
+                            to={routes.playerDetail(player.id)}
+                            underline="hover"
+                          >
+                            {player.fullName}
+                          </MuiLink>
+                          <Typography color="text.secondary" variant="secondary">
+                            {player.primaryPosition} · {formatFootballCountry(player.nationality)}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      {player.latestClubId && player.latestClubName ? (
                         <MuiLink
                           component={RouterLink}
-                          to={routes.playerDetail(player.id)}
+                          to={routes.clubDetail(player.latestClubId)}
                           underline="hover"
                         >
-                          {player.fullName}
+                          {player.latestClubName}
                         </MuiLink>
-                        <Typography color="text.secondary" variant="secondary">
-                          {player.primaryPosition} · {formatFootballCountry(player.nationality)}
-                        </Typography>
-                      </Stack>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    {player.latestClubId && player.latestClubName ? (
-                      <MuiLink
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                    <TableCell>{formatAge(player.age)}</TableCell>
+                    <TableCell>{formatFootballCountry(player.nationality)}</TableCell>
+                    <TableCell align="right">
+                      <Button
                         component={RouterLink}
-                        to={routes.clubDetail(player.latestClubId)}
-                        underline="hover"
+                        size="small"
+                        sx={{ whiteSpace: 'nowrap' }}
+                        to={homePredictPath({ playerId: player.id })}
+                        variant="outlined"
                       >
-                        {player.latestClubName}
-                      </MuiLink>
-                    ) : (
-                      '—'
-                    )}
-                  </TableCell>
-                  <TableCell>{formatAge(player.age)}</TableCell>
-                  <TableCell>{formatFootballCountry(player.nationality)}</TableCell>
-                  <TableCell align="right">
-                    <Button
-                      component={RouterLink}
-                      size="small"
-                      to={homePredictPath({ playerId: player.id })}
-                      variant="outlined"
-                    >
-                      Predict transfer
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        Predict
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollableTable>
           {(playersQuery.data?.totalPages ?? 0) > 1 ? (
             <Stack
-              direction="row"
-              sx={{ alignItems: 'center', justifyContent: 'space-between', px: 2, py: 2 }}
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+              sx={{
+                alignItems: { xs: 'stretch', sm: 'center' },
+                justifyContent: 'space-between',
+                px: 2,
+                py: 2,
+              }}
             >
               <Typography color="text.secondary" variant="body2">
                 Showing page {page + 1} of {playersQuery.data?.totalPages}

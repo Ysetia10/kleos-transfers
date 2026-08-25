@@ -54,26 +54,33 @@ export function ActualOutcomeCard({ prediction, evaluation }: ActualOutcomeCardP
       <Box
         sx={{
           display: 'grid',
-          gap: 1.25,
-          gridTemplateColumns: '1.2fr 1fr 1fr 1fr',
+          gap: { xs: 1, sm: 1.25 },
+          gridTemplateColumns: {
+            xs: 'minmax(0, 1.1fr) repeat(3, minmax(0, 1fr))',
+            sm: '1.2fr 1fr 1fr 1fr',
+          },
           alignItems: 'baseline',
+          minWidth: 0,
+          overflowX: 'auto',
         }}
       >
         <Typography color="text.secondary" variant="caption">
           Metric
         </Typography>
         <Typography color="text.secondary" variant="caption">
-          Predicted
+          Pred.
         </Typography>
         <Typography color="text.secondary" variant="caption">
-          Actual
+          Act.
         </Typography>
         <Typography color="text.secondary" variant="caption">
-          Error
+          Err.
         </Typography>
         {rows.map((row) => (
           <Fragment key={row.label}>
-            <Typography variant="body2">{row.label}</Typography>
+            <Typography sx={{ overflowWrap: 'anywhere' }} variant="body2">
+              {row.label}
+            </Typography>
             <Typography variant="body2">{row.predicted}</Typography>
             <Typography variant="body2">{row.actual}</Typography>
             <Typography variant="body2">{row.error}</Typography>

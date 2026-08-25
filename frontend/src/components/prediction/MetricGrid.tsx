@@ -18,16 +18,17 @@ export function MetricGrid({
   assists,
   marketValueEur,
 }: MetricGridProps) {
-  const minutesLabel =
+  const hasRange =
     minutesLow != null && minutesHigh != null && (minutesLow !== minutes || minutesHigh !== minutes)
-      ? `${formatNumber(minutes)} (${formatNumber(minutesLow)}–${formatNumber(minutesHigh)})`
-      : formatNumber(minutes)
+  const minutesLabel = hasRange
+    ? `${formatNumber(minutes)} (${formatNumber(minutesLow)}–${formatNumber(minutesHigh)})`
+    : formatNumber(minutes)
 
   const metrics = [
-    { label: 'xM', value: minutesLabel },
-    { label: 'Goals', value: formatNumber(goals, 1) },
-    { label: 'Assists', value: formatNumber(assists, 1) },
-    { label: 'Market value', value: formatEur(marketValueEur) },
+    { label: 'xM', value: minutesLabel, wide: hasRange },
+    { label: 'Goals', value: formatNumber(goals, 1), wide: false },
+    { label: 'Assists', value: formatNumber(assists, 1), wide: false },
+    { label: 'Market value', value: formatEur(marketValueEur), wide: false },
   ]
 
   return (
@@ -37,7 +38,7 @@ export function MetricGrid({
         gap: 1.5,
         gridTemplateColumns: {
           xs: 'repeat(2, minmax(0, 1fr))',
-          md: 'repeat(2, minmax(0, 1fr))',
+          sm: 'repeat(2, minmax(0, 1fr))',
         },
       }}
     >
@@ -48,8 +49,10 @@ export function MetricGrid({
           sx={{
             border: (theme) => `1px solid ${theme.palette.divider}`,
             borderRadius: 2,
-            px: 1.5,
+            px: { xs: 1.25, sm: 1.5 },
             py: 1.25,
+            minWidth: 0,
+            gridColumn: metric.wide ? { xs: '1 / -1', sm: 'auto' } : 'auto',
             backgroundColor: (theme) =>
               theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(15,23,42,0.02)',
           }}
@@ -57,7 +60,18 @@ export function MetricGrid({
           <Typography color="text.secondary" variant="caption">
             {metric.label}
           </Typography>
-          <Typography component="p" variant="h3">
+          <Typography
+            component="p"
+            sx={{
+              fontSize: {
+                xs: metric.wide ? '1.05rem' : '1.15rem',
+                sm: '1.25rem',
+              },
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
+            }}
+            variant="h3"
+          >
             {metric.value}
           </Typography>
         </Stack>

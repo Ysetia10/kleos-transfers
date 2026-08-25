@@ -96,7 +96,14 @@ export function ClubDetailPage() {
         }`}
         eyebrow="Target club workspace"
         leading={
-          <IdentityMedia imageUrl={club.crestUrl} label={club.name} rounded="soft" size={72} />
+          <Box sx={{ flexShrink: 0 }}>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <IdentityMedia imageUrl={club.crestUrl} label={club.name} rounded="soft" size={72} />
+            </Box>
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              <IdentityMedia imageUrl={club.crestUrl} label={club.name} rounded="soft" size={48} />
+            </Box>
+          </Box>
         }
         title={club.name}
       />

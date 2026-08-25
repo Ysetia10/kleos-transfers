@@ -10,8 +10,8 @@ export function Footer() {
         mt: 'auto',
       }}
     >
-      <Container maxWidth="xl">
-        <Typography color="text.secondary" variant="body2">
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="body2">
           © {new Date().getFullYear()} Kleos Intelligence — Advanced Football Transfer Analytics
         </Typography>
       </Container>

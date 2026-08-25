@@ -1,4 +1,5 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, Stack, Typography, useMediaQuery } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink } from 'react-router-dom'
 import { IdentityMedia } from '@/components/common/IdentityMedia'
@@ -46,6 +47,13 @@ export function PitchLineup({
   squad,
   title = 'Likely XI',
 }: PitchLineupProps) {
+  const theme = useTheme()
+  const isNarrow = useMediaQuery(theme.breakpoints.down('sm'))
+  const markerWidth = isNarrow ? 52 : 72
+  const avatarSize = isNarrow ? 32 : 44
+  // Keep edge players fully on-canvas (markers are centered on slot coords).
+  const edgePad = isNarrow ? 0.1 : 0.07
+
   const apiQuery = useQuery({
     queryKey: queryKeys.clubs.likelyLineup(clubId ?? '', seasonId ?? ''),
     queryFn: () => getLikelyLineup(clubId!, seasonId!),
@@ -66,14 +74,14 @@ export function PitchLineup({
   }
 
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={1.5} sx={{ minWidth: 0, width: '100%' }}>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={1}
         sx={{ alignItems: { sm: 'baseline' }, justifyContent: 'space-between' }}
       >
         <Typography variant="h4">{title}</Typography>
-        <Typography color="text.secondary" variant="caption">
+        <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="caption">
           Formation {formation} · inferred from minutes · photo + name
         </Typography>
       </Stack>
@@ -84,18 +92,17 @@ export function PitchLineup({
           maxWidth: 560,
           mx: 'auto',
           aspectRatio: '3 / 4',
-          borderRadius: 3,
+          borderRadius: { xs: 2, sm: 3 },
           overflow: 'hidden',
-          background: (theme) =>
-            theme.palette.mode === 'dark'
+          background: (t) =>
+            t.palette.mode === 'dark'
               ? 'linear-gradient(180deg, #14532d 0%, #166534 45%, #15803d 100%)'
               : 'linear-gradient(180deg, #16a34a 0%, #22c55e 45%, #4ade80 100%)',
           border: '1px solid',
           borderColor: 'divider',
-          boxShadow: (theme) => `inset 0 0 0 1px ${theme.palette.pitch.mist}`,
+          boxShadow: (t) => `inset 0 0 0 1px ${t.palette.pitch.mist}`,
         }}
       >
-        {/* Pitch markings */}
         <Box
           sx={{
             position: 'absolute',
@@ -132,57 +139,65 @@ export function PitchLineup({
           }}
         />
 
-        {placements.map(({ slot, player, likelyStarter = true }) => (
-          <Box
-            key={`${slot.id}-${player.playerId}`}
-            component={RouterLink}
-            to={routes.playerDetail(player.playerId)}
-            sx={{
-              position: 'absolute',
-              left: `${slot.x * 100}%`,
-              top: `${(1 - slot.y) * 100}%`,
-              transform: 'translate(-50%, -50%)',
-              textDecoration: 'none',
-              color: 'inherit',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 0.25,
-              width: 72,
-              zIndex: 1,
-              opacity: likelyStarter ? 1 : 0.72,
-            }}
-          >
-            <IdentityMedia
-              imageUrl={player.photoUrl}
-              label={player.playerName}
-              size={44}
-            />
-            <Typography
+        {placements.map(({ slot, player, likelyStarter = true }) => {
+          const x = edgePad + slot.x * (1 - 2 * edgePad)
+          const y = edgePad + (1 - slot.y) * (1 - 2 * edgePad)
+          return (
+            <Box
+              key={`${slot.id}-${player.playerId}`}
+              component={RouterLink}
+              to={routes.playerDetail(player.playerId)}
               sx={{
-                color: '#fff',
-                textShadow: '0 1px 2px rgba(0,0,0,0.55)',
-                fontWeight: 500,
-                lineHeight: 1.15,
-                textAlign: 'center',
-                fontSize: 11,
+                position: 'absolute',
+                left: `${x * 100}%`,
+                top: `${y * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                textDecoration: 'none',
+                color: 'inherit',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 0.25,
+                width: markerWidth,
+                zIndex: 1,
+                opacity: likelyStarter ? 1 : 0.72,
               }}
             >
-              {shortDisplayName(player.playerName)}
-            </Typography>
-            <Typography
-              sx={{
-                color: 'rgba(255,255,255,0.88)',
-                textShadow: '0 1px 2px rgba(0,0,0,0.55)',
-                lineHeight: 1.1,
-                textAlign: 'center',
-                fontSize: 10,
-              }}
-            >
-              {formatMinutes(player.minutesPlayed)} min
-            </Typography>
-          </Box>
-        ))}
+              <IdentityMedia
+                imageUrl={player.photoUrl}
+                label={player.playerName}
+                size={avatarSize}
+              />
+              <Typography
+                sx={{
+                  color: '#fff',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.55)',
+                  fontWeight: 500,
+                  lineHeight: 1.15,
+                  textAlign: 'center',
+                  fontSize: isNarrow ? 9 : 11,
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {shortDisplayName(player.playerName)}
+              </Typography>
+              <Typography
+                sx={{
+                  color: 'rgba(255,255,255,0.88)',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.55)',
+                  lineHeight: 1.1,
+                  textAlign: 'center',
+                  fontSize: isNarrow ? 8 : 10,
+                }}
+              >
+                {formatMinutes(player.minutesPlayed)} min
+              </Typography>
+            </Box>
+          )
+        })}
       </Box>
     </Stack>
   )

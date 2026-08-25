@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState, type MouseEvent } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
+import { ScrollableTable } from '@/components/common/ScrollableTable'
 import { ErrorState } from '@/components/common/ErrorState'
 import { routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -111,7 +112,7 @@ function SamplesTable({ samples }: { samples: AccuracySample[] }) {
   }
 
   return (
-    <Box sx={{ maxHeight: '60vh', overflow: 'auto' }}>
+    <ScrollableTable minWidth={640} sx={{ maxHeight: '60vh' }}>
       <Table size="small" stickyHeader>
         <TableHead>
           <TableRow>
@@ -126,7 +127,7 @@ function SamplesTable({ samples }: { samples: AccuracySample[] }) {
           {samples.map((sample) => (
             <TableRow key={`${sample.playerId ?? sample.player}-${sample.season}-${sample.club}`}>
               <TableCell>
-                <Typography variant="body2">
+                <Typography sx={{ overflowWrap: 'anywhere' }} variant="body2">
                   {sample.player}
                   {sample.position ? ` (${sample.position})` : ''} → {sample.club}
                 </Typography>
@@ -157,7 +158,7 @@ function SamplesTable({ samples }: { samples: AccuracySample[] }) {
           ))}
         </TableBody>
       </Table>
-    </Box>
+    </ScrollableTable>
   )
 }
 

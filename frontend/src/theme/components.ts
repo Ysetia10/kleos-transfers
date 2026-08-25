@@ -11,9 +11,18 @@ export const components: Components<Theme> = {
         '0%': { opacity: 0, transform: 'scale(0.86) rotate(-8deg)' },
         '100%': { opacity: 1, transform: 'scale(1) rotate(0deg)' },
       },
+      html: {
+        overflowX: 'clip',
+      },
       body: {
         backgroundImage: 'none',
         fontFamily: 'Arial, Helvetica, sans-serif',
+        overflowX: 'clip',
+        maxWidth: '100vw',
+      },
+      img: {
+        maxWidth: '100%',
+        height: 'auto',
       },
       'b, strong': {
         fontWeight: 500,
@@ -45,6 +54,7 @@ export const components: Components<Theme> = {
       root: ({ theme, ownerState }) => ({
         borderRadius: 10,
         padding: theme.spacing(1, 2),
+        minHeight: 44,
         textTransform: 'none',
         fontWeight: 500,
         transition: 'transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease',
@@ -60,6 +70,13 @@ export const components: Components<Theme> = {
             }
           : {}),
       }),
+    },
+  },
+  MuiTableContainer: {
+    styleOverrides: {
+      root: {
+        maxWidth: '100%',
+      },
     },
   },
   MuiPaper: {

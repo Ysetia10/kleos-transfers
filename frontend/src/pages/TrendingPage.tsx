@@ -15,6 +15,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { IdentityMedia } from '@/components/common/IdentityMedia'
 import { PageHeader } from '@/components/common/PageHeader'
 import { QueryState } from '@/components/common/QueryState'
+import { ScrollableTable } from '@/components/common/ScrollableTable'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { homePredictPath, routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -31,47 +32,55 @@ import { formatNumber } from '@/utils/format'
 
 function BoardTable({ title, rows }: { title: string; rows: LeaderboardEntry[] }) {
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={1.5} sx={{ minWidth: 0 }}>
       <Typography variant="h4">{title}</Typography>
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Player</TableCell>
-            <TableCell align="right">G</TableCell>
-            <TableCell align="right">A</TableCell>
-            <TableCell align="right">Mins</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((row, index) => (
-            <TableRow hover key={`${title}-${row.playerId ?? row.playerName}-${index}`}>
-              <TableCell>
-                {row.playerId ? (
-                  <MuiLink
-                    component={RouterLink}
-                    to={routes.playerDetail(row.playerId)}
-                    underline="hover"
-                  >
-                    {row.playerName}
-                  </MuiLink>
-                ) : (
-                  row.playerName
-                )}
-                {row.clubName ? (
-                  <Typography color="text.secondary" component="span" sx={{ display: 'block' }} variant="caption">
-                    {row.clubName}
-                  </Typography>
-                ) : null}
-              </TableCell>
-              <TableCell align="right">{formatNumber(row.goals)}</TableCell>
-              <TableCell align="right">{formatNumber(row.assists)}</TableCell>
-              <TableCell align="right">
-                {row.minutesPlayed > 0 ? formatNumber(row.minutesPlayed) : '—'}
-              </TableCell>
+      <ScrollableTable minWidth={360}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Player</TableCell>
+              <TableCell align="right">G</TableCell>
+              <TableCell align="right">A</TableCell>
+              <TableCell align="right">Mins</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {rows.map((row, index) => (
+              <TableRow hover key={`${title}-${row.playerId ?? row.playerName}-${index}`}>
+                <TableCell>
+                  {row.playerId ? (
+                    <MuiLink
+                      component={RouterLink}
+                      sx={{ overflowWrap: 'anywhere' }}
+                      to={routes.playerDetail(row.playerId)}
+                      underline="hover"
+                    >
+                      {row.playerName}
+                    </MuiLink>
+                  ) : (
+                    row.playerName
+                  )}
+                  {row.clubName ? (
+                    <Typography
+                      color="text.secondary"
+                      component="span"
+                      sx={{ display: 'block' }}
+                      variant="caption"
+                    >
+                      {row.clubName}
+                    </Typography>
+                  ) : null}
+                </TableCell>
+                <TableCell align="right">{formatNumber(row.goals)}</TableCell>
+                <TableCell align="right">{formatNumber(row.assists)}</TableCell>
+                <TableCell align="right">
+                  {row.minutesPlayed > 0 ? formatNumber(row.minutesPlayed) : '—'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScrollableTable>
     </Stack>
   )
 }
@@ -210,73 +219,76 @@ export function TrendingPage() {
           onRetry={() => void fitRoutesQuery.refetch()}
         >
           <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Route</TableCell>
-                  <TableCell align="right">Fit</TableCell>
-                  <TableCell align="right">xM</TableCell>
-                  <TableCell align="right">Open</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {fitRoutesQuery.data?.map((route) => (
-                  <TableRow hover key={`${route.playerId}-${route.toClubId}-${route.source}`}>
-                    <TableCell>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                        <IdentityMedia
-                          imageUrl={route.playerPhotoUrl}
-                          label={route.playerName}
-                          size={36}
-                        />
-                        <Stack spacing={0.25} sx={{ minWidth: 0 }}>
-                          <MuiLink
-                            component={RouterLink}
-                            to={routes.playerDetail(route.playerId)}
-                            underline="hover"
-                          >
-                            {route.playerName}
-                          </MuiLink>
-                          <Typography color="text.secondary" variant="caption">
-                            {(route.fromClubName ?? 'Free / unknown') + ' → '}
+            <ScrollableTable minWidth={560}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Route</TableCell>
+                    <TableCell align="right">Fit</TableCell>
+                    <TableCell align="right">xM</TableCell>
+                    <TableCell align="right">Open</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {fitRoutesQuery.data?.map((route) => (
+                    <TableRow hover key={`${route.playerId}-${route.toClubId}-${route.source}`}>
+                      <TableCell>
+                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                          <IdentityMedia
+                            imageUrl={route.playerPhotoUrl}
+                            label={route.playerName}
+                            size={36}
+                          />
+                          <Stack spacing={0.25} sx={{ minWidth: 0 }}>
                             <MuiLink
                               component={RouterLink}
-                              to={routes.clubDetail(route.toClubId)}
+                              sx={{ overflowWrap: 'anywhere' }}
+                              to={routes.playerDetail(route.playerId)}
                               underline="hover"
                             >
-                              {route.toClubName}
+                              {route.playerName}
                             </MuiLink>
-                            {' · '}
-                            {route.seasonLabel}
-                          </Typography>
+                            <Typography color="text.secondary" variant="caption">
+                              {(route.fromClubName ?? 'Free / unknown') + ' → '}
+                              <MuiLink
+                                component={RouterLink}
+                                to={routes.clubDetail(route.toClubId)}
+                                underline="hover"
+                              >
+                                {route.toClubName}
+                              </MuiLink>
+                              {' · '}
+                              {route.seasonLabel}
+                            </Typography>
+                          </Stack>
                         </Stack>
-                      </Stack>
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatNumber(Number(route.compatibilityScore), 0)}
-                    </TableCell>
-                    <TableCell align="right">{formatNumber(route.predictedMinutes)}</TableCell>
-                    <TableCell align="right">
-                      <Button
-                        component={RouterLink}
-                        size="small"
-                        to={
-                          route.predictionId
-                            ? routes.predictionDetail(route.predictionId)
-                            : homePredictPath({
-                                playerId: route.playerId,
-                                clubId: route.toClubId,
-                              })
-                        }
-                        variant="outlined"
-                      >
-                        {route.predictionId ? 'View' : 'Simulate'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumber(Number(route.compatibilityScore), 0)}
+                      </TableCell>
+                      <TableCell align="right">{formatNumber(route.predictedMinutes)}</TableCell>
+                      <TableCell align="right">
+                        <Button
+                          component={RouterLink}
+                          size="small"
+                          to={
+                            route.predictionId
+                              ? routes.predictionDetail(route.predictionId)
+                              : homePredictPath({
+                                  playerId: route.playerId,
+                                  clubId: route.toClubId,
+                                })
+                          }
+                          variant="outlined"
+                        >
+                          {route.predictionId ? 'View' : 'Simulate'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollableTable>
           </SurfaceCard>
         </QueryState>
       </Stack>
@@ -308,34 +320,37 @@ export function TrendingPage() {
           onRetry={() => void transfersQuery.refetch()}
         >
           <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Player</TableCell>
-                  <TableCell>From</TableCell>
-                  <TableCell>To</TableCell>
-                  <TableCell>Season</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {transfersQuery.data?.content.map((transfer) => (
-                  <TableRow hover key={transfer.id}>
-                    <TableCell>
-                      <MuiLink
-                        component={RouterLink}
-                        to={routes.playerDetail(transfer.playerId)}
-                        underline="hover"
-                      >
-                        {transfer.playerName}
-                      </MuiLink>
-                    </TableCell>
-                    <TableCell>{transfer.fromClubName ?? '—'}</TableCell>
-                    <TableCell>{transfer.toClubName ?? '—'}</TableCell>
-                    <TableCell>{transfer.seasonLabel}</TableCell>
+            <ScrollableTable minWidth={480}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Player</TableCell>
+                    <TableCell>From</TableCell>
+                    <TableCell>To</TableCell>
+                    <TableCell>Season</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {transfersQuery.data?.content.map((transfer) => (
+                    <TableRow hover key={transfer.id}>
+                      <TableCell>
+                        <MuiLink
+                          component={RouterLink}
+                          sx={{ overflowWrap: 'anywhere' }}
+                          to={routes.playerDetail(transfer.playerId)}
+                          underline="hover"
+                        >
+                          {transfer.playerName}
+                        </MuiLink>
+                      </TableCell>
+                      <TableCell>{transfer.fromClubName ?? '—'}</TableCell>
+                      <TableCell>{transfer.toClubName ?? '—'}</TableCell>
+                      <TableCell>{transfer.seasonLabel}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollableTable>
           </SurfaceCard>
         </QueryState>
       </Stack>

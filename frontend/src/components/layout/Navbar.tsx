@@ -97,7 +97,12 @@ export function Navbar() {
             <IconButton
               aria-label="Open navigation"
               onClick={() => setOpen(true)}
-              sx={{ display: { md: 'none' }, color: 'text.secondary' }}
+              sx={{
+                display: { md: 'none' },
+                color: 'text.secondary',
+                width: 44,
+                height: 44,
+              }}
             >
               <MenuIcon />
             </IconButton>
@@ -116,7 +121,7 @@ export function Navbar() {
               end={to === routes.home}
               key={to}
               onClick={() => setOpen(false)}
-              sx={{ justifyContent: 'flex-start' }}
+              sx={{ justifyContent: 'flex-start', minHeight: 44 }}
               to={to}
             >
               {label}

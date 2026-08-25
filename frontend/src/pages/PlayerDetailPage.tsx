@@ -64,7 +64,16 @@ export function PlayerDetailPage() {
           </Box>
         }
         eyebrow="Player workspace"
-        leading={<IdentityMedia imageUrl={player.photoUrl} label={player.fullName} size={72} />}
+        leading={
+          <Box sx={{ flexShrink: 0 }}>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <IdentityMedia imageUrl={player.photoUrl} label={player.fullName} size={72} />
+            </Box>
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              <IdentityMedia imageUrl={player.photoUrl} label={player.fullName} size={48} />
+            </Box>
+          </Box>
+        }
         title={player.fullName}
       />
 

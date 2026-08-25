@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/components/common/PageHeader'
 import { QueryState } from '@/components/common/QueryState'
+import { ScrollableTable } from '@/components/common/ScrollableTable'
 import { SurfaceCard } from '@/components/common/SurfaceCard'
 import { routes } from '@/constants/routes'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -99,7 +100,7 @@ export function TransfersPage() {
       />
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-        <FormControl sx={{ minWidth: 220 }}>
+        <FormControl sx={{ minWidth: { xs: '100%', sm: 220 }, width: { xs: '100%', sm: 'auto' } }}>
           <InputLabel id="transfer-season-label">Move season</InputLabel>
           <Select
             label="Move season"
@@ -133,87 +134,87 @@ export function TransfersPage() {
         onRetry={() => void transfersQuery.refetch()}
       >
         <SurfaceCard sx={{ p: 0, overflow: 'hidden' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Player</TableCell>
-                <TableCell>From</TableCell>
-                <TableCell>To</TableCell>
-                <TableCell>Move season</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell align="right">Fee</TableCell>
-                <TableCell align="right">Project</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {transfersQuery.data?.content.map((transfer) => {
-                const canProject = Boolean(transfer.toClubId && projectSeason)
-                const busy = pendingId === transfer.id && predictMutation.isPending
-                return (
-                  <TableRow hover key={transfer.id}>
-                    <TableCell>
-                      <MuiLink
-                        component={RouterLink}
-                        to={routes.playerDetail(transfer.playerId)}
-                        underline="hover"
-                      >
-                        {transfer.playerName}
-                      </MuiLink>
-                      <Typography color="text.secondary" component="div" variant="caption">
-                        {formatDate(transfer.transferDate)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      {transfer.fromClubId ? (
+          <ScrollableTable minWidth={720}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Player</TableCell>
+                  <TableCell>From</TableCell>
+                  <TableCell>To</TableCell>
+                  <TableCell>Move season</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell align="right">Fee</TableCell>
+                  <TableCell align="right">Project</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {transfersQuery.data?.content.map((transfer) => {
+                  const canProject = Boolean(transfer.toClubId && projectSeason)
+                  const busy = pendingId === transfer.id && predictMutation.isPending
+                  return (
+                    <TableRow hover key={transfer.id}>
+                      <TableCell>
                         <MuiLink
                           component={RouterLink}
-                          to={routes.clubDetail(transfer.fromClubId)}
+                          sx={{ overflowWrap: 'anywhere' }}
+                          to={routes.playerDetail(transfer.playerId)}
                           underline="hover"
                         >
-                          {transfer.fromClubName}
+                          {transfer.playerName}
                         </MuiLink>
-                      ) : (
-                        (transfer.fromClubName ?? '—')
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {transfer.toClubId ? (
-                        <MuiLink
-                          component={RouterLink}
-                          to={routes.clubDetail(transfer.toClubId)}
-                          underline="hover"
+                        <Typography color="text.secondary" component="div" variant="caption">
+                          {formatDate(transfer.transferDate)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {transfer.fromClubId ? (
+                          <MuiLink
+                            component={RouterLink}
+                            to={routes.clubDetail(transfer.fromClubId)}
+                            underline="hover"
+                          >
+                            {transfer.fromClubName}
+                          </MuiLink>
+                        ) : (
+                          (transfer.fromClubName ?? '—')
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {transfer.toClubId ? (
+                          <MuiLink
+                            component={RouterLink}
+                            to={routes.clubDetail(transfer.toClubId)}
+                            underline="hover"
+                          >
+                            {transfer.toClubName}
+                          </MuiLink>
+                        ) : (
+                          (transfer.toClubName ?? '—')
+                        )}
+                      </TableCell>
+                      <TableCell>{transfer.seasonLabel}</TableCell>
+                      <TableCell>{transfer.type}</TableCell>
+                      <TableCell align="right">{formatEur(transfer.feeEur)}</TableCell>
+                      <TableCell align="right">
+                        <Button
+                          disabled={!canProject || predictMutation.isPending}
+                          onClick={() => {
+                            setPendingId(transfer.id)
+                            predictMutation.mutate(transfer)
+                          }}
+                          size="small"
+                          sx={{ whiteSpace: 'nowrap' }}
+                          variant="contained"
                         >
-                          {transfer.toClubName}
-                        </MuiLink>
-                      ) : (
-                        (transfer.toClubName ?? '—')
-                      )}
-                    </TableCell>
-                    <TableCell>{transfer.seasonLabel}</TableCell>
-                    <TableCell>{transfer.type}</TableCell>
-                    <TableCell align="right">{formatEur(transfer.feeEur)}</TableCell>
-                    <TableCell align="right">
-                      <Button
-                        disabled={!canProject || predictMutation.isPending}
-                        onClick={() => {
-                          setPendingId(transfer.id)
-                          predictMutation.mutate(transfer)
-                        }}
-                        size="small"
-                        variant="contained"
-                      >
-                        {busy
-                          ? 'Running…'
-                          : projectSeason
-                            ? `Predict ${projectSeason.label}`
-                            : 'Predict'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                          {busy ? 'Running…' : 'Predict'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </ScrollableTable>
         </SurfaceCard>
 
         {(transfersQuery.data?.totalPages ?? 0) > 1 ? (

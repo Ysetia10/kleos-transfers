@@ -43,6 +43,8 @@ export function ThemeToggle() {
           border: (theme) => `1px solid ${theme.palette.divider}`,
           borderRadius: 999,
           color: 'text.secondary',
+          width: 44,
+          height: 44,
           '&:hover': { color: 'text.primary', borderColor: 'primary.main' },
         }}
       >

@@ -1,4 +1,5 @@
-import { Box, Button, Dialog, DialogContent, DialogTitle, Stack, Typography } from '@mui/material'
+import { Box, Button, Dialog, DialogContent, DialogTitle, Stack, Typography, useMediaQuery } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -11,13 +12,14 @@ export function HomePage() {
   const playerId = params.get('playerId') ?? undefined
   const clubId = params.get('clubId') ?? undefined
   const [simulatorOpen, setSimulatorOpen] = useState(false)
+  const theme = useTheme()
+  const fullScreenDialog = useMediaQuery(theme.breakpoints.down('sm'))
 
   return (
     <Stack spacing={{ xs: 4, md: 5 }}>
       <Stack spacing={2.5}>
         <PageHeader
           description="Select a professional athlete and target club to generate data-driven performance forecasts for the upcoming season."
-          descriptionSx={{ whiteSpace: { xs: 'normal', md: 'nowrap' } }}
           eyebrow="Analysis engine"
           title="Player Projections"
         />
@@ -82,6 +84,7 @@ export function HomePage() {
       </Box>
 
       <Dialog
+        fullScreen={fullScreenDialog}
         fullWidth
         maxWidth="md"
         onClose={() => setSimulatorOpen(false)}

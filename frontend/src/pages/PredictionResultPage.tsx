@@ -60,7 +60,11 @@ export function PredictionResultPage() {
             </Button>
           </>
         }
-        description={`${prediction.playerName} → ${prediction.targetClubName} · ${prediction.seasonLabel}`}
+        description={
+          <Box component="span" sx={{ overflowWrap: 'anywhere' }}>
+            {prediction.playerName} → {prediction.targetClubName} · {prediction.seasonLabel}
+          </Box>
+        }
         eyebrow="Prediction workspace"
         eyebrowSx={{ fontSize: 'calc(0.7rem + 2pt)' }}
       />

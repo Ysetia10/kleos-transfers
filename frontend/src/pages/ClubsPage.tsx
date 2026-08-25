@@ -80,7 +80,7 @@ export function ClubsPage() {
                   size={44}
                 />
                 <Stack spacing={0.25} sx={{ minWidth: 0 }}>
-                  <Typography noWrap variant="h4">
+                  <Typography sx={{ overflowWrap: 'anywhere' }} variant="h4">
                     {club.name}
                   </Typography>
                   <Typography color="text.secondary" variant="body2">

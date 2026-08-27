@@ -1,139 +1,134 @@
 # Kleos Transfers
 
-Kleos Transfers is an open-source, context-aware football transfer prediction platform. Its long-term purpose is to estimate how a player is likely to perform after joining a specific club, before the season begins.
+Open-source, explainable football transfer prediction — estimate how a player is likely to perform at a **specific club** in a **specific season**, with the contextual factors behind each projection.
 
-The project focuses on the environment around a transfer—not only a player's historical record. Future analyses will consider factors such as tactical fit, squad competition, managerial approach, fixture demands, league transition, age profile, injury history, and international commitments.
+**Live:** [kleos-transfer.vercel.app](https://kleos-transfer.vercel.app) · **API:** [kleos-transfers-api.onrender.com](https://kleos-transfers-api.onrender.com/api/v1/health)
 
-## Vision
+Engine: **`v0.12-heuristic`** · Leagues: **top five** (ENG, ESP, GER, ITA, FRA) · Seasons: **2016/17–2025/26**
 
-Build an accessible and explainable decision-support platform for football transfers. Kleos Transfers should make its conclusions understandable: users should be able to see the positive and negative contextual factors behind each transfer assessment.
+---
 
-## Current status
+## How it works
 
-Version **0.4** — Prediction layer with completed-season validation baseline.
+1. **Pick a scenario** — player, destination club, and target season.
+2. **Run the engine** — loads history, squad context, injuries, and transfers *as of season start* (no outcome leakage).
+3. **Read the projection** — minutes, goals, assists, market value, compatibility/confidence, and factor-level explanations.
 
-Completed:
+<p align="center">
+  <img src="docs/images/prediction-workspace.png" alt="Prediction workspace showing projected minutes, goals, assists, compatibility scores, and fit dimensions" width="720" />
+</p>
 
-- Repository, backend, and frontend foundations
-- Shared domain foundation (`BaseEntity`, auditing, enums)
-- Player, Club, Manager, Season, and Tournament identity modules (API, persistence, validation, tests)
-- ClubSeason, ManagerSeason, PlayerSeason, Transfer, Contract, and Injury historical modules
-- PredictionRun / Prediction / Explanation / Evaluation with explainable **`v0.12-heuristic`** engine
-- Completed-season validation job + published multi-season baselines (`docs/prediction-validation.md`, `research/validation/latest.json`)
-- Frontend: players/clubs catalogue, prediction form, explainable results, trending stats
-- FBref top-five league ingest (ENG/ESP/GER/ITA/FRA) for 2016/17–2025/26 (idempotent, headless)
-- Bulk identity import API + CSV loader script (ingest key required in production)
-- SpringDoc OpenAPI / Swagger UI for `/api/v1`
-- Material UI design system and application shell
+Each result breaks down **why** the model landed where it did — key drivers plus grouped signals (availability, performance, tactical fit, transfer context):
 
-Next: recover expected-stats (xG/xA) in the historical layer (#37), then a v1 model that beats the `v0.12` validation baseline (#38).
+<p align="center">
+  <img src="docs/images/prediction-explanations.png" alt="Why this prediction — key drivers and signal groups" width="720" />
+</p>
 
-## High-level architecture
+Player profiles feed injury and availability context into the minutes model:
 
-```text
-Data sources and research
-        |
-        v
-Database <--> Analytics and evaluation <--> Backend API <--> Frontend
-        ^                                      |
-        |                                      v
-Database schema and migrations           Documentation and operations
-```
+<p align="center">
+  <img src="docs/images/player-injury-history.png" alt="Player profile with documented injury history" width="720" />
+</p>
 
-Domain modeling separates:
+Completed-season backtests are published in [`research/validation/latest.json`](research/validation/latest.json) — see [`docs/prediction-validation.md`](docs/prediction-validation.md).
 
-1. **Identity** — permanent records (Player, Club, Manager, Season, Tournament)
-2. **Historical** — time-scoped facts (PlayerSeason, Transfer, Contract, Injury, …)
-3. **Prediction** — Kleos intelligence (Prediction, Evaluation, Explanation)
+---
 
-See [`docs/domain-model.md`](docs/domain-model.md).
-
-## Repository structure
+## Architecture
 
 ```text
-backend/    Spring Boot API and persistence
-frontend/   React + Vite web application
-analytics/  Future analysis and evaluation work
-database/   Schema notes and data-access documentation
-docs/       Architecture, domain model, and decisions
-research/   Research notes and methodology
-scripts/    Development automation
-.github/    GitHub Actions and repository automation
+FBref / Wikimedia / Wikipedia / enrichers
+              │
+              ▼
+     PostgreSQL (Supabase)
+              │
+              ▼
+   Spring Boot API (Render)  ←──  React SPA (Vercel)
+              │
+              ▼
+   HeuristicPredictionEngine (v0.12)
+   → minutes · outputs · compatibility · confidence · explanations
 ```
 
-## Getting started
+| Layer | Stack |
+|-------|--------|
+| **Frontend** | React 19, TypeScript, Vite, MUI, TanStack Query |
+| **Backend** | Java 21, Spring Boot 3, JPA, Flyway, PostgreSQL |
+| **Hosting** | Vercel + Render + Supabase (free tier) |
 
-### Backend
+**Domain model** (three layers):
 
-Requires Java 21, Gradle, and PostgreSQL.
+1. **Identity** — Player, Club, Manager, Season, Tournament
+2. **Historical** — PlayerSeason, Transfer, Contract, Injury, …
+3. **Prediction** — PredictionRun, Prediction, Explanation, Evaluation
+
+Details: [`docs/domain-model.md`](docs/domain-model.md) · API reference: [`backend/README.md`](backend/README.md)
+
+Production writes are restricted: public users can **read** and **`POST /predictions`**; bulk ingest requires `KLEOS_INGEST_API_KEY` (see [`docs/deployment.md`](docs/deployment.md)).
+
+---
+
+## Data sources
+
+| Source | Used for |
+|--------|----------|
+| **FBref** (via `soccerdata`) | Clubs, players, seasons, player-season stats (primary ingest) |
+| **Wikipedia / Wikidata** | Transfer windows, career leaders, player bio (height, foot) |
+| **TheSportsDB / Wikimedia** | Club crests and player photos (hotlinked URLs only) |
+| **Understat** (optional) | xG/xA backfill when FBref expected cols are missing |
+| **Kleos-derived** | Transfers from season diffs; inferred contracts/injuries from minutes gaps |
+
+**Coverage:** Premier League, La Liga, Bundesliga, Serie A, Ligue 1 — **2016/17 through 2025/26**. Forward seasons (e.g. 2026/27) exist as identity shells for simulation only.
+
+We do **not** commit scraped dumps or republish raw provider data. Full policy: [`docs/data-sourcing.md`](docs/data-sourcing.md).
+
+---
+
+## Quick start
+
+**Backend** (Java 21, PostgreSQL):
 
 ```bash
 cd backend
-cp ../.env.example ../.env   # fill DATABASE_* values
-./gradlew test
-./gradlew bootRun
+cp ../.env.example ../.env   # DATABASE_*
+./gradlew test && ./gradlew bootRun
+# → http://localhost:8080/api/v1
 ```
 
-API base path: `http://localhost:8080/api/v1`
-
-- `GET /api/v1/health`
-- `GET|POST /api/v1/players` and `GET|PUT|DELETE /api/v1/players/{id}`
-- `GET|POST /api/v1/clubs` and `GET|PUT|DELETE /api/v1/clubs/{id}`
-- `GET|POST /api/v1/managers` and `GET|PUT|DELETE /api/v1/managers/{id}`
-- `GET|POST /api/v1/seasons` and `GET|PUT|DELETE /api/v1/seasons/{id}`
-- `GET|POST /api/v1/tournaments` and `GET|PUT|DELETE /api/v1/tournaments/{id}`
-- `GET|POST /api/v1/club-seasons` and `GET|PUT|DELETE /api/v1/club-seasons/{id}`
-- `GET|POST /api/v1/manager-seasons` and `GET|PUT|DELETE /api/v1/manager-seasons/{id}`
-- `GET|POST /api/v1/player-seasons` and `GET|PUT|DELETE /api/v1/player-seasons/{id}`
-- `GET|POST /api/v1/transfers` and `GET|PUT|DELETE /api/v1/transfers/{id}`
-- `GET|POST /api/v1/contracts` and `GET|PUT|DELETE /api/v1/contracts/{id}`
-- `GET|POST /api/v1/injuries` and `GET|PUT|DELETE /api/v1/injuries/{id}`
-- `POST|GET /api/v1/predictions`, `GET|DELETE /api/v1/predictions/{id}`, `POST /api/v1/predictions/{id}/evaluate`
-- `GET /api/v1/prediction-runs/{id}`
-- Bulk import on identity and historical collection endpoints via `/bulk` (requires `KLEOS_INGEST_API_KEY` in production)
-
-### Loading historical data (top-five European leagues)
-
-Real seasons **2016/17–2025/26** are loaded from FBref for **Premier League, La Liga, Bundesliga, Serie A, and Ligue 1** (not a fake demo seed). Upcoming **predict-to** seasons (e.g. **2026/27**) are Season identity shells — no incomplete FBref scrape — so the simulator can project before outcomes exist (`scripts/ensure_predict_seasons.py`). See [`docs/data-sourcing.md`](docs/data-sourcing.md) and:
-
-```bash
-pip install -r scripts/requirements-ingest.txt
-# with the backend running:
-./scripts/ingest_fbref_pl_laliga.py --dry-run --seasons 2024/25
-./scripts/ingest_fbref_pl_laliga.py
-```
-
-### Loading small identity CSVs
-
-For hand-authored identity patches:
-
-```bash
-./scripts/import-identities.py players scripts/sample-data/players.csv
-```
-
-See [`scripts/README.md`](scripts/README.md) for column formats and options.
-
-### Production deployment
-
-Free-tier hosting: **Vercel** (UI) + **Render** (API) + **Supabase** (Postgres). Full steps: [`docs/deployment.md`](docs/deployment.md).
-
-### Frontend
-
-Requires Node.js 20+.
+**Frontend** (Node 20+):
 
 ```bash
 cd frontend
-cp .env.example .env.local
-npm install
-npm run dev
+cp .env.example .env.local   # VITE_API_BASE_URL=http://localhost:8080
+npm install && npm run dev
+# → http://localhost:5173
 ```
 
-The Vite app serves at `http://localhost:5173` (or `http://127.0.0.1:5173`). Set `VITE_API_BASE_URL=http://localhost:8080` in `.env.local` for local API calls. Production uses `VITE_API_BASE_URL` on Vercel (see `docs/deployment.md`) — never hardcode localhost in source.
+**Load data** (backend running):
+
+```bash
+pip install -r scripts/requirements-ingest.txt
+./scripts/ingest_fbref_pl_laliga.py --dry-run --seasons 2024/25
+```
+
+More scripts and ingest options: [`scripts/README.md`](scripts/README.md) · Production deploy: [`docs/deployment.md`](docs/deployment.md) · Ops: [`docs/ops.md`](docs/ops.md)
+
+---
+
+## Repository
+
+```text
+backend/   Spring Boot API
+frontend/  React web app
+docs/      Architecture, deployment, data policy
+research/  Validation artifacts and notes
+scripts/   FBref ingest, enrichment, backtests
+```
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, PR expectations, and how issues are labeled.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Kleos Transfers is released under the [MIT License](LICENSE).
+[MIT License](LICENSE)

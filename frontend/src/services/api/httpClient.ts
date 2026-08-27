@@ -3,9 +3,9 @@ import { env } from '@/config/env'
 import { setApiWaking } from '@/services/api/apiWake'
 import { ApiError, type ApiErrorBody } from '@/types/api'
 
-/** Render free tier cold start can exceed 30s; give production more headroom. */
-const REQUEST_TIMEOUT_MS = import.meta.env.PROD ? 60_000 : 10_000
-const MAX_NETWORK_RETRIES = import.meta.env.PROD ? 2 : 0
+/** Render free tier cold start can exceed 60s; allow headroom after idle spin-down. */
+const REQUEST_TIMEOUT_MS = import.meta.env.PROD ? 180_000 : 10_000
+const MAX_NETWORK_RETRIES = import.meta.env.PROD ? 3 : 0
 const WAKE_BANNER_AFTER_MS = 2_500
 
 type RetryConfig = InternalAxiosRequestConfig & { __retryCount?: number }

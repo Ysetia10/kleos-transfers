@@ -5,8 +5,25 @@ server:
   port: ${PORT:${SERVER_PORT:8080}}
 
 spring:
+  main:
+    # Defer non-critical beans until first use — cuts cold-start time on free-tier CPU.
+    lazy-initialization: true
+  flyway:
+    # Schema is migrated via deploy/restore; skip ~3s pooler round-trips on every boot.
+    enabled: ${SPRING_FLYWAY_ENABLED:false}
   jpa:
     show-sql: false
+    hibernate:
+      # validate hits Supabase for every table (~90s on Render free tier); Flyway owns schema.
+      ddl-auto: none
+    properties:
+      hibernate:
+        boot:
+          allow_jdbc_metadata_access: false
+  data:
+    jpa:
+      repositories:
+        bootstrap-mode: deferred
 
 logging:
   level:
@@ -15,6 +32,6 @@ logging:
 
 springdoc:
   api-docs:
-    enabled: true
+    enabled: false
   swagger-ui:
-    enabled: true
+    enabled: false

@@ -1,0 +1,27 @@
+# Lightweight ping to prevent Render free-tier spin-down (~15 min idle).
+# Cold starts can take 2–3 min — use a long curl timeout so the wake completes.
+name: Keep warm
+
+on:
+  schedule:
+    # Every 8 minutes — safely under Render’s ~15 min idle window (GitHub cron can drift).
+    - cron: '*/8 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Health ping
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Wake API
+        run: |
+          set -euo pipefail
+          API="${PROD_API_BASE:-https://kleos-transfers-api.onrender.com}"
+          echo "GET ${API}/api/v1/health"
+          curl -fsS --max-time 240 "${API}/api/v1/health" | tee /tmp/health.json
+          grep -q '"status":"UP"' /tmp/health.json

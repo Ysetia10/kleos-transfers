@@ -58,7 +58,7 @@ pg_dump -h localhost -U kleos -d kleos_transfers --no-owner --no-acl -Fc -f kleo
 # restore via pg_restore to pooler/direct host — see ops.md backups
 ```
 
-Flyway runs automatically on backend startup (`ddl-auto: validate`).
+Flyway runs on backend startup in **local/dev** (`ddl-auto: validate`). In **prod**, Flyway is off by default (`SPRING_FLYWAY_ENABLED=false`) for faster cold starts — enable for one deploy when applying new migrations (see [`ops.md`](./ops.md)).
 
 ---
 
@@ -88,7 +88,7 @@ curl https://kleos-transfers-api.onrender.com/api/v1/health
 curl https://kleos-transfers-api.onrender.com/actuator/health
 ```
 
-Free tier may sleep after inactivity (cold start ~30–60s) unless keep-warm is running — see [`ops.md`](./ops.md).
+Free tier may sleep after inactivity (cold start ~30–90s after optimizations) unless **Keep warm** workflow is running — see [`ops.md`](./ops.md).
 
 ---
 
@@ -164,7 +164,7 @@ This project uses **Vite**, not Next.js — use `VITE_API_BASE_URL` (not `NEXT_P
 ## 6. CI vs production
 
 GitHub Actions builds the frontend with the **production** API URL and fails if `dist/assets` contains `localhost:8080`.  
-Scheduled **Production ops** workflow keep-warms and smoke-tests the live API/UI.
+Scheduled **Keep warm** (every 8 min) and **Production ops** (hourly smoke) workflows keep the live API warm and monitored.
 
 ---
 

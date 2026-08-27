@@ -1,11 +1,10 @@
-# Keep Render free tier awake and smoke-check production health.
-# Failures notify via GitHub Actions (email/watch notifications for the repo).
+# Full production smoke checks (health + data read + frontend).
+# Keep-warm pings run separately in keep-warm.yml (more frequent, longer timeout).
 name: Production ops
 
 on:
   schedule:
-    # ~every 12 minutes — under Render’s ~15 min idle spin-down window
-    - cron: '*/12 * * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -13,19 +12,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  keep-warm-and-uptime:
-    name: Keep-warm + uptime
+  uptime:
+    name: Uptime smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Health (keep-warm)
-        # Long timeout: first hit after idle may cold-start ~30–60s.
+      - name: Health
         run: |
           set -euo pipefail
           API="${PROD_API_BASE:-https://kleos-transfers-api.onrender.com}"
           echo "GET ${API}/api/v1/health"
-          curl -fsS --retry 2 --retry-delay 5 --max-time 90 \
-            "${API}/api/v1/health" | tee /tmp/health.json
+          curl -fsS --max-time 240 "${API}/api/v1/health" | tee /tmp/health.json
           grep -q '"status":"UP"' /tmp/health.json
 
       - name: Clubs smoke read
@@ -33,7 +30,7 @@ jobs:
           set -euo pipefail
           API="${PROD_API_BASE:-https://kleos-transfers-api.onrender.com}"
           echo "GET ${API}/api/v1/clubs?size=1"
-          curl -fsS --max-time 30 \
+          curl -fsS --max-time 60 \
             "${API}/api/v1/clubs?size=1" | tee /tmp/clubs.json
           grep -q '"content"' /tmp/clubs.json
 
@@ -41,7 +38,6 @@ jobs:
         run: |
           set -euo pipefail
           UI="${PROD_UI_BASE:-https://kleos-transfer.vercel.app}"
-          # Brief retries: Vercel can return 404 briefly during alias swaps.
           for i in 1 2 3 4 5; do
             code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "${UI}/" || echo "000")
             echo "UI HTTP ${code} (attempt ${i})"

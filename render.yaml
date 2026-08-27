@@ -20,6 +20,8 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+      - key: SPRING_FLYWAY_ENABLED
+        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: DATABASE_USERNAME

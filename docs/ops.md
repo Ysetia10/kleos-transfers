@@ -14,15 +14,25 @@ See also [`deployment.md`](./deployment.md).
 
 ## Cold start (Render free tier) — #78
 
-After ~15 minutes idle, Render spins the API down. The next request can take **~30–60s**.
+After ~15 minutes idle, Render spins the API down. The next request can take **~30–90s** after startup optimizations (previously **2–3 minutes**).
+
+**Root causes addressed:**
+
+1. **Keep-warm timed out too early** — `prod-ops` used a 90s curl limit while cold boot took ~179s, so scheduled pings failed before the API was UP.
+2. **Slow Hibernate validate** — `ddl-auto: validate` against Supabase on every boot added ~90s on free-tier CPU.
+3. **Infrequent pings** — 12-minute cron plus GitHub schedule drift let Render spin down between wakes.
 
 **Mitigations in this repo:**
 
-1. **Keep-warm + uptime** — `.github/workflows/prod-ops.yml` curls `/api/v1/health` every ~12 minutes (under the idle window).
-2. **Frontend** — production timeout 60s, network retries, health prefetch on load, and an “Starting the API…” banner while waiting.
-3. **Upgrade path** — Render paid / always-on removes spin-down; keep docs updated if you upgrade.
+1. **Keep-warm** — `.github/workflows/keep-warm.yml` pings `/api/v1/health` every **8 minutes** with a **240s** timeout (ping-only, no clubs/UI).
+2. **Production ops** — `.github/workflows/prod-ops.yml` runs hourly full smoke (health + clubs + frontend).
+3. **Faster prod boot** — `application-prod.yml`: skip Flyway on boot (`SPRING_FLYWAY_ENABLED=false`), `ddl-auto: none`, lazy init, deferred JPA repos, springdoc off; Dockerfile JVM tier-1 compile.
+4. **Frontend** — production timeout 180s, network retries, health prefetch on load, and a wake banner while waiting.
+5. **Upgrade path** — Render paid / always-on removes spin-down entirely.
 
-**Decision recorded:** use GitHub Actions keep-warm on free tier; do not disable Flyway on boot.
+**When applying DB migrations in prod:** set `SPRING_FLYWAY_ENABLED=true` for one deploy (or run Flyway manually), then turn off again.
+
+**Decision recorded:** keep-warm is ping-only with a long timeout; Flyway disabled on routine prod boots after schema is current.
 
 ---
 

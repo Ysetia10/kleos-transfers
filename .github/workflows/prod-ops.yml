@@ -1,9 +1,11 @@
-# Full production smoke checks (health + data read + frontend).
-# Keep-warm pings run separately in keep-warm.yml (more frequent, longer timeout).
+# Keep Render awake (every 10 min) + hourly full smoke checks.
 name: Production ops
 
 on:
   schedule:
+    # Health ping every 10 min — under Render’s ~15 min idle window.
+    - cron: '*/10 * * * *'
+    # Full smoke at the top of each hour (also runs the health ping).
     - cron: '0 * * * *'
   workflow_dispatch:
 
@@ -12,10 +14,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  uptime:
-    name: Uptime smoke
+  ping:
+    name: Keep-warm ping
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 6
     steps:
       - name: Health
         run: |
@@ -25,6 +27,13 @@ jobs:
           curl -fsS --max-time 240 "${API}/api/v1/health" | tee /tmp/health.json
           grep -q '"status":"UP"' /tmp/health.json
 
+  smoke:
+    name: Uptime smoke
+    needs: ping
+    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
       - name: Clubs smoke read
         run: |
           set -euo pipefail

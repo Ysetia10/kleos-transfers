@@ -24,8 +24,7 @@ After ~15 minutes idle, Render spins the API down. The next request can take **~
 
 **Mitigations in this repo:**
 
-1. **Keep-warm** — `.github/workflows/keep-warm.yml` pings `/api/v1/health` every **8 minutes** with a **240s** timeout (ping-only, no clubs/UI).
-2. **Production ops** — `.github/workflows/prod-ops.yml` runs hourly full smoke (health + clubs + frontend).
+1. **Keep-warm** — `.github/workflows/keep-warm.yml` pings every **8 minutes**; **Production ops** pings every **10 minutes** as backup (hourly full smoke).
 3. **Faster prod boot** — `application-prod.yml`: skip Flyway on boot (`SPRING_FLYWAY_ENABLED=false`), `ddl-auto: none`, lazy init, deferred JPA repos, springdoc off; Dockerfile JVM tier-1 compile.
 4. **Frontend** — production timeout 180s, network retries, health prefetch on load, and a wake banner while waiting.
 5. **Upgrade path** — Render paid / always-on removes spin-down entirely.

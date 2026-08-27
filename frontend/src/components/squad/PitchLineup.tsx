@@ -15,6 +15,9 @@ import {
   type PitchSlotId,
 } from '@/utils/pitchLineup'
 
+/** Design pass in progress — hide Likely XI until the new layout ships. */
+const LIKELY_XI_VISIBLE = false
+
 type PitchLineupProps = {
   clubId?: string
   seasonId?: string
@@ -57,8 +60,12 @@ export function PitchLineup({
   const apiQuery = useQuery({
     queryKey: queryKeys.clubs.likelyLineup(clubId ?? '', seasonId ?? ''),
     queryFn: () => getLikelyLineup(clubId!, seasonId!),
-    enabled: !!clubId && !!seasonId,
+    enabled: LIKELY_XI_VISIBLE && !!clubId && !!seasonId,
   })
+
+  if (!LIKELY_XI_VISIBLE) {
+    return null
+  }
 
   const clientLineup = squad?.length ? buildPitchLineup(squad) : null
   const apiReady =

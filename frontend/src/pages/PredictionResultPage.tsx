@@ -165,12 +165,6 @@ export function PredictionResultPage() {
 
       {/* Full-width narrative: uses horizontal space instead of stretching one side column. */}
       <SurfaceCard>
-        <Typography color="text.secondary" variant="caption">
-          Contextual signals
-        </Typography>
-        <Typography sx={{ mt: 1, mb: 2 }} variant="h3">
-          Why this result
-        </Typography>
         <ExplanationList explanations={prediction.explanations} />
       </SurfaceCard>
 

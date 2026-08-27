@@ -108,7 +108,9 @@ No trailing slash. **Do not** use `localhost` in production.
 
 6. Deploy. URL: https://kleos-transfer.vercel.app
 
-`frontend/vercel.json` handles SPA routing and production `VITE_API_BASE_URL`.
+`frontend/vercel.json` handles SPA routing and production `VITE_API_BASE_URL` when deploying from the `frontend/` directory (CLI).
+
+For **Git-connected** deploys, the repository root `vercel.json` builds `frontend/dist` so backend-only pushes do not produce empty production deployments. In the Vercel dashboard, set **Root Directory** to the **repository root** (leave blank / `.`), not `frontend`.
 
 ### Local frontend
 

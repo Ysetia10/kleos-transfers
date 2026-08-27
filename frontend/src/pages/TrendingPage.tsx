@@ -85,7 +85,7 @@ function BoardTable({ title, rows }: { title: string; rows: LeaderboardEntry[] }
   )
 }
 
-function LeagueGrid({ boards }: { boards: LeagueBoards[] }) {
+function LeagueGrid({ boards, mode = 'season' }: { boards: LeagueBoards[]; mode?: 'season' | 'career' }) {
   return (
     <Box
       sx={{
@@ -111,17 +111,21 @@ function LeagueGrid({ boards }: { boards: LeagueBoards[] }) {
             <BoardTable
               rows={board.topScorers}
               title={
-                board.seasonLabel
-                  ? `Previous season top scorers (${board.seasonLabel})`
-                  : 'Previous season top scorers'
+                mode === 'career'
+                  ? 'Top scorers'
+                  : board.seasonLabel
+                    ? `Previous season top scorers (${board.seasonLabel})`
+                    : 'Previous season top scorers'
               }
             />
             <BoardTable
               rows={board.topAssisters}
               title={
-                board.seasonLabel
-                  ? `Previous season top assisters (${board.seasonLabel})`
-                  : 'Previous season top assisters'
+                mode === 'career'
+                  ? 'Top assisters'
+                  : board.seasonLabel
+                    ? `Previous season top assisters (${board.seasonLabel})`
+                    : 'Previous season top assisters'
               }
             />
           </Stack>
@@ -393,7 +397,7 @@ export function TrendingPage() {
           isLoading={allTimeQuery.isLoading}
           onRetry={() => void allTimeQuery.refetch()}
         >
-          {allTimeQuery.data ? <LeagueGrid boards={allTimeQuery.data} /> : null}
+          {allTimeQuery.data ? <LeagueGrid boards={allTimeQuery.data} mode="career" /> : null}
         </QueryState>
       </Stack>
     </Stack>

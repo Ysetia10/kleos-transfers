@@ -71,6 +71,7 @@ Flyway runs on backend startup in **local/dev** (`ddl-auto: validate`). In **pro
 3. Set secret env vars when prompted:
    - `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`
    - `CORS_ALLOWED_ORIGINS` → exact Vercel origin, e.g. `https://kleos-transfer.vercel.app`
+   - `KLEOS_INGEST_API_KEY` → long random secret for ingest scripts (blocks public bulk/CRUD without it)
 4. Deploy. Service URL: `https://kleos-transfers-api.onrender.com`.
 
 ### Option B — Manual web service
@@ -160,6 +161,7 @@ This project uses **Vite**, not Next.js — use `VITE_API_BASE_URL` (not `NEXT_P
 | `PORT` | Auto on Render | HTTP port (Render sets this) |
 | `KLEOS_RATE_LIMIT_ENABLED` | Optional | Default `true` |
 | `KLEOS_RATE_LIMIT_RPM` | Optional | Default `60` requests/min/IP |
+| `KLEOS_INGEST_API_KEY` | **Yes (prod)** | Secret for bulk import / CRUD writes (`X-Kleos-Ingest-Key` header). Public users may only `POST /api/v1/predictions`. |
 
 ---
 

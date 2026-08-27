@@ -18,15 +18,15 @@ Completed:
 - Shared domain foundation (`BaseEntity`, auditing, enums)
 - Player, Club, Manager, Season, and Tournament identity modules (API, persistence, validation, tests)
 - ClubSeason, ManagerSeason, PlayerSeason, Transfer, Contract, and Injury historical modules
-- PredictionRun / Prediction / Explanation / Evaluation with explainable `v0.2-heuristic` engine
-- Completed-season validation job + published 2024/25 baselines (`docs/prediction-validation.md`)
-- Frontend: players/clubs catalogue, prediction form, explainable results, dashboard
-- FBref PL + La Liga ingest for 2016/17–2025/26 (idempotent, headless)
-- Bulk identity import API + CSV loader script
+- PredictionRun / Prediction / Explanation / Evaluation with explainable **`v0.12-heuristic`** engine
+- Completed-season validation job + published multi-season baselines (`docs/prediction-validation.md`, `research/validation/latest.json`)
+- Frontend: players/clubs catalogue, prediction form, explainable results, trending stats
+- FBref top-five league ingest (ENG/ESP/GER/ITA/FRA) for 2016/17–2025/26 (idempotent, headless)
+- Bulk identity import API + CSV loader script (ingest key required in production)
 - SpringDoc OpenAPI / Swagger UI for `/api/v1`
 - Material UI design system and application shell
 
-Next: recover expected-stats (xG/xA) in the historical layer (#37), then a v1 model that beats the `v0.2` validation baseline (#38).
+Next: recover expected-stats (xG/xA) in the historical layer (#37), then a v1 model that beats the `v0.12` validation baseline (#38).
 
 ## High-level architecture
 
@@ -90,11 +90,11 @@ API base path: `http://localhost:8080/api/v1`
 - `GET|POST /api/v1/injuries` and `GET|PUT|DELETE /api/v1/injuries/{id}`
 - `POST|GET /api/v1/predictions`, `GET|DELETE /api/v1/predictions/{id}`, `POST /api/v1/predictions/{id}/evaluate`
 - `GET /api/v1/prediction-runs/{id}`
-- Bulk import on identity and historical collection endpoints via `/bulk`
+- Bulk import on identity and historical collection endpoints via `/bulk` (requires `KLEOS_INGEST_API_KEY` in production)
 
-### Loading historical data (Premier League + La Liga)
+### Loading historical data (top-five European leagues)
 
-Real seasons **2016/17–2025/26** are loaded from FBref (not a fake demo seed). Upcoming **predict-to** seasons (e.g. **2026/27**) are Season identity shells — no incomplete FBref scrape — so the simulator can project before outcomes exist (`scripts/ensure_predict_seasons.py`). See [`docs/data-sourcing.md`](docs/data-sourcing.md) and:
+Real seasons **2016/17–2025/26** are loaded from FBref for **Premier League, La Liga, Bundesliga, Serie A, and Ligue 1** (not a fake demo seed). Upcoming **predict-to** seasons (e.g. **2026/27**) are Season identity shells — no incomplete FBref scrape — so the simulator can project before outcomes exist (`scripts/ensure_predict_seasons.py`). See [`docs/data-sourcing.md`](docs/data-sourcing.md) and:
 
 ```bash
 pip install -r scripts/requirements-ingest.txt

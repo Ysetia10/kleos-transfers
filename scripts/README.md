@@ -2,6 +2,8 @@
 
 Small, documented automation for development and maintenance. Scripts must not embed secrets or unlicensed data dumps.
 
+**Production ingest:** set `KLEOS_INGEST_API_KEY` in the environment when calling a deployed API. Scripts attach it as `X-Kleos-Ingest-Key` via `scripts/kleos_api.py`. Local dev (`http://localhost:8080`) does not require it.
+
 ## `create-roadmap-issues.sh`
 
 Idempotent helper that creates GitHub labels, milestones, and roadmap issues.

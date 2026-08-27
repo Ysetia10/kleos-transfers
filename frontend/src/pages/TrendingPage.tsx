@@ -381,7 +381,7 @@ export function TrendingPage() {
       <Stack spacing={2}>
         <Typography variant="h3">All-time leaders</Typography>
         <Typography color="text.secondary" variant="body2">
-          Wikipedia-curated career leaders for PL and La Liga when available; otherwise totals
+          Wikipedia-curated career leaders for top-five leagues when available; otherwise totals
           within loaded FBref seasons (since 2016/17).
         </Typography>
         <QueryState

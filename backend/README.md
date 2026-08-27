@@ -157,7 +157,9 @@ Injury links `playerId` with `injuryType`, `severity` (`MINOR`, `MODERATE`, `SEV
 | DELETE | `/api/v1/predictions/{id}` | Soft-delete prediction |
 | GET | `/api/v1/prediction-runs/{id}` | Get run metadata with nested predictions |
 
-Current model version is `v0.2-heuristic`: deterministic minutes/goals/assists/xG/xA/value plus compatibility and confidence scores, each backed by explanation factors (including a GK starter/backup minutes pathway).
+Current model version is **`v0.12-heuristic`**: deterministic minutes/goals/assists/xG/xA/value plus compatibility and confidence scores, each backed by explanation factors (including GK pathways and league-transition tuning).
+
+**Production write protection:** when `SPRING_PROFILES_ACTIVE=prod`, bulk import and all CRUD mutations except `POST /api/v1/predictions` require header `X-Kleos-Ingest-Key: <KLEOS_INGEST_API_KEY>`. Reads stay public.
 
 Season labels are `YYYY/YY` (European) or `YYYY` (calendar year). `endDate` must be after `startDate`.
 

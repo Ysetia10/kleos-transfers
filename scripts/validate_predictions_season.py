@@ -26,6 +26,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from kleos_api import auth_headers
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT_DIR = ROOT / "research" / "validation"
 
@@ -178,7 +184,7 @@ def http_json(method: str, url: str, body: dict | None = None) -> Any:
         url,
         data=data,
         method=method,
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        headers=auth_headers(),
     )
     try:
         with urllib.request.urlopen(request, timeout=90) as response:
@@ -492,7 +498,7 @@ def main() -> int:
     overall = RunBucket()
     by_league: dict[str, RunBucket] = {code: RunBucket() for code in countries}
     failures: list[dict[str, str]] = []
-    model_version = "v0.3-heuristic"
+    model_version = "v0.12-heuristic"
     max_samples = args.max_samples_per_league
 
     for index, candidate in enumerate(candidates, start=1):

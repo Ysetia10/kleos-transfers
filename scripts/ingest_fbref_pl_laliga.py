@@ -39,6 +39,11 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from kleos_api import auth_headers
 
 LEAGUES = {
     "ENG-Premier League": {
@@ -271,7 +276,7 @@ def http_json(method: str, url: str, body: dict | None = None) -> Any:
         url,
         data=data,
         method=method,
-        headers={"Accept": "application/json", "Content-Type": "application/json"},
+        headers=auth_headers(),
     )
     try:
         with urllib.request.urlopen(request, timeout=120) as response:

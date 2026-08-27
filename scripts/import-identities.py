@@ -19,6 +19,13 @@ import json
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from kleos_api import auth_headers
 
 MAX_BATCH_SIZE = 500
 
@@ -90,7 +97,7 @@ def post_batch(api_url, resource, items):
     request = urllib.request.Request(
         f"{api_url.rstrip('/')}/api/v1/{resource}/bulk",
         data=payload,
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        headers=auth_headers(),
         method="POST",
     )
     try:

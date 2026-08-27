@@ -58,3 +58,6 @@ kleos:
     enabled: ${KLEOS_RATE_LIMIT_ENABLED:true}
     # Public API budget on free-tier Render + Supabase.
     requests-per-minute: ${KLEOS_RATE_LIMIT_RPM:60}
+  write-protection:
+    enabled: ${KLEOS_WRITE_PROTECTION_ENABLED:false}
+    api-key: ${KLEOS_INGEST_API_KEY:}

@@ -72,7 +72,30 @@ Tests disable the filter via `application-test.yml`.
 
 ---
 
-## Backups — #85
+## Write protection (ingest API key)
+
+Production (`SPRING_PROFILES_ACTIVE=prod`) enables `WriteProtectionFilter`:
+
+| Allowed without key | Requires `X-Kleos-Ingest-Key` (or `Authorization: Bearer`) |
+|---------------------|--------------------------------------------------------------|
+| All `GET` / `HEAD` | `POST`/`PUT`/`DELETE`/`PATCH` on identity + historical resources |
+| `POST /api/v1/predictions` (simulator) | `POST …/bulk`, `POST …/evaluate`, media updates, deletes |
+| `/api/v1/health`, `/actuator/**` | — |
+
+Set `KLEOS_INGEST_API_KEY` on Render to a long random value. Ingest scripts read the same env var (`scripts/kleos_api.py`).
+
+**Verify after deploy:**
+
+```bash
+# Should return 403 without key
+curl -s -o /dev/null -w "%{http_code}" -X POST \
+  https://kleos-transfers-api.onrender.com/api/v1/players/bulk \
+  -H 'Content-Type: application/json' -d '{"items":[]}'
+```
+
+Rotate the key if it is ever exposed in logs or chat.
+
+---
 
 Supabase free tier has limited automated backup retention. Do not rely on a single laptop dump.
 

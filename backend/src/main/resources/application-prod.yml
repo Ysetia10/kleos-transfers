@@ -36,3 +36,9 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+kleos:
+  write-protection:
+    # Public prod API: reads + POST /predictions only. Ingest/CRUD/bulk need KLEOS_INGEST_API_KEY.
+    enabled: true
+    api-key: ${KLEOS_INGEST_API_KEY:}

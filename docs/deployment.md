@@ -89,7 +89,7 @@ curl https://kleos-transfers-api.onrender.com/api/v1/health
 curl https://kleos-transfers-api.onrender.com/actuator/health
 ```
 
-Free tier may sleep after inactivity (cold start ~30–90s after optimizations) unless **Keep warm** workflow is running — see [`ops.md`](./ops.md).
+Free tier may sleep after inactivity (cold start ~30–90s after optimizations). GitHub Actions keep-warm pings have been removed — see [`ops.md`](./ops.md).
 
 ---
 
@@ -167,8 +167,7 @@ This project uses **Vite**, not Next.js — use `VITE_API_BASE_URL` (not `NEXT_P
 
 ## 6. CI vs production
 
-GitHub Actions builds the frontend with the **production** API URL and fails if `dist/assets` contains `localhost:8080`.  
-Scheduled **Keep warm** (every 8 min) and **Production ops** (hourly smoke) workflows keep the live API warm and monitored.
+GitHub Actions (CI, Keep warm, Production ops) have been **disabled and removed**. Build and smoke-check locally before deploying. The free-tier API will sleep after ~15 minutes idle.
 
 ---
 

@@ -24,14 +24,15 @@ After ~15 minutes idle, Render spins the API down. The next request can take **~
 
 **Mitigations in this repo:**
 
-1. **Keep-warm** — `.github/workflows/keep-warm.yml` pings every **8 minutes**; **Production ops** pings every **10 minutes** as backup (hourly full smoke).
-3. **Faster prod boot** — `application-prod.yml`: skip Flyway on boot (`SPRING_FLYWAY_ENABLED=false`), `ddl-auto: none`, lazy init, deferred JPA repos, springdoc off; Dockerfile JVM tier-1 compile.
-4. **Frontend** — production timeout 180s, network retries, health prefetch on load, and a wake banner while waiting.
-5. **Upgrade path** — Render paid / always-on removes spin-down entirely.
+1. **Faster prod boot** — `application-prod.yml`: skip Flyway on boot (`SPRING_FLYWAY_ENABLED=false`), `ddl-auto: none`, lazy init, deferred JPA repos, springdoc off; Dockerfile JVM tier-1 compile.
+2. **Frontend** — production timeout 180s, network retries, health prefetch on load, and a wake banner while waiting.
+3. **Upgrade path** — Render paid / always-on removes spin-down entirely.
+
+GitHub Actions keep-warm / production-ops pings are **disabled and removed**. The free-tier API will sleep after ~15 minutes idle.
 
 **When applying DB migrations in prod:** set `SPRING_FLYWAY_ENABLED=true` for one deploy (or run Flyway manually), then turn off again.
 
-**Decision recorded:** keep-warm is ping-only with a long timeout; Flyway disabled on routine prod boots after schema is current.
+**Decision recorded:** Flyway disabled on routine prod boots after schema is current.
 
 ---
 
@@ -43,13 +44,13 @@ After ~15 minutes idle, Render spins the API down. The next request can take **~
 | Data smoke | `GET /api/v1/clubs?size=1` must return `"content"` |
 | Frontend | `GET https://kleos-transfer.vercel.app/` → HTTP 200 |
 
-Workflow: **Production ops** (scheduled + `workflow_dispatch`). Failures notify via GitHub Actions (watch the repo / email notifications).
+Check these manually or via Render logs. GitHub Actions monitoring workflows have been removed.
 
 ### Cold start vs hard down
 
 | Symptom | Likely cause |
 |---------|----------------|
-| Health succeeds after 30–90s | Cold start (keep-warm missed or first wake) |
+| Health succeeds after 30–90s | Cold start (first wake after idle) |
 | Health fails for minutes | Crash loop — check Render logs (DB password, pooler URL, OOM) |
 | Clubs empty / 500 | Data or Flyway issue — Supabase + Render logs |
 | Browser CORS 403 | `CORS_ALLOWED_ORIGINS` missing exact Vercel origin |
@@ -151,4 +152,4 @@ Only trim prediction history / staging after a backup and product OK — never c
 - **Never** put `VITE_API_BASE_URL=http://localhost:8080` in `frontend/.env` (Vercel CLI can upload it).
 - Local: `frontend/.env.local` from `.env.local.example`.
 - Production: `frontend/vercel.json` → `build.env.VITE_API_BASE_URL`.
-- CI: production-like Vite build must not contain `localhost:8080` in `dist/assets`.
+- Production Vite build must not contain `localhost:8080` in `dist/assets`.
